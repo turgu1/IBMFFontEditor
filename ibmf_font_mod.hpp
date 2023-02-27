@@ -372,6 +372,7 @@ class IBMFFontMod
       FaceHeaderPtr               header;
       std::vector<GlyphInfoPtr>   glyphs;
       std::vector<Bitmap *>       bitmaps;
+      std::vector<Bitmap *>       compressed_bitmaps;
       std::vector<LigKernStep *>  lig_kern_steps;
       std::vector<FIX16>          kerns;
       std::vector<GlyphLigKern *> glyphs_lig_kern;
@@ -397,6 +398,8 @@ class IBMFFontMod
     uint32_t      repeat_count;
 
     Preamble      preamble;
+
+    int           last_error;
 
     static constexpr uint8_t PK_REPEAT_COUNT =   14;
     static constexpr uint8_t PK_REPEAT_ONCE  =   15;
@@ -580,58 +583,6 @@ class IBMFFontMod
       return true;
     }
 
-    #define WRITE(v, size) if (out.writeRawData((char *) v, size) == -1) return false
-
-    bool
-    save(QDataStream & out)
-    {
-      WRITE(&preamble, sizeof(Preamble));
-
-      uint32_t offset = 0;
-      auto offset_pos = out.device()->pos();
-      for (int i = 0; i < preamble.face_count; i++) {
-        WRITE(&offset, 4);
-      }
-
-      for (auto & face : faces) {
-        WRITE(&face->header->point_size, 1);
-      }
-      if (preamble.face_count & 1) {
-        char filler = 0;
-        WRITE(&filler, 1);
-      }
-
-      for (auto & face : faces) {
-        uint32_t pos = out.device()->pos();
-        out.device()->seek(offset_pos);
-        WRITE(&pos, 4);
-        offset_pos += 4;
-        out.device()->seek(pos);
-
-        WRITE(&face->header, sizeof(FaceHeader));
-
-        int idx = 0;
-        for (auto glyph : face->glyphs) {
-          RLEGenerator * gen = new RLEGenerator;
-          if (!gen->encode_bitmap(*face->bitmaps[idx++])) return false;
-          glyph->glyph_metric.dyn_f = gen->get_dyn_f();
-          glyph->glyph_metric.first_is_black = gen->get_first_is_black();
-          auto data = gen->get_data();
-          WRITE(&glyph, sizeof(GlyphInfo));
-          WRITE(data->data(), data->size());
-        }
-
-        for (auto lig_kern : face->lig_kern_steps) {
-          WRITE(lig_kern, sizeof(LigKernStep));
-        }
-
-        for (auto k : face->kerns) {
-          WRITE(&k, 2);
-        }
-      }
-      return true;
-    }
-
     bool
     load()
     {
@@ -666,10 +617,17 @@ class IBMFFontMod
           bitmap->pixels = Pixels(bitmap_size, 0);
           bitmap->dim = Dim(glyph_info->bitmap_width, glyph_info->bitmap_height);
 
+          Bitmap * compressed_bitmap = new Bitmap;
+          compressed_bitmap->dim = bitmap->dim;
+          compressed_bitmap->pixels.reserve(glyph_info->packet_length);
+          for (int pos = 0; pos < glyph_info->packet_length; pos++) {
+            compressed_bitmap->pixels.push_back(memory[idx + pos]);
+          }
           retrieve_bitmap(idx, glyph_info.get(), *bitmap, Pos(0,0));
 
           face->glyphs.push_back(glyph_info);
           face->bitmaps.push_back(bitmap);
+          face->compressed_bitmaps.push_back(compressed_bitmap);
 
           idx += glyph_info->packet_length;
         }
@@ -740,8 +698,9 @@ class IBMFFontMod
         : memory(memory_font), 
           memory_length(size) {
             
-      memory_end = memory + memory_length;
+      memory_end  = memory + memory_length;
       initialized = load();
+      last_error  = 0;
     }
 
    ~IBMFFontMod() {
@@ -754,6 +713,9 @@ class IBMFFontMod
         for (auto bitmap : face->bitmaps) {
           delete bitmap;
         }
+        for (auto bitmap : face->compressed_bitmaps) {
+          delete bitmap;
+        }
         for (auto lig_kern : face->lig_kern_steps) {
           delete lig_kern;
         }
@@ -764,6 +726,7 @@ class IBMFFontMod
         }
         face->glyphs.clear();
         face->bitmaps.clear();
+        face->compressed_bitmaps.clear();
         face->lig_kern_steps.clear();
         face->kerns.clear();
       }
@@ -771,8 +734,9 @@ class IBMFFontMod
       face_offsets.clear();
     }
 
-    inline Preamble        get_preample()             { return preamble;                   }
-    inline bool          is_initialized()             { return initialized;                }
+    inline Preamble   get_preample() { return preamble;    }
+    inline bool     is_initialized() { return initialized; }
+    inline int      get_last_error() { return last_error;  }
 
     inline const FaceHeaderPtr get_face_header(int face_idx) {
       return faces[face_idx]->header;
@@ -822,5 +786,112 @@ class IBMFFontMod
       return false;
     }
 
+    bool convert_to_one_bit(const Bitmap & bitmap_height_bits, Bitmap **bitmap_one_bit)
+    {
+      *bitmap_one_bit = new Bitmap;
+      (*bitmap_one_bit)->dim = bitmap_height_bits.dim;
+      auto pix = &(*bitmap_one_bit)->pixels;
+      for (int row = 0, idx = 0; row < bitmap_height_bits.dim.height; row++) {
+        uint8_t data = 0;
+        uint8_t mask = 0x80;
+        for (int col = 0; col < bitmap_height_bits.dim.width; col++, idx++) {
+          data |= bitmap_height_bits.pixels[idx] == 0 ? 0 : mask;
+          mask >>= 1;
+          if (mask == 0) {
+            pix->push_back(data);
+            data = 0;
+            mask = 0x80;
+          }
+        }
+        if (mask != 0) pix->push_back(data);
+      }
+      return pix->size() == (bitmap_height_bits.dim.height * ((bitmap_height_bits.dim.width + 7) >> 3));
+    }
 
+    #define WRITE(v, size) if (out.writeRawData((char *) v, size) == -1) { last_error = 1; return false; }
+
+    bool
+    save(QDataStream & out)
+    {
+      last_error = 0;
+      WRITE(&preamble, sizeof(Preamble));
+
+      uint32_t offset = 0;
+      auto offset_pos = out.device()->pos();
+      for (int i = 0; i < preamble.face_count; i++) {
+        WRITE(&offset, 4);
+      }
+
+      for (auto & face : faces) {
+        WRITE(&face->header->point_size, 1);
+      }
+      if (preamble.face_count & 1) {
+        char filler = 0;
+        WRITE(&filler, 1);
+      }
+
+      for (auto & face : faces) {
+        // Save current offset position as the location of the font face
+        auto pos = out.device()->pos();
+        out.device()->seek(offset_pos);
+        WRITE(&pos, 4);
+        offset_pos += 4;
+        out.device()->seek(pos);
+        if (out.device()->pos() != pos) {
+          last_error = 2;
+          return false;
+        }
+
+        WRITE(face->header.get(), sizeof(FaceHeader));
+
+        int idx = 0;
+        int glyph_count = 0;
+
+        for (auto & glyph : face->glyphs) {
+          RLEGenerator * gen = new RLEGenerator;
+          if (!gen->encode_bitmap(*face->bitmaps[idx++])) {
+            last_error = 3;
+            return false;
+          }
+          glyph->glyph_metric.dyn_f = gen->get_dyn_f();
+          glyph->glyph_metric.first_is_black = gen->get_first_is_black();
+          auto data = gen->get_data();
+          if (data->size() != glyph->packet_length) {
+            last_error = 4;
+            return false;
+          }
+          WRITE(glyph.get(), sizeof(GlyphInfo));
+          WRITE(data->data(), data->size());
+          delete gen;
+          glyph_count++;
+        }
+
+        if (glyph_count != face->header->glyph_count) {
+          last_error = 5;
+          return false;
+        }
+
+        int lig_kern_count = 0;
+        for (auto lig_kern : face->lig_kern_steps) {
+          WRITE(lig_kern, sizeof(LigKernStep));
+          lig_kern_count += 1;
+        }
+
+        if (lig_kern_count != face->header->lig_kern_pgm_count) {
+          last_error = 6;
+          return false;
+        }
+        int kern_count = 0;
+        for (auto k : face->kerns) {
+          WRITE(&k, 2);
+          kern_count += 1;
+        }
+
+        if (kern_count != face->header->kern_count) {
+          last_error = 7;
+          return false;
+        }
+      }
+      return true;
+    }
 };

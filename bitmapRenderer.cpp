@@ -77,7 +77,6 @@ void BitmapRenderer::setBitmapOffsetPos(QPoint pos)
     }
     if ((pos.x() != bitmapOffsetPos.x()) || (pos.y() != bitmapOffsetPos.y())) {
       bitmapOffsetPos = pos;
-      repaint();
     }
 }
 

@@ -1,0 +1,76 @@
+ buff ← 0;
+ p_bit ← 8;
+ i ← 1;
+ h_bit ← width;
+ on ← false;
+ state ← false;
+ count ← row [0];
+ repeat_flag ← 0;
+ while (row [i] <> end_of_char) ∨ state ∨ (count > 0) do begin
+   if state then begin
+     count ← r_count ;
+     i ← r_i;
+     on ← r_on;
+     decr(repeat_flag);
+   end
+   else begin
+     r_count ← count;
+     r_i ← i; r_on ← on ;
+   end;
+
+   (* Send one row of bits *)
+   repeat
+     if count = 0 then begin
+       if row [i] < 0 then begin
+         if ¬state then
+           repeat_flag ← −row[i];
+         incr(i);
+       end;
+       count ← row[i];
+       incr(i);
+       on ← ¬on ;
+     end;
+     if (count ≥ p_bit ) ∧ (p_bit < h_bit ) then begin
+       (* we end a byte, we don’t end the row *)
+       if on then
+         buff ← buff + power[p_bit ] − 1;
+         pk_byte(buff);
+         buff ← 0;
+         h_bit ← h_bit − p_bit;
+         count ← count − p_bit;
+         p_bit ← 8;
+       end
+       else if (count < p_bit ) ∧ (count < h_bit ) then begin
+         (* we end neither the row nor the byte *)
+         if on then buff ← buff + power[p_bit] − power[p_bit − count];
+         p_bit ← p_bit − count;
+         h_bit ← h_bit − count;
+         count ← 0;
+       end
+       else begin (* we end a row and maybe a byte *)
+       if on then buff ← buff + power[p_bit] − power[p_bit − h_bit];
+       count ← count − h_bit;
+       p_bit ← p_bit − h_bit;
+       h_bit ← width ;
+       if p_bit = 0 then begin
+         pk_byte(buff);
+         buff ← 0;
+         p_bit ← 8;
+       end;
+     end;
+   until h_bit = width
+
+   if state ∧ (repeat_flag = 0) then begin
+     count ← s_count;
+     i ← s_i;
+     on ← s_on ; state ← false ;
+   end
+   else if ¬state ∧ (repeat_flag > 0) then begin
+     s_count ← count;
+     s_i ← i;
+     s_on ← on;
+     state ← true ;
+   end;
+ end;
+ if p_bit <> 8 then pk_byte(buff);
+end

@@ -47,13 +47,13 @@ private:
     void setScreenPixel(QPoint pos);
     void loadBitmap(Bitmap & bitmap);
     void clearBitmap();
-    Dim  bitmapDim;
-    bool bitmapChanged;
-    int  pixelSize;
-    char displayBitmap[BITMAP_WIDTH * BITMAP_HEIGHT];
-    bool wasBlack;       // used by mouse events to permit sequence of pixels drawing through mouse move
-    bool editable;
-    bool noScroll;
+
+    bool   bitmapChanged;
+    int    pixelSize;
+    char   displayBitmap[BITMAP_WIDTH * BITMAP_HEIGHT];
+    bool   wasBlack;       // used by mouse events to permit sequence of pixels drawing through mouse move
+    bool   editable;
+    bool   noScroll;
     QPoint lastPos;
     QPoint bitmapOffsetPos;
 };

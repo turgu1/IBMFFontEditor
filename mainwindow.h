@@ -29,6 +29,7 @@ public:
 protected:
   void closeEvent(QCloseEvent *event);
   void resizeEvent(QResizeEvent *event);
+  void paintEvent(QPaintEvent *even);
 
 private slots:
   void on_actionOpen_triggered();
@@ -52,6 +53,10 @@ private slots:
   void on_leftSplitter_splitterMoved(int pos, int index);
   void on_bitmapVerticalScrollBar_valueChanged(int value);
   void on_bitmapHorizontalScrollBar_valueChanged(int value);
+
+  void on_actionFont_load_save_triggered();
+
+  void on_actionRLE_Encoder_triggered();
 
 private:
   Ui::MainWindow *ui;

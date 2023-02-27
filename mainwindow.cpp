@@ -100,8 +100,6 @@ MainWindow::MainWindow(QWidget *parent)
   // clear all data
   this->clearAll();
 
-  initialized = true;
-
   auto setHPolicy = [](auto widget1, auto widget2, int value1, int value2) {
     QSizePolicy sp;
     sp = widget1->sizePolicy();
@@ -131,6 +129,8 @@ MainWindow::MainWindow(QWidget *parent)
   setVPolicy(ui->fontHeaderFrame, ui->FaceCharsSplitter, 3,  4);
   //setVPolicy(ui->faceFrame,       ui->charsFrame,        1,  4);
 
+  initialized = true;
+
   show();
 }
 
@@ -145,6 +145,10 @@ void MainWindow::closeEvent(QCloseEvent *event)
 }
 
 void MainWindow::resizeEvent(QResizeEvent *event)
+{
+}
+
+void MainWindow::paintEvent(QPaintEvent *event)
 {
   setScrollBarSizes(bitmapRenderer->getPixelSize());
   updateBitmapOffsetPos();
@@ -490,7 +494,7 @@ void MainWindow::updateBitmapOffsetPos()
   if (pos.x() > maxX) pos.setX(maxX);
   if (pos.y() > maxY) pos.setY(maxY);
 
-#if 0
+#if 1
   std::cout << "Horizontal scrollbar position: "
             << ui->bitmapHorizontalScrollBar->minimum()
             << " < "
@@ -580,6 +584,7 @@ void MainWindow::on_pushButton_clicked()
 {
     centerScrollBarPos();
     updateBitmapOffsetPos();
+    bitmapRenderer->repaint();
 }
 
 
@@ -590,12 +595,115 @@ void MainWindow::on_leftSplitter_splitterMoved(int pos, int index)
 
 void MainWindow::on_bitmapVerticalScrollBar_valueChanged(int value)
 {
-    updateBitmapOffsetPos();
+    if (initialized) {
+        updateBitmapOffsetPos();
+        bitmapRenderer->repaint();
+    }
 }
 
 void MainWindow::on_bitmapHorizontalScrollBar_valueChanged(int value)
 {
-    updateBitmapOffsetPos();
+    if (initialized) {
+        updateBitmapOffsetPos();
+        bitmapRenderer->repaint();
+    }
 }
 
+
+
+void MainWindow::on_actionFont_load_save_triggered()
+{
+    if (!checkFontChanged()) return;
+
+    QFile in_file;
+    QFile out_file;
+
+    QString filename = QFileDialog::getOpenFileName(this, "Open IBMF Font File");
+    in_file.setFileName(filename);
+
+    if (!in_file.open(QIODevice::ReadOnly)) {
+      QMessageBox::critical(this, "Error", "Unable to open in file " + in_file.errorString());
+    }
+    else {
+      QByteArray original_content = in_file.readAll();
+      in_file.close();
+      auto font = IBMFFontModPtr(new IBMFFontMod((uint8_t *) original_content.data(), original_content.size()));
+      if (font->is_initialized()) {
+          filename.append(".test");
+          out_file.setFileName(filename);
+          if (!out_file.open(QIODevice::WriteOnly)) {
+              QMessageBox::critical(this, "Error", "Unable to open out file " + out_file.errorString());
+          }
+          else {
+              QDataStream out(&out_file);
+              if (font->save(out)) {
+                  out_file.close();
+                  QMessageBox::information(this, "Completed", "New font file at " + filename);
+
+              }
+              else {
+                  out_file.close();
+                  QMessageBox::critical(this, "Error", "Unable to save IBMF file " + currentFilename + " error: " + QString::number(font->get_last_error()));
+              }
+          }
+      }
+      else {
+        QMessageBox::critical(this, "Error", "Unable to load IBMF file " + currentFilename);
+      }
+    }
+
+}
+
+
+void MainWindow::on_actionRLE_Encoder_triggered()
+{
+    if (!checkFontChanged()) return;
+
+    QFile in_file;
+
+    QString filename = QFileDialog::getOpenFileName(this, "Open IBMF Font File");
+    in_file.setFileName(filename);
+
+    if (!in_file.open(QIODevice::ReadOnly)) {
+      QMessageBox::critical(this, "Error", "Unable to open in file " + in_file.errorString());
+    }
+    else {
+      QByteArray original_content = in_file.readAll();
+      in_file.close();
+      auto font = IBMFFontModPtr(new IBMFFontMod((uint8_t *) original_content.data(), original_content.size()));
+      if (font->is_initialized()) {
+        IBMFFontMod::GlyphInfoPtr glyph_info;
+        Bitmap *bitmap_height_bits;
+//        Bitmap *bitmap_one_bit;
+        for (int i = 0; i < 174; i++) {
+          if (font->get_glyph(0, i, glyph_info, &bitmap_height_bits)) {
+//            if (!font->convert_to_one_bit(*bitmap_height_bits, &bitmap_one_bit)) {
+//              QMessageBox::critical(this, "Conversion error", "convert_to_one_bit not working properly!");
+//            }
+            auto gen = new RLEGenerator;
+            if (gen->encode_bitmap(*bitmap_height_bits)) {
+              if ((gen->get_data()->size() != glyph_info->packet_length) ||
+                  (gen->get_first_is_black() != glyph_info->glyph_metric.first_is_black) ||
+                  (gen->get_dyn_f() != glyph_info->glyph_metric.dyn_f)) {
+                QMessageBox::critical(this, "Encoder Error",
+                                     "Encoder error for char code " +
+                                     QString::number(i) +
+                                     " Encoder size: " +
+                                     QString::number(gen->get_data()->size()) +
+                                     " Packet Length: " +
+                                     QString::number(glyph_info->packet_length));
+              }
+            }
+            delete gen;
+            //delete bitmap_one_bit;
+          }
+        }
+        QMessageBox::information(this, "Completed", "Completed");
+      }
+      else {
+        QMessageBox::critical(this, "Error", "Unable to load IBMF file " + currentFilename);
+      }
+    }
+
+}
 

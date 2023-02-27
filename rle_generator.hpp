@@ -6,6 +6,11 @@
 
 #define DEBUG 0
 
+#if DEBUG
+  #include <iostream>
+  #include <iomanip>
+#endif
+
 #define FIRST_IS_BLACK(c)      (c == 0)
 #define SET_AS_FIRST_BLACK     (0)
 #define SET_AS_REPEAT_COUNT(c) (-c)
@@ -14,17 +19,23 @@
 #define REPEAT_COUNT_IS_ONE(c) (c == -1)
 
 class RLEGenerator {
+
+  public:
+    typedef std::vector<uint8_t> Data;
+
+    typedef Data *               DataPtr;
+
   private:
     uint8_t value;
-    bool first_nyb;
-    std::vector<uint8_t> data;
+    bool    first_nyb;
+    Data    data;
 
     typedef std::vector<int16_t> RepeatCounts;
-    typedef int Chunk;
-    typedef std::vector<Chunk> Chunks;
+    typedef int                  Chunk;
+    typedef std::vector<Chunk>   Chunks;
 
-    uint8_t dyn_f;       // = 14 if not compressed
-    bool first_is_black; // if compressed, true if first nibble contains black pixels
+    uint8_t dyn_f;          // = 14 if not compressed
+    bool    first_is_black; // if compressed, true if first nibble contains black pixels
 
   public:
     RLEGenerator() {
@@ -33,14 +44,12 @@ class RLEGenerator {
       data.clear();
     }
 
-
-    uint8_t get_dyn_f() { return dyn_f; }
-    bool get_first_is_black() { return first_is_black; }
-    std::vector<uint8_t> * get_data() { return &data; }
-
+    uint8_t get_dyn_f()          { return dyn_f; }
+    bool    get_first_is_black() { return first_is_black; }
+    DataPtr get_data()           { return &data; }
 
     void clean() {
-      value = 0;
+      value     = 0;
       first_nyb = true;
       data.clear();
     }
@@ -79,13 +88,14 @@ class RLEGenerator {
 
     void put_byte(uint8_t val) {
       value = val;
-      data.push_back(value);
+      data.push_back(val);
       first_nyb = true;
     }
 
     void put_remainder() {
-      if (first_nyb) value <<= 4;
+      if (!first_nyb) value <<= 4;
       data.push_back(value);
+      first_nyb = true;
     }
 
     #if DEBUG
@@ -289,25 +299,30 @@ class RLEGenerator {
 
       if (dyn_f != 14) {
 
-        // ---- Send compress format ----
+        // ---- Send rle format ----
 
-        int bit_weight = 16;
         const int max_2 = 208 - 15 * dyn_f; // the highest count that fits in two bytes
 
         bool first = true;
         for (auto chunk : chunks) {
           if (first) {
             first = false;
-            if (FIRST_IS_BLACK(chunk)) continue;
+            if (FIRST_IS_BLACK(chunk)) {
+              continue;
+            }
           }
           int count = chunk;
-          if (REPEAT_COUNT_IS_ONE(count)) put_nyb(15);
+          if (REPEAT_COUNT_IS_ONE(count)) {
+            put_nyb(15);
+          }
           else {
             if (IS_A_REPEAT_COUNT(count)) {
               put_nyb(14);
               count = REPEAT_COUNT(count);
             }
-            if (count <= dyn_f) put_nyb(count);
+            if (count <= dyn_f) {
+              put_nyb(count);
+            }
             else if (count <= max_2) {
               count = count - dyn_f - 1;
               put_nyb((count >> 4) + dyn_f + 1);
@@ -328,25 +343,94 @@ class RLEGenerator {
             }
           }
         }
-        if (bit_weight != 16) put_remainder();
+        if (!first_nyb) put_remainder();
       }
       else {
 
-        // ---- Send bit map (uncompress format) ----
+        // ---- Send bit map (rle uncompressed format) ----
 
-        int idx = 0;
-        for (int row = 0; row < bitmap.dim.width; row++) {
-          int byte = 0;
-          int bit_count = 0;
-          for (int col = 0; col < bitmap.dim.height; col++) {
-            byte = (byte << 1) + ((bitmap.pixels[idx++] == 0) ? 0 : 1);
-            if (++bit_count == 8) {
-              put_byte(byte);
-              bit_count = 0;
+        uint8_t buff        = 0;
+        int     p_bit       = 8;
+        int     i           = 1;         // index in the chunks list
+        int     r_i         = 0;
+        int     s_i         = 0;
+        int     h_bit       = bitmap.dim.width;
+        bool    on          = false;     // true if it's for black pixels
+        bool    r_on        = false;
+        bool    s_on        = false;
+        bool    repeating   = false;     // true if we are repeating previous line
+        int     count       = chunks[0]; // number of bits in the current chunk
+        int     r_count     = 0;
+        int     s_count     = 0;
+        int     repeat_flag = 0;
+
+        while ((i < chunks.size()) || repeating || (count > 0)) {
+          if (repeating) {
+            count        = r_count;
+            i            = r_i;
+            on           = r_on;
+            repeat_flag -= 1;
+          }
+          else {
+            r_count = count;
+            r_i     = i;
+            r_on    = on ;
+          }
+
+          // Send one row of bits
+          do {
+            if (count == 0) {
+              if (chunks[i] < 0) {
+                if (!repeating) repeat_flag = -chunks[i];
+                i += 1;
+              }
+              count = chunks[i++];
+              on = !on ;
             }
-            if (bit_count != 0) put_byte(byte << (8 - bit_count));
+            if ((count >= p_bit) && (p_bit < h_bit )) {
+              // we end a byte, we don’t end the row
+              if (on) buff += (1 << p_bit) - 1;
+              put_byte(buff);
+              buff   = 0;
+              h_bit -= p_bit;
+              count -= p_bit;
+              p_bit  = 8;
+            }
+            else if ((count < p_bit ) && (count < h_bit)) {
+              // we end neither the row nor the byte
+              if (on) buff += (1 << p_bit) - (1 << (p_bit - count));
+              p_bit -= count;
+              h_bit -= count;
+              count = 0;
+            }
+            else {
+              // we end a row and maybe a byte
+              if (on) buff += (1 << p_bit) - (1 << (p_bit - h_bit));
+              count -= h_bit;
+              p_bit -= h_bit;
+              h_bit  = bitmap.dim.width ;
+              if (p_bit == 0) {
+                put_byte(buff);
+                buff  = 0;
+                p_bit = 8;
+              }
+            }
+          } while (h_bit != bitmap.dim.width);
+
+          if (repeating && (repeat_flag == 0)) {
+            count     = s_count;
+            i         = s_i;
+            on        = s_on;
+            repeating = false;
+          }
+          else if (!repeating && (repeat_flag > 0)) {
+            s_count    = count;
+            s_i        = i;
+            s_on       = on;
+            repeating  = true ;
           }
         }
+        if (p_bit != 8) put_byte(buff);
       }
 
       return true;

@@ -977,6 +977,9 @@
                 <pointsize>9</pointsize>
                </font>
               </property>
+              <property name="textAlignment">
+               <set>AlignLeading|AlignVCenter</set>
+              </property>
              </column>
              <column>
               <property name="text">
@@ -986,6 +989,9 @@
                <font>
                 <pointsize>9</pointsize>
                </font>
+              </property>
+              <property name="textAlignment">
+               <set>AlignLeading|AlignVCenter</set>
               </property>
              </column>
             </widget>
@@ -1016,10 +1022,16 @@
                 <pointsize>9</pointsize>
                </font>
               </property>
+              <property name="textAlignment">
+               <set>AlignLeading|AlignVCenter</set>
+              </property>
              </column>
              <column>
               <property name="text">
                <string>Kerning</string>
+              </property>
+              <property name="textAlignment">
+               <set>AlignLeading|AlignVCenter</set>
               </property>
              </column>
             </widget>
@@ -1090,7 +1102,7 @@
      <x>0</x>
      <y>0</y>
      <width>1000</width>
-     <height>19</height>
+     <height>30</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -1103,7 +1115,15 @@
     <addaction name="separator"/>
     <addaction name="actionImport"/>
    </widget>
+   <widget class="QMenu" name="menuTests">
+    <property name="title">
+     <string>Tests</string>
+    </property>
+    <addaction name="actionFont_load_save"/>
+    <addaction name="actionRLE_Encoder"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuTests"/>
   </widget>
   <action name="actionOpen">
    <property name="text">
@@ -1126,6 +1146,16 @@
   <action name="actionImport">
    <property name="text">
     <string>Import ...</string>
+   </property>
+  </action>
+  <action name="actionFont_load_save">
+   <property name="text">
+    <string>Font load / save </string>
+   </property>
+  </action>
+  <action name="actionRLE_Encoder">
+   <property name="text">
+    <string>RLE Encoder</string>
    </property>
   </action>
  </widget>

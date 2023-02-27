@@ -26,7 +26,7 @@ struct Pos {
 // Used by the glyphs'bitmap encoding algorithm
 
 typedef std::vector<uint8_t> Pixels;
-
+typedef Pixels * PixelsPtr;
 struct Bitmap {
   Pixels pixels;
   Dim    dim;
