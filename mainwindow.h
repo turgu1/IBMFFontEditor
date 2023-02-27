@@ -56,7 +56,6 @@ private slots:
 private:
   Ui::MainWindow *ui;
   QString currentFilename;
-  QFile file;
 
   bool fontChanged;
   bool faceChanged;
@@ -84,7 +83,7 @@ private:
   int ibmfGlyphCode;
 
   bool checkFontChanged();
-  bool loadFont();
+  bool loadFont(QFile &file);
   bool loadFace(uint8_t face_idx);
   void saveFace();
   void saveGlyph();
@@ -94,7 +93,6 @@ private:
   void putFix16Value(QTableWidget * w, int row, int col, QVariant value, bool editable = true);
   QVariant getValue(QTableWidget * w, int row, int col);
   void clearEditable(QTableWidget * w, int row, int col);
-  void adjustCharactersListColumns();
 };
 
 // The following is to support Fix16 fields editing in QTableWidgets

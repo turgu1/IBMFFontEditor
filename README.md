@@ -8,17 +8,22 @@ Work in progress. Not ready yet.
 ToDo:
 
 - [x] Run Length Encoding algorithm for glyph' bitmap
-- [x] Ligature / Kerning format change in IBMFFont structure
+- [x] Ligature / Kerning format change in IBMFFont file structure
 - [x] ibmf_font.hpp update according to new IBMFFont structure format
+- [ ] Testing new format
 - [ ] Algorithm for modified font file save to disk 
+- [ ] Kern and Ligature edition nd update
 - [x] Connect vertical/horizontal scrollBars to grid positioning
-- [ ] Testing
+- [ ] Add manual Text entry and formatting with the current font for proofreading.
+- [ ] Add import capability (GFX and/or TTF)
+- [ ] Testing everything
 
 Known bugs:
 
 - [x] Changing currently shown face does modify the face metrics shown, but not the glyphs' bitmaps. Corrected.
-- [ ] Size information for some widgets not updated by Qt at the expected time. The app must be resized to manually to get proper values.
+- [x] Size information for some widgets not updated by Qt at the expected time. The app must be resized manually to get proper values.
 - [ ] Glyph Preview widget adjustments required.
+- [ ] Bitmap renderer (central widget) not position properly. The app must be resized to get proper positioning.
 
 
 #### Main screen capture:

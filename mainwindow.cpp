@@ -41,14 +41,26 @@ MainWindow::MainWindow(QWidget *parent)
   for (int row = 0; row < ui->fontHeader->rowCount(); row++) {
     this->clearEditable(ui->fontHeader, row, 0);
   }
+  QHeaderView* header = ui->fontHeader->horizontalHeader();
+  header->setStretchLastSection(true);
 
   for (int row = 0; row < ui->faceHeader->rowCount(); row++) {
     this->clearEditable(ui->faceHeader, row, 0);
   }
+  header = ui->faceHeader->horizontalHeader();
+  header->setStretchLastSection(true);
 
   for (int row = 0; row < ui->characterMetrics->rowCount(); row++) {
     this->clearEditable(ui->characterMetrics, row, 0);
   }
+  header = ui->characterMetrics->horizontalHeader();
+  header->setStretchLastSection(true);
+
+  header = ui->ligTable->horizontalHeader();
+  header->setStretchLastSection(true);
+
+  header = ui->kernTable->horizontalHeader();
+  header->setStretchLastSection(true);
 
   // Initialize the characters table
   ui->charactersList->setColumnCount(5);
@@ -73,18 +85,53 @@ MainWindow::MainWindow(QWidget *parent)
     }
   }
 
+  header = ui->charactersList->horizontalHeader();
+  header->setSectionResizeMode(QHeaderView::Stretch);
+
   // Set tables columns widths
-  ui->fontHeader->setColumnWidth(0, 120);
-  ui->faceHeader->setColumnWidth(0, 120);
+
+  ui->fontHeader      ->setColumnWidth(0, 120);
+  ui->faceHeader      ->setColumnWidth(0, 120);
   ui->characterMetrics->setColumnWidth(0, 120);
-  ui->fontHeader->setColumnWidth(1, 100);
-  ui->faceHeader->setColumnWidth(1, 100);
+  ui->fontHeader      ->setColumnWidth(1, 100);
+  ui->faceHeader      ->setColumnWidth(1, 100);
   ui->characterMetrics->setColumnWidth(1, 100);
 
   // clear all data
   this->clearAll();
 
   initialized = true;
+
+  auto setHPolicy = [](auto widget1, auto widget2, int value1, int value2) {
+    QSizePolicy sp;
+    sp = widget1->sizePolicy();
+    sp.setHorizontalStretch(value1);
+    widget1->setSizePolicy(sp);
+    sp = widget2->sizePolicy();
+    sp.setHorizontalStretch(value2);
+    widget2->setSizePolicy(sp);
+  };
+
+  auto setVPolicy = [](auto widget1, auto widget2, int value1, int value2) {
+    QSizePolicy sp;
+    sp = widget1->sizePolicy();
+    sp.setVerticalStretch(value1);
+    widget1->setSizePolicy(sp);
+    sp = widget2->sizePolicy();
+    sp.setVerticalStretch(value2);
+    widget2->setSizePolicy(sp);
+  };
+
+  ui->leftFrame        ->setSizes(QList<int>() << 50 << 200);
+  ui->FaceCharsSplitter->setSizes(QList<int>() << 100 << 200);
+
+  setHPolicy(ui->leftFrame,       ui->rightSplitter,    12, 20);
+  setHPolicy(ui->centralFrame,    ui->rightFrame,       20,  8);
+  setVPolicy(ui->charsMetrics,    ui->tabs,             20, 20);
+  setVPolicy(ui->fontHeaderFrame, ui->FaceCharsSplitter, 3,  4);
+  //setVPolicy(ui->faceFrame,       ui->charsFrame,        1,  4);
+
+  show();
 }
 
 MainWindow::~MainWindow()
@@ -101,8 +148,6 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 {
   setScrollBarSizes(bitmapRenderer->getPixelSize());
   updateBitmapOffsetPos();
-
-  adjustCharactersListColumns();
 }
 
 void MainWindow::bitmapChanged(Bitmap & bitmap)
@@ -138,6 +183,8 @@ void MainWindow::on_actionOpen_triggered()
 {
   if (!checkFontChanged()) return;
 
+  QFile file;
+
   QString filename = QFileDialog::getOpenFileName(this, "Open IBMF Font File");
   file.setFileName(filename);
   currentFilename = filename;
@@ -147,7 +194,7 @@ void MainWindow::on_actionOpen_triggered()
     QMessageBox::warning(this, "Warning", "Unable to open file " + file.errorString());
   }
   else {
-    if (loadFont()) {
+    if (loadFont(file)) {
       setWindowTitle("IBMF Font Editor - " + filename);
     }
     else {
@@ -198,7 +245,7 @@ QVariant MainWindow::getValue(QTableWidget * w, int row, int col)
   return w->item(row, col)->data(Qt::DisplayRole);
 }
 
-bool MainWindow::loadFont()
+bool MainWindow::loadFont(QFile &file)
 {
   QByteArray content = file.readAll();
   file.close();
@@ -443,6 +490,7 @@ void MainWindow::updateBitmapOffsetPos()
   if (pos.x() > maxX) pos.setX(maxX);
   if (pos.y() > maxY) pos.setY(maxY);
 
+#if 0
   std::cout << "Horizontal scrollbar position: "
             << ui->bitmapHorizontalScrollBar->minimum()
             << " < "
@@ -461,6 +509,7 @@ void MainWindow::updateBitmapOffsetPos()
   std::cout << "BitmapRender Size: " << bitmapRenderer->width() << ", " << bitmapRenderer->height() << std::endl;
   std::cout << "BitmapRender Pixel Size: " << bitmapRenderer->getPixelSize() << std::endl;
   std::cout << "BitmapOffsetPos = " << pos.x() << ", " << pos.y() << std::endl;
+#endif
 
   bitmapRenderer->setBitmapOffsetPos(pos);
 }
@@ -527,12 +576,6 @@ void MainWindow::on_faceForgetButton_clicked()
   }
 }
 
-void MainWindow::adjustCharactersListColumns() {
-    for (int col = 0; col < 5; col++) {
-        ui->charactersList->setColumnWidth(col, (ui->charactersList->width() - 22) / 5);
-    }
-}
-
 void MainWindow::on_pushButton_clicked()
 {
     centerScrollBarPos();
@@ -542,7 +585,6 @@ void MainWindow::on_pushButton_clicked()
 
 void MainWindow::on_leftSplitter_splitterMoved(int pos, int index)
 {
-    adjustCharactersListColumns();
 }
 
 

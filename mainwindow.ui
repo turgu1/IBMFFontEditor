@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1393</width>
-    <height>963</height>
+    <width>1000</width>
+    <height>800</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,6 +19,12 @@
      <widget class="QSplitter" name="leftSplitter">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="opaqueResize">
+       <bool>true</bool>
+      </property>
+      <property name="childrenCollapsible">
+       <bool>true</bool>
       </property>
       <widget class="QSplitter" name="leftFrame">
        <property name="frameShape">
@@ -33,7 +39,13 @@
        <property name="childrenCollapsible">
         <bool>false</bool>
        </property>
-       <widget class="QFrame" name="frame_11">
+       <widget class="QFrame" name="fontHeaderFrame">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="frameShape">
          <enum>QFrame::NoFrame</enum>
         </property>
@@ -189,11 +201,35 @@
          </item>
         </layout>
        </widget>
-       <widget class="QSplitter" name="splitter_3">
+       <widget class="QSplitter" name="FaceCharsSplitter">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="orientation">
          <enum>Qt::Vertical</enum>
         </property>
-        <widget class="QFrame" name="frame_9">
+        <property name="handleWidth">
+         <number>4</number>
+        </property>
+        <property name="childrenCollapsible">
+         <bool>false</bool>
+        </property>
+        <widget class="QFrame" name="faceFrame">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
          <property name="frameShape">
           <enum>QFrame::NoFrame</enum>
          </property>
@@ -344,7 +380,13 @@
           </item>
          </layout>
         </widget>
-        <widget class="QFrame" name="frame_8">
+        <widget class="QFrame" name="charsFrame">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="frameShape">
           <enum>QFrame::NoFrame</enum>
          </property>
@@ -373,6 +415,12 @@
           </item>
           <item>
            <widget class="QTableWidget" name="charactersList">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="font">
              <font>
               <pointsize>24</pointsize>
@@ -699,7 +747,10 @@
         <property name="orientation">
          <enum>Qt::Vertical</enum>
         </property>
-        <widget class="QFrame" name="frame_6">
+        <property name="childrenCollapsible">
+         <bool>false</bool>
+        </property>
+        <widget class="QFrame" name="charsMetrics">
          <property name="frameShape">
           <enum>QFrame::NoFrame</enum>
          </property>
@@ -823,9 +874,9 @@
           </item>
          </layout>
         </widget>
-        <widget class="QTabWidget" name="tabWidget">
+        <widget class="QTabWidget" name="tabs">
          <property name="currentIndex">
-          <number>0</number>
+          <number>1</number>
          </property>
          <widget class="QWidget" name="preview">
           <attribute name="title">
@@ -834,16 +885,22 @@
           <layout class="QVBoxLayout" name="verticalLayout_2">
            <item>
             <widget class="QFrame" name="largeGlyphPreview">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="minimumSize">
               <size>
                <width>0</width>
-               <height>300</height>
+               <height>200</height>
               </size>
              </property>
              <property name="maximumSize">
               <size>
                <width>16777215</width>
-               <height>300</height>
+               <height>16777215</height>
               </size>
              </property>
              <property name="frameShape">
@@ -852,24 +909,17 @@
              <property name="frameShadow">
               <enum>QFrame::Sunken</enum>
              </property>
-             <layout class="QHBoxLayout" name="horizontalLayout_6">
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-             </layout>
+             <layout class="QHBoxLayout" name="horizontalLayout_5"/>
             </widget>
            </item>
            <item>
             <widget class="QFrame" name="smallGlyphPreview">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="minimumSize">
               <size>
                <width>0</width>
@@ -888,20 +938,7 @@
              <property name="frameShadow">
               <enum>QFrame::Sunken</enum>
              </property>
-             <layout class="QHBoxLayout" name="horizontalLayout_7">
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-             </layout>
+             <layout class="QHBoxLayout" name="horizontalLayout_6"/>
             </widget>
            </item>
           </layout>
@@ -1052,8 +1089,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1393</width>
-     <height>30</height>
+     <width>1000</width>
+     <height>19</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

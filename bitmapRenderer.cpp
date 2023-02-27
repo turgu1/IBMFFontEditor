@@ -20,8 +20,8 @@ BitmapRenderer::BitmapRenderer(QWidget *parent, int pixel_size, bool no_scroll)
 void BitmapRenderer::resizeEvent(QResizeEvent *event) {
   if (noScroll) {
     bitmapOffsetPos = QPoint(
-      BITMAP_WIDTH - (width() / pixelSize) / 2,
-      BITMAP_HEIGHT - (height() / pixelSize) / 2
+      (BITMAP_WIDTH - (width() / pixelSize)) / 2,
+      (BITMAP_HEIGHT - (height() / pixelSize)) / 2
     );
     if (bitmapOffsetPos.x() < 0) bitmapOffsetPos.setX(0);
     if (bitmapOffsetPos.y() < 0) bitmapOffsetPos.setY(0);

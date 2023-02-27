@@ -5,6 +5,10 @@
 #include "defs.hpp"
 
 #include <QChar>
+#include <QDataStream>
+#include <QIODevice>
+
+#include "rle_generator.hpp"
 
 #define DEBUG 0
 
@@ -573,6 +577,58 @@ class IBMFFontMod
         }
       }
 
+      return true;
+    }
+
+    #define WRITE(v, size) if (out.writeRawData((char *) v, size) == -1) return false
+
+    bool
+    save(QDataStream & out)
+    {
+      WRITE(&preamble, sizeof(Preamble));
+
+      uint32_t offset = 0;
+      auto offset_pos = out.device()->pos();
+      for (int i = 0; i < preamble.face_count; i++) {
+        WRITE(&offset, 4);
+      }
+
+      for (auto & face : faces) {
+        WRITE(&face->header->point_size, 1);
+      }
+      if (preamble.face_count & 1) {
+        char filler = 0;
+        WRITE(&filler, 1);
+      }
+
+      for (auto & face : faces) {
+        uint32_t pos = out.device()->pos();
+        out.device()->seek(offset_pos);
+        WRITE(&pos, 4);
+        offset_pos += 4;
+        out.device()->seek(pos);
+
+        WRITE(&face->header, sizeof(FaceHeader));
+
+        int idx = 0;
+        for (auto glyph : face->glyphs) {
+          RLEGenerator * gen = new RLEGenerator;
+          if (!gen->encode_bitmap(*face->bitmaps[idx++])) return false;
+          glyph->glyph_metric.dyn_f = gen->get_dyn_f();
+          glyph->glyph_metric.first_is_black = gen->get_first_is_black();
+          auto data = gen->get_data();
+          WRITE(&glyph, sizeof(GlyphInfo));
+          WRITE(data->data(), data->size());
+        }
+
+        for (auto lig_kern : face->lig_kern_steps) {
+          WRITE(lig_kern, sizeof(LigKernStep));
+        }
+
+        for (auto k : face->kerns) {
+          WRITE(&k, 2);
+        }
+      }
       return true;
     }
 

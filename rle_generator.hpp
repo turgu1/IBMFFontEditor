@@ -23,6 +23,9 @@ class RLEGenerator {
     typedef int Chunk;
     typedef std::vector<Chunk> Chunks;
 
+    uint8_t dyn_f;       // = 14 if not compressed
+    bool first_is_black; // if compressed, true if first nibble contains black pixels
+
   public:
     RLEGenerator() {
       value = 0;
@@ -30,8 +33,11 @@ class RLEGenerator {
       data.clear();
     }
 
-    uint8_t dyn_f;       // = 14 if not compressed
-    bool first_is_black; // if compressed, true if first nibble contains black pixels
+
+    uint8_t get_dyn_f() { return dyn_f; }
+    bool get_first_is_black() { return first_is_black; }
+    std::vector<uint8_t> * get_data() { return &data; }
+
 
     void clean() {
       value = 0;
