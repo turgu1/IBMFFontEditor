@@ -57,7 +57,7 @@ void BitmapRenderer::clear_and_emit(bool repaint_after)
 
 void BitmapRenderer::setPixelSize(int pixel_size)
 {
-  Bitmap * bitmap;
+  IBMFDefs::Bitmap * bitmap;
 
   pixelSize = pixel_size;
   if (retrieveBitmap(&bitmap)) {
@@ -150,7 +150,7 @@ void BitmapRenderer::mousePressEvent(QMouseEvent *event)
       }
       repaint();
 
-      Bitmap * theBitmap;
+      IBMFDefs::Bitmap * theBitmap;
       if (retrieveBitmap(&theBitmap)) {
         emit bitmapHasChanged(*theBitmap);
       }
@@ -177,7 +177,7 @@ void BitmapRenderer::mouseMoveEvent(QMouseEvent *event)
       lastPos.setX(pos.x());
       lastPos.setY(pos.y());
 
-      Bitmap * theBitmap;
+      IBMFDefs::Bitmap * theBitmap;
       if (retrieveBitmap(&theBitmap)) {
         emit bitmapHasChanged(*theBitmap);
       }
@@ -188,13 +188,13 @@ void BitmapRenderer::mouseMoveEvent(QMouseEvent *event)
   }
 }
 
-void BitmapRenderer::clearAndLoadBitmap(Bitmap & bitmap)
+void BitmapRenderer::clearAndLoadBitmap(IBMFDefs::Bitmap & bitmap)
 {
   clear_and_emit();
   loadBitmap(bitmap);
 }
 
-void BitmapRenderer::loadBitmap(Bitmap & bitmap)
+void BitmapRenderer::loadBitmap(IBMFDefs::Bitmap & bitmap)
 {
   QPoint pos((BITMAP_WIDTH - bitmap.dim.width) / 2, (BITMAP_HEIGHT - bitmap.dim.height) / 2);
 
@@ -220,7 +220,7 @@ void BitmapRenderer::loadBitmap(Bitmap & bitmap)
   this->repaint();
 }
 
-bool BitmapRenderer::retrieveBitmap(Bitmap ** bitmap)
+bool BitmapRenderer::retrieveBitmap(IBMFDefs::Bitmap ** bitmap)
 {
   QPoint topLeft;
   QPoint bottomRight;
@@ -275,10 +275,10 @@ bool BitmapRenderer::retrieveBitmap(Bitmap ** bitmap)
   }
   bottomRight.setX(col);
 
-  Bitmap * theBitmap = new Bitmap;
-  theBitmap->dim = Dim(bottomRight.x() - topLeft.x() + 1, bottomRight.y() - topLeft.y() + 1);
+  IBMFDefs::Bitmap * theBitmap = new IBMFDefs::Bitmap;
+  theBitmap->dim = IBMFDefs::Dim(bottomRight.x() - topLeft.x() + 1, bottomRight.y() - topLeft.y() + 1);
   int size   = theBitmap->dim.width * theBitmap->dim.height;
-  theBitmap->pixels = Pixels(size, 0);
+  theBitmap->pixels = IBMFDefs::Pixels(size, 0);
 
   idx = 0;
   for (row = topLeft.y(), rowp = row * BITMAP_WIDTH; row <= bottomRight.y(); row++, rowp += BITMAP_WIDTH) {

@@ -2,7 +2,8 @@
 
 #include <cstring>
 
-#include "defs.hpp"
+#include "ibmf_defs.hpp"
+using namespace IBMFDefs;
 
 #define DEBUG 0
 
@@ -129,7 +130,7 @@ class RLEGenerator {
     #endif
 
     void
-    compute_chunks(Chunks & chunks, const Bitmap & bitmap, const RepeatCounts & repeat_counts)
+    compute_chunks(Chunks & chunks, const IBMFDefs::Bitmap & bitmap, const RepeatCounts & repeat_counts)
     {
       chunks.clear(); chunks.reserve(50);
       Chunk chunk;

@@ -75,12 +75,12 @@ private:
 
   typedef std::unique_ptr<IBMFFontMod> IBMFFontModPtr;
 
-  IBMFFontModPtr               ibmfFont;
-  IBMFFontMod::Preamble        ibmfPreamble;
-  IBMFFontMod::FaceHeaderPtr   ibmfFaceHeader;
-  IBMFFontMod::GlyphInfoPtr    ibmfGlyphInfo;
+  IBMFFontModPtr              ibmfFont;
+  IBMFDefs::Preamble          ibmfPreamble;
+  IBMFDefs::FaceHeaderPtr     ibmfFaceHeader;
+  IBMFDefs::GlyphInfoPtr      ibmfGlyphInfo;
 
-  Bitmap                    * ibmfGlyphBitmap;
+  IBMFDefs::Bitmap          * ibmfGlyphBitmap;
 
   IBMFFontMod::GlyphLigKern * ibmfLigKerns;
 

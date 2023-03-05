@@ -22,7 +22,8 @@ set(PROJECT_SOURCES
         bitmapRenderer.h
         ibmf_font_mod.hpp
         rle_generator.hpp
-        defs.hpp
+        rle_extractor.hpp
+        ibmf_defs.hpp
         mainwindow.ui
 )
 

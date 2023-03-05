@@ -189,7 +189,7 @@
                </sizepolicy>
               </property>
               <property name="text">
-               <string>Face number:</string>
+               <string>Face Size:</string>
               </property>
              </widget>
             </item>
@@ -292,7 +292,7 @@
              <enum>QFrame::Panel</enum>
             </property>
             <property name="rowCount">
-             <number>11</number>
+             <number>12</number>
             </property>
             <attribute name="horizontalHeaderVisible">
              <bool>false</bool>
@@ -300,6 +300,7 @@
             <attribute name="verticalHeaderVisible">
              <bool>false</bool>
             </attribute>
+            <row/>
             <row/>
             <row/>
             <row/>
@@ -343,35 +344,40 @@
             </item>
             <item row="4" column="0">
              <property name="text">
-              <string>EM Size</string>
+              <string>Max Height</string>
              </property>
             </item>
             <item row="5" column="0">
              <property name="text">
-              <string>Slant Correction</string>
+              <string>EM Size</string>
              </property>
             </item>
             <item row="6" column="0">
              <property name="text">
-              <string>Descender Height</string>
+              <string>Slant Correction</string>
              </property>
             </item>
             <item row="7" column="0">
              <property name="text">
-              <string>Space Size</string>
+              <string>Descender Height</string>
              </property>
             </item>
             <item row="8" column="0">
              <property name="text">
-              <string>Glyph Count</string>
+              <string>Space Size</string>
              </property>
             </item>
             <item row="9" column="0">
              <property name="text">
-              <string>Lig/Kern Count</string>
+              <string>Glyph Count</string>
              </property>
             </item>
             <item row="10" column="0">
+             <property name="text">
+              <string>Lig/Kern Count</string>
+             </property>
+            </item>
+            <item row="11" column="0">
              <property name="text">
               <string>Kern Count</string>
              </property>
@@ -1102,7 +1108,7 @@
      <x>0</x>
      <y>0</y>
      <width>1000</width>
-     <height>30</height>
+     <height>19</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
