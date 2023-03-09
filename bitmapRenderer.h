@@ -1,63 +1,61 @@
 #ifndef BITMAPRENDERER_H
 #define BITMAPRENDERER_H
 
-#include <QWidget>
-#include <QPen>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
-#include <QMouseEvent>
+#include <QPen>
 #include <QPoint>
 #include <QScrollBar>
+#include <QWidget>
 
 #include "ibmf_defs.hpp"
 
-class BitmapRenderer : public QWidget
-{
-    Q_OBJECT
+class BitmapRenderer : public QWidget {
+  Q_OBJECT
 
 public:
+  static const int bitmapWidth  = 200;
+  static const int bitmapHeight = 200;
 
-    static const int BITMAP_WIDTH  = 200;
-    static const int BITMAP_HEIGHT = 200;
-
-    BitmapRenderer(QWidget *parent = 0, int pixel_size = 20, bool no_scroll = false);
-    bool retrieveBitmap(IBMFDefs::Bitmap **bitmap);
-    void clear_and_emit(bool repaint_after = false);
-    bool changed() { return bitmapChanged; }
-    void setPixelSize(int pixel_size);
-    void connectTo(BitmapRenderer * renderer);
-    int  getPixelSize();
-    void setBitmapOffsetPos(QPoint pos);
+  BitmapRenderer(QWidget *parent = 0, int pixel_size = 20, bool no_scroll = false);
+  bool retrieveBitmap(IBMFDefs::Bitmap **bitmap);
+  void clearAndEmit(bool repaint_after = false);
+  bool changed() { return bitmapChanged; }
+  void setPixelSize(int pixel_size);
+  void connectTo(BitmapRenderer *renderer);
+  int  getPixelSize();
+  void setBitmapOffsetPos(QPoint pos);
 
 public slots:
-    void clearAndLoadBitmap(IBMFDefs::Bitmap &bitmap);
-    void clear_and_repaint();
+  void clearAndLoadBitmap(IBMFDefs::Bitmap &bitmap);
+  void clearAndRepaint();
 
 signals:
-    void bitmapHasChanged(IBMFDefs::Bitmap & bitmap);
-    void bitmapCleared();
+  void bitmapHasChanged(IBMFDefs::Bitmap &bitmap);
+  void bitmapCleared();
 
 protected:
-    void paintEvent(QPaintEvent *event);
-    void mousePressEvent(QMouseEvent *event);
-    void mouseMoveEvent(QMouseEvent *event);
-    void resizeEvent(QResizeEvent *event);
+  void paintEvent(QPaintEvent *event);
+  void mousePressEvent(QMouseEvent *event);
+  void mouseMoveEvent(QMouseEvent *event);
+  void resizeEvent(QResizeEvent *event);
 
 private:
-    void setScreenPixel(QPoint pos);
-    void loadBitmap(IBMFDefs::Bitmap & bitmap);
-    void clearBitmap();
+  void setScreenPixel(QPoint pos);
+  void loadBitmap(IBMFDefs::Bitmap &bitmap);
+  void clearBitmap();
 
-    typedef char DisplayBitmap[BITMAP_WIDTH * BITMAP_HEIGHT];
+  typedef char DisplayBitmap[bitmapWidth * bitmapHeight];
 
-    bool           bitmapChanged;
-    int            pixelSize;
-    DisplayBitmap  displayBitmap;
-    bool           wasBlack;       // used by mouse events to permit sequence of pixels drawing through mouse move
-    bool           editable;
-    bool           noScroll;
-    QPoint         lastPos;
-    QPoint         bitmapOffsetPos;
+  bool          bitmapChanged;
+  int           pixelSize;
+  DisplayBitmap displayBitmap;
+  bool   wasBlack; // used by mouse events to permit sequence of pixels drawing through mouse move
+  bool   editable;
+  bool   noScroll;
+  QPoint lastPos;
+  QPoint bitmapOffsetPos;
 };
 
 #endif // BITMAPRENDERER_H

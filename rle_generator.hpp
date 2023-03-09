@@ -12,7 +12,7 @@ using namespace IBMFDefs;
   #include <iomanip>
 #endif
 
-#define FIRST_IS_BLACK(c)      (c == 0)
+#define firstIsBlack(c)      (c == 0)
 #define SET_AS_FIRST_BLACK     (0)
 #define SET_AS_REPEAT_COUNT(c) (-c)
 #define REPEAT_COUNT(c)        (-c)
@@ -35,8 +35,8 @@ class RLEGenerator {
     typedef int                  Chunk;
     typedef std::vector<Chunk>   Chunks;
 
-    uint8_t dyn_f;          // = 14 if not compressed
-    bool    first_is_black; // if compressed, true if first nibble contains black pixels
+    uint8_t dynF;          // = 14 if not compressed
+    bool    firstIsBlack; // if compressed, true if first nibble contains black pixels
 
   public:
     RLEGenerator() {
@@ -45,8 +45,8 @@ class RLEGenerator {
       data.clear();
     }
 
-    uint8_t get_dyn_f()          { return dyn_f; }
-    bool    get_first_is_black() { return first_is_black; }
+    uint8_t get_dynF()          { return dynF; }
+    bool    get_firstIsBlack() { return firstIsBlack; }
     DataPtr get_data()           { return &data; }
 
     void clean() {
@@ -60,11 +60,11 @@ class RLEGenerator {
         std::cout << "RLEGenerator content:"
                   << std::endl
                   << "  First nybble is "
-                  << (first_is_black ? "" : "NOT ")
+                  << (firstIsBlack ? "" : "NOT ")
                   << "for black pixels."
                   << std::endl
-                  << "  dyn_f value is "
-                  << +dyn_f
+                  << "  dynF value is "
+                  << +dynF
                   << std::endl;
 
         for (auto byte : data) {
@@ -107,7 +107,7 @@ class RLEGenerator {
         for (auto chunk : chunks) {
           if (first) {
             first = false;
-            if (FIRST_IS_BLACK(chunk)) {
+            if (firstIsBlack(chunk)) {
               black = true;
               continue;
             }
@@ -122,15 +122,15 @@ class RLEGenerator {
         std::cout << std::endl;
       }
 
-      void show_repeat_counts(const RepeatCounts repeat_counts)
+      void show_repeatCounts(const RepeatCounts repeatCounts)
       {
-        for (auto count : repeat_counts) std::cout << count << " ";
+        for (auto count : repeatCounts) std::cout << count << " ";
         std::cout << std::endl;
       }
     #endif
 
     void
-    compute_chunks(Chunks & chunks, const IBMFDefs::Bitmap & bitmap, const RepeatCounts & repeat_counts)
+    compute_chunks(Chunks & chunks, const IBMFDefs::Bitmap & bitmap, const RepeatCounts & repeatCounts)
     {
       chunks.clear(); chunks.reserve(50);
       Chunk chunk;
@@ -140,7 +140,7 @@ class RLEGenerator {
       int row = 0;
       int col = 1;
       int idx = 1;
-      bool show_repeat = repeat_counts[row] > 0;
+      bool show_repeat = repeatCounts[row] > 0;
       while (row < bitmap.dim.height) {
         while (col < bitmap.dim.width) {
           if (val == bitmap.pixels[idx++]) {
@@ -150,7 +150,7 @@ class RLEGenerator {
             chunks.push_back(chunk);
             if (show_repeat) {
               show_repeat = false;
-              chunks.push_back(SET_AS_REPEAT_COUNT(repeat_counts[row]));
+              chunks.push_back(SET_AS_REPEAT_COUNT(repeatCounts[row]));
             }
             val ^= 0xFF;
             chunk = 1;
@@ -159,26 +159,26 @@ class RLEGenerator {
         }
         row++;
         col = 0;
-        while ((row < bitmap.dim.height) && (repeat_counts[row] == -1)) {
+        while ((row < bitmap.dim.height) && (repeatCounts[row] == -1)) {
           row++;
           idx += bitmap.dim.width;
         }
-        show_repeat = repeat_counts[row] > 0;
+        show_repeat = repeatCounts[row] > 0;
       }
       chunks.push_back(chunk);
     }
 
     void
-    compute_repeat_counts(const Bitmap & bitmap, RepeatCounts & repeat_counts)
+    compute_repeatCounts(const Bitmap & bitmap, RepeatCounts & repeatCounts)
     {
       int row, col, current;
       uint8_t val;
       bool same;
 
-      repeat_counts.clear();
-      repeat_counts.reserve(bitmap.dim.height);
+      repeatCounts.clear();
+      repeatCounts.reserve(bitmap.dim.height);
 
-      for (row = 0; row < bitmap.dim.height; row++) repeat_counts.push_back(0);
+      for (row = 0; row < bitmap.dim.height; row++) repeatCounts.push_back(0);
 
       row = 0;
       current = 1;
@@ -201,8 +201,8 @@ class RLEGenerator {
             if (!same) break;
           }
           if (same) {
-            repeat_counts[row]++;
-            repeat_counts[current++] = -1;
+            repeatCounts[row]++;
+            repeatCounts[current++] = -1;
           }
           else {
             row = current;
@@ -221,27 +221,27 @@ class RLEGenerator {
 
       memset(deriv, 0, sizeof(deriv));
 
-      // compute compression size and dyn_f
+      // compute compression size and dynF
 
-      RepeatCounts repeat_counts;
+      RepeatCounts repeatCounts;
       Chunks chunks;
 
-      compute_repeat_counts(bitmap, repeat_counts);
-      compute_chunks(chunks, bitmap, repeat_counts);
+      compute_repeatCounts(bitmap, repeatCounts);
+      compute_chunks(chunks, bitmap, repeatCounts);
 
       #if DEBUG
-        show_repeat_counts(repeat_counts);
+        show_repeatCounts(repeatCounts);
         show_chunks(chunks);
       #endif
 
-      first_is_black = false;
+      firstIsBlack = false;
 
       bool first = true;
       for (auto chunk : chunks) {
         if (first) {
           first = false;
-          if (FIRST_IS_BLACK(chunk)) {
-            first_is_black = true;
+          if (firstIsBlack(chunk)) {
+            firstIsBlack = true;
             continue;
           }
         }
@@ -272,43 +272,43 @@ class RLEGenerator {
       }
 
       int b_comp_size = comp_size;
-      dyn_f = 0;
+      dynF = 0;
 
       for (int i = 1; i <= 13; i++) {
         comp_size += deriv[i];
         if (comp_size <= b_comp_size) {
           b_comp_size = comp_size;
-          dyn_f = i;
+          dynF = i;
         }
       }
 
       comp_size = (b_comp_size + 1) >> 1;
       if ((comp_size > ((bitmap.dim.height * bitmap.dim.width + 7) >> 3))) {
         comp_size = (bitmap.dim.height * bitmap.dim.width + 7) >> 3;
-        dyn_f = 14;
+        dynF = 14;
       }
 
       data.reserve(comp_size);
 
       #if DEBUG
-        std::cout << "Best packing is dyn_f of "
-                  << dyn_f
+        std::cout << "Best packing is dynF of "
+                  << dynF
                   << " with length "
                   << comp_size
                   << "." << std::endl;
       #endif
 
-      if (dyn_f != 14) {
+      if (dynF != 14) {
 
         // ---- Send rle format ----
 
-        const int max_2 = 208 - 15 * dyn_f; // the highest count that fits in two bytes
+        const int max_2 = 208 - 15 * dynF; // the highest count that fits in two bytes
 
         bool first = true;
         for (auto chunk : chunks) {
           if (first) {
             first = false;
-            if (FIRST_IS_BLACK(chunk)) {
+            if (firstIsBlack(chunk)) {
               continue;
             }
           }
@@ -321,12 +321,12 @@ class RLEGenerator {
               put_nyb(14);
               count = REPEAT_COUNT(count);
             }
-            if (count <= dyn_f) {
+            if (count <= dynF) {
               put_nyb(count);
             }
             else if (count <= max_2) {
-              count = count - dyn_f - 1;
-              put_nyb((count >> 4) + dyn_f + 1);
+              count = count - dynF - 1;
+              put_nyb((count >> 4) + dynF + 1);
               put_nyb(count & 0x0F);
             }
             else {

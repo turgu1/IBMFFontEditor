@@ -30,13 +30,13 @@ class IBMFFontMod
 {
   public:
     struct GlyphKernStep {
-      unsigned int next_char_code;
+      unsigned int nextcharCode;
       FIX16 kern;
     };
 
     struct GlyphLigStep {
-      unsigned int next_char_code;
-      unsigned int char_code;
+      unsigned int nextcharCode;
+      unsigned int charCode;
     };
 
     struct GlyphLigKern {
@@ -70,10 +70,10 @@ class IBMFFontMod
     uint8_t     * memory;
     uint32_t      memory_length;
 
-    uint8_t     * memory_ptr;
-    uint8_t     * memory_end;
+    uint8_t     * memoryPtr;
+    uint8_t     * memoryEnd;
 
-    //uint32_t      repeat_count;
+    //uint32_t      repeatCount;
 
 
     int           last_error;
@@ -87,53 +87,53 @@ class IBMFFontMod
 
       int idx = sizeof(Preamble);
 
-      for (int i = 0; i < preamble.face_count; i++) {
+      for (int i = 0; i < preamble.faceCount; i++) {
         uint32_t offset = *((uint32_t *) &memory[idx]);
         face_offsets.push_back(offset);
         idx += 4;
       }
 
-      for (int i = 0; i < preamble.face_count; i++) {
+      for (int i = 0; i < preamble.faceCount; i++) {
         uint32_t      idx    = face_offsets[i];
         FacePtr       face   = FacePtr(new Face);
         FaceHeaderPtr header = FaceHeaderPtr(new FaceHeader);
         memcpy(header.get(), &memory[idx], sizeof(FaceHeader));
         idx += sizeof(FaceHeader);
 
-        face->glyphs.reserve(header->glyph_count);
+        face->glyphs.reserve(header->glyphCount);
 
-        for (int j = 0; j < header->glyph_count; j++) {
+        for (int j = 0; j < header->glyphCount; j++) {
           GlyphInfoPtr glyph_info = GlyphInfoPtr(new GlyphInfo);
           memcpy(glyph_info.get(), &memory[idx], sizeof(GlyphInfo));
           idx += sizeof(GlyphInfo);
 
-          int bitmap_size = glyph_info->bitmap_height * glyph_info->bitmap_width;
+          int bitmap_size = glyph_info->bitmapHeight * glyph_info->bitmapWidth;
           Bitmap * bitmap = new Bitmap;
           bitmap->pixels = Pixels(bitmap_size, 0);
-          bitmap->dim = Dim(glyph_info->bitmap_width, glyph_info->bitmap_height);
+          bitmap->dim = Dim(glyph_info->bitmapWidth, glyph_info->bitmapHeight);
 
           RLEBitmap * compressed_bitmap = new RLEBitmap;
           compressed_bitmap->dim = bitmap->dim;
-          compressed_bitmap->pixels.reserve(glyph_info->packet_length);
-          compressed_bitmap->length = glyph_info->packet_length;
-          for (int pos = 0; pos < glyph_info->packet_length; pos++) {
+          compressed_bitmap->pixels.reserve(glyph_info->packetLength);
+          compressed_bitmap->length = glyph_info->packetLength;
+          for (int pos = 0; pos < glyph_info->packetLength; pos++) {
             compressed_bitmap->pixels.push_back(memory[idx + pos]);
           }
 
           RLEExtractor rle;
-          rle.retrieve_bitmap(*compressed_bitmap, *bitmap, Pos(0,0), glyph_info->rle_metrics);
-          //retrieve_bitmap(idx, glyph_info.get(), *bitmap, Pos(0,0));
+          rle.retrieveBitmap(*compressed_bitmap, *bitmap, Pos(0,0), glyph_info->rleMetrics);
+          //retrieveBitmap(idx, glyph_info.get(), *bitmap, Pos(0,0));
 
           face->glyphs.push_back(glyph_info);
           face->bitmaps.push_back(bitmap);
           face->compressed_bitmaps.push_back(compressed_bitmap);
 
-          idx += glyph_info->packet_length;
+          idx += glyph_info->packetLength;
         }
 
-        if (header->lig_kern_step_count > 0) {
-          face->lig_kern_steps.reserve(header->lig_kern_step_count);
-          for (int j = 0; j < header->lig_kern_step_count; j++) {
+        if (header->ligKernStepCount > 0) {
+          face->lig_kern_steps.reserve(header->ligKernStepCount);
+          for (int j = 0; j < header->ligKernStepCount; j++) {
             LigKernStep * step = new LigKernStep;
             memcpy(step, &memory[idx], sizeof(LigKernStep));
 
@@ -143,9 +143,9 @@ class IBMFFontMod
           }
         }
 
-        if (header->kern_count > 0) {
-          face->kerns.reserve(header->kern_count);
-          for (int j = 0; j < header->kern_count; j++) {
+        if (header->kernCount > 0) {
+          face->kerns.reserve(header->kernCount);
+          for (int j = 0; j < header->kernCount; j++) {
             FIX16 val;
             memcpy(&val, &memory[idx], sizeof(FIX16));
 
@@ -155,27 +155,27 @@ class IBMFFontMod
           }
         }
 
-        for (int ch = 0; ch < header->glyph_count; ch++) {
+        for (int ch = 0; ch < header->glyphCount; ch++) {
           GlyphLigKern * glk = new GlyphLigKern;
 
-          if (face->glyphs[ch]->lig_kern_pgm_index != 255) {
-            int lk_idx = face->glyphs[ch]->lig_kern_pgm_index;
-            if (lk_idx < header->lig_kern_step_count) {
+          if (face->glyphs[ch]->ligKernPgmIndex != 255) {
+            int lk_idx = face->glyphs[ch]->ligKernPgmIndex;
+            if (lk_idx < header->ligKernStepCount) {
               if (face->lig_kern_steps[lk_idx]->skip.whole == 255) {
-                lk_idx = (face->lig_kern_steps[lk_idx]->op_code.d.displ_high << 8) +
-                         face->lig_kern_steps[lk_idx]->remainder.displ_low;
+                lk_idx = (face->lig_kern_steps[lk_idx]->opCode.d.displHigh << 8) +
+                         face->lig_kern_steps[lk_idx]->remainder.displLow;
               }
               do {
-                if (face->lig_kern_steps[lk_idx]->op_code.d.is_a_kern) { // true = kern, false = ligature
+                if (face->lig_kern_steps[lk_idx]->opCode.d.isAKern) { // true = kern, false = ligature
                   GlyphKernStep * step = new GlyphKernStep;
-                  step->next_char_code = face->lig_kern_steps[lk_idx]->next_char;
-                  step->kern = face->kerns[face->lig_kern_steps[lk_idx]->remainder.displ_low];
+                  step->nextcharCode = face->lig_kern_steps[lk_idx]->nextChar;
+                  step->kern = face->kerns[face->lig_kern_steps[lk_idx]->remainder.displLow];
                   glk->kern_steps.push_back(step);
                 }
                 else {
                   GlyphLigStep * step = new GlyphLigStep;
-                  step->next_char_code = face->lig_kern_steps[lk_idx]->next_char;
-                  step->char_code = face->lig_kern_steps[lk_idx]->remainder.replacement_char;
+                  step->nextcharCode = face->lig_kern_steps[lk_idx]->nextChar;
+                  step->charCode = face->lig_kern_steps[lk_idx]->remainder.replacementChar;
                   glk->lig_steps.push_back(step);
                 }
               } while (!face->lig_kern_steps[lk_idx++]->skip.s.stop);
@@ -197,7 +197,7 @@ class IBMFFontMod
         : memory(memory_font), 
           memory_length(size) {
             
-      memory_end  = memory + memory_length;
+      memoryEnd  = memory + memory_length;
       initialized = load();
       last_error  = 0;
     }
@@ -245,11 +245,11 @@ class IBMFFontMod
 
     bool get_glyph_lig_kern(int face_index, int glyph_code, GlyphLigKern ** glyph_lig_kern)
     {
-      if (face_index >= preamble.face_count) return false;
-      if ((glyph_code > faces[face_index]->header->last_code) || 
-          (glyph_code < faces[face_index]->header->first_code)) return false;
+      if (face_index >= preamble.faceCount) return false;
+      if ((glyph_code > faces[face_index]->header->lastCode) || 
+          (glyph_code < faces[face_index]->header->firstCode)) return false;
 
-      *glyph_lig_kern = faces[face_index]->glyphs_lig_kern[glyph_code - faces[face_index]->header->first_code];
+      *glyph_lig_kern = faces[face_index]->glyphs_lig_kern[glyph_code - faces[face_index]->header->firstCode];
 
       return true;
     }
@@ -257,11 +257,11 @@ class IBMFFontMod
     bool
     get_glyph(int face_index, int glyph_code, GlyphInfoPtr & glyph_info, Bitmap ** bitmap)
     {
-      if (face_index >= preamble.face_count) return false;
-      if ((glyph_code > faces[face_index]->header->last_code) || 
-          (glyph_code < faces[face_index]->header->first_code)) return false;
+      if (face_index >= preamble.faceCount) return false;
+      if ((glyph_code > faces[face_index]->header->lastCode) || 
+          (glyph_code < faces[face_index]->header->firstCode)) return false;
 
-      int glyph_index = glyph_code - faces[face_index]->header->first_code;
+      int glyph_index = glyph_code - faces[face_index]->header->firstCode;
 
       glyph_info = faces[face_index]->glyphs[glyph_index];
       *bitmap = faces[face_index]->bitmaps[glyph_index];
@@ -272,7 +272,7 @@ class IBMFFontMod
     bool
     save_face_header(int face_index, FaceHeader & face_header)
     {
-      if (face_index < preamble.face_count) {
+      if (face_index < preamble.faceCount) {
         memcpy(faces[face_index]->header.get(), &face_header, sizeof(FaceHeader));
         return true;
       }
@@ -282,11 +282,11 @@ class IBMFFontMod
     bool
     save_glyph(int face_index, int glyph_code, GlyphInfo * new_glyph_info, Bitmap * new_bitmap)
     {
-      if ((face_index < preamble.face_count) &&  
-          ((glyph_code <= faces[face_index]->header->last_code ) && 
-           (glyph_code >= faces[face_index]->header->first_code))) {
+      if ((face_index < preamble.faceCount) &&  
+          ((glyph_code <= faces[face_index]->header->lastCode ) && 
+           (glyph_code >= faces[face_index]->header->firstCode))) {
 
-        int glyph_index = glyph_code - faces[face_index]->header->first_code;
+        int glyph_index = glyph_code - faces[face_index]->header->firstCode;
 
         *faces[face_index]->glyphs[glyph_index] = *new_glyph_info;
         delete faces[face_index]->bitmaps[glyph_index];
@@ -296,16 +296,16 @@ class IBMFFontMod
       return false;
     }
 
-    bool convert_to_one_bit(const Bitmap & bitmap_height_bits, Bitmap **bitmap_one_bit)
+    bool convert_to_one_bit(const Bitmap & bitmapHeight_bits, Bitmap **bitmap_one_bit)
     {
       *bitmap_one_bit = new Bitmap;
-      (*bitmap_one_bit)->dim = bitmap_height_bits.dim;
+      (*bitmap_one_bit)->dim = bitmapHeight_bits.dim;
       auto pix = &(*bitmap_one_bit)->pixels;
-      for (int row = 0, idx = 0; row < bitmap_height_bits.dim.height; row++) {
+      for (int row = 0, idx = 0; row < bitmapHeight_bits.dim.height; row++) {
         uint8_t data = 0;
         uint8_t mask = 0x80;
-        for (int col = 0; col < bitmap_height_bits.dim.width; col++, idx++) {
-          data |= bitmap_height_bits.pixels[idx] == 0 ? 0 : mask;
+        for (int col = 0; col < bitmapHeight_bits.dim.width; col++, idx++) {
+          data |= bitmapHeight_bits.pixels[idx] == 0 ? 0 : mask;
           mask >>= 1;
           if (mask == 0) {
             pix->push_back(data);
@@ -315,7 +315,7 @@ class IBMFFontMod
         }
         if (mask != 0) pix->push_back(data);
       }
-      return pix->size() == (bitmap_height_bits.dim.height * ((bitmap_height_bits.dim.width + 7) >> 3));
+      return pix->size() == (bitmapHeight_bits.dim.height * ((bitmapHeight_bits.dim.width + 7) >> 3));
     }
 
     #define WRITE(v, size) if (out.writeRawData((char *) v, size) == -1) { last_error = 1; return false; }
@@ -328,14 +328,14 @@ class IBMFFontMod
 
       uint32_t offset = 0;
       auto offset_pos = out.device()->pos();
-      for (int i = 0; i < preamble.face_count; i++) {
+      for (int i = 0; i < preamble.faceCount; i++) {
         WRITE(&offset, 4);
       }
 
       for (auto & face : faces) {
-        WRITE(&face->header->point_size, 1);
+        WRITE(&face->header->pointSize, 1);
       }
-      if (preamble.face_count & 1) {
+      if (preamble.faceCount & 1) {
         char filler = 0;
         WRITE(&filler, 1);
       }
@@ -355,7 +355,7 @@ class IBMFFontMod
         WRITE(face->header.get(), sizeof(FaceHeader));
 
         int idx = 0;
-        int glyph_count = 0;
+        int glyphCount = 0;
 
         for (auto & glyph : face->glyphs) {
           RLEGenerator * gen = new RLEGenerator;
@@ -363,41 +363,41 @@ class IBMFFontMod
             last_error = 3;
             return false;
           }
-          glyph->rle_metrics.dyn_f = gen->get_dyn_f();
-          glyph->rle_metrics.first_is_black = gen->get_first_is_black();
+          glyph->rleMetrics.dynF = gen->get_dynF();
+          glyph->rleMetrics.firstIsBlack = gen->get_firstIsBlack();
           auto data = gen->get_data();
-          if (data->size() != glyph->packet_length) {
+          if (data->size() != glyph->packetLength) {
             last_error = 4;
             return false;
           }
           WRITE(glyph.get(), sizeof(GlyphInfo));
           WRITE(data->data(), data->size());
           delete gen;
-          glyph_count++;
+          glyphCount++;
         }
 
-        if (glyph_count != face->header->glyph_count) {
+        if (glyphCount != face->header->glyphCount) {
           last_error = 5;
           return false;
         }
 
-        int lig_kern_count = 0;
+        int lig_kernCount = 0;
         for (auto lig_kern : face->lig_kern_steps) {
           WRITE(lig_kern, sizeof(LigKernStep));
-          lig_kern_count += 1;
+          lig_kernCount += 1;
         }
 
-        if (lig_kern_count != face->header->lig_kern_step_count) {
+        if (lig_kernCount != face->header->ligKernStepCount) {
           last_error = 6;
           return false;
         }
-        int kern_count = 0;
+        int kernCount = 0;
         for (auto k : face->kerns) {
           WRITE(&k, 2);
-          kern_count += 1;
+          kernCount += 1;
         }
 
-        if (kern_count != face->header->kern_count) {
+        if (kernCount != face->header->kernCount) {
           last_error = 7;
           return false;
         }

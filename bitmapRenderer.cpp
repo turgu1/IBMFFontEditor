@@ -3,25 +3,25 @@
 
 #include <QMessageBox>
 
-BitmapRenderer::BitmapRenderer(QWidget *parent, int pixel_size, bool no_scroll)
-    : QWidget(parent)
+BitmapRenderer::BitmapRenderer(QWidget *parent, int pixelSize, bool noScroll)
+    : QWidget(parent),
+  bitmapChanged(false),
+  pixelSize(pixelSize),
+  wasBlack(true),
+  editable(true),
+  noScroll(noScroll),
+  bitmapOffsetPos(QPoint(0, 0))
 {
   setBackgroundRole(QPalette::Base);
   setAutoFillBackground(true);
-  bitmapChanged = false;
-  pixelSize = pixel_size;
-  wasBlack = true;
-  editable = true;
-  noScroll = no_scroll;
-  bitmapOffsetPos = QPoint(0, 0);
   clearBitmap();
 }
 
 void BitmapRenderer::resizeEvent(QResizeEvent *event) {
   if (noScroll) {
     bitmapOffsetPos = QPoint(
-      (BITMAP_WIDTH - (width() / pixelSize)) / 2,
-      (BITMAP_HEIGHT - (height() / pixelSize)) / 2
+      (bitmapWidth - (width() / pixelSize)) / 2,
+      (bitmapHeight - (height() / pixelSize)) / 2
     );
     if (bitmapOffsetPos.x() < 0) bitmapOffsetPos.setX(0);
     if (bitmapOffsetPos.y() < 0) bitmapOffsetPos.setY(0);
@@ -33,7 +33,7 @@ int BitmapRenderer::getPixelSize() { return pixelSize; }
 void BitmapRenderer::connectTo(BitmapRenderer * main_renderer)
 {
   QObject::connect(main_renderer, &BitmapRenderer::bitmapHasChanged, this, &BitmapRenderer::clearAndLoadBitmap);
-  QObject::connect(main_renderer, &BitmapRenderer::bitmapCleared,    this, &BitmapRenderer::clear_and_repaint);
+  QObject::connect(main_renderer, &BitmapRenderer::bitmapCleared,    this, &BitmapRenderer::clearAndRepaint);
   editable = false;
 }
 
@@ -42,13 +42,13 @@ void BitmapRenderer::clearBitmap()
   memset(displayBitmap, 0, sizeof(displayBitmap));
 }
 
-void BitmapRenderer::clear_and_repaint()
+void BitmapRenderer::clearAndRepaint()
 {
   clearBitmap();
   repaint();
 }
 
-void BitmapRenderer::clear_and_emit(bool repaint_after)
+void BitmapRenderer::clearAndEmit(bool repaint_after)
 {
   clearBitmap();
   if (repaint_after) repaint();
@@ -71,8 +71,8 @@ void BitmapRenderer::setPixelSize(int pixel_size)
 
 void BitmapRenderer::setBitmapOffsetPos(QPoint pos)
 {
-    if ((pos.x() < 0) || (pos.x() >= BITMAP_WIDTH) ||
-        (pos.y() < 0) || (pos.y() >= BITMAP_HEIGHT)) {
+    if ((pos.x() < 0) || (pos.x() >= bitmapWidth) ||
+        (pos.y() < 0) || (pos.y() >= bitmapHeight)) {
         QMessageBox::warning(this, "Internal error", "setBitmapOffsetPos() received a bad position!");
     }
     if ((pos.x() != bitmapOffsetPos.x()) || (pos.y() != bitmapOffsetPos.y())) {
@@ -122,10 +122,10 @@ void BitmapRenderer::paintEvent(QPaintEvent * /* event */)
   }
 
   int rowp;
-  for (int row = bitmapOffsetPos.y(), rowp = row * BITMAP_WIDTH;
-       row < BITMAP_HEIGHT;
-       row ++, rowp += BITMAP_WIDTH) {
-    for (int col = bitmapOffsetPos.x(); col < BITMAP_WIDTH; col++) {
+  for (int row = bitmapOffsetPos.y(), rowp = row * bitmapWidth;
+       row < bitmapHeight;
+       row ++, rowp += bitmapWidth) {
+    for (int col = bitmapOffsetPos.x(); col < bitmapWidth; col++) {
       if (displayBitmap[rowp + col] == 1) {
         setScreenPixel(QPoint(col, row));
       }
@@ -138,8 +138,8 @@ void BitmapRenderer::mousePressEvent(QMouseEvent *event)
 {
   if (editable) {
     lastPos = QPoint(bitmapOffsetPos.x() + event->pos().x() / pixelSize, bitmapOffsetPos.y() + event->pos().y() / pixelSize);
-    if ((lastPos.x() < BITMAP_WIDTH) && (lastPos.y() < BITMAP_HEIGHT)) {
-      int idx = lastPos.y() * BITMAP_WIDTH + lastPos.x();
+    if ((lastPos.x() < bitmapWidth) && (lastPos.y() < bitmapHeight)) {
+      int idx = lastPos.y() * bitmapWidth + lastPos.x();
       if (displayBitmap[idx] == 1) {
         displayBitmap[idx] = 0;
         wasBlack = false;
@@ -165,9 +165,9 @@ void BitmapRenderer::mouseMoveEvent(QMouseEvent *event)
 {
   if (editable) {
     QPoint pos = QPoint(bitmapOffsetPos.x() + event->pos().x() / pixelSize, bitmapOffsetPos.y() + event->pos().y() / pixelSize);
-    int idx = pos.y() * BITMAP_WIDTH + pos.x();
-    if ((pos.x() < BITMAP_WIDTH) &&
-        (pos.y() < BITMAP_HEIGHT) &&
+    int idx = pos.y() * bitmapWidth + pos.x();
+    if ((pos.x() < bitmapWidth) &&
+        (pos.y() < bitmapHeight) &&
         ((pos.x() != lastPos.x()) ||
          (pos.y() != lastPos.y()))) {
       displayBitmap[idx] = wasBlack ? 1 : 0;
@@ -190,13 +190,13 @@ void BitmapRenderer::mouseMoveEvent(QMouseEvent *event)
 
 void BitmapRenderer::clearAndLoadBitmap(IBMFDefs::Bitmap & bitmap)
 {
-  clear_and_emit();
+  clearAndEmit();
   loadBitmap(bitmap);
 }
 
 void BitmapRenderer::loadBitmap(IBMFDefs::Bitmap & bitmap)
 {
-  QPoint pos((BITMAP_WIDTH - bitmap.dim.width) / 2, (BITMAP_HEIGHT - bitmap.dim.height) / 2);
+  QPoint pos((bitmapWidth - bitmap.dim.width) / 2, (bitmapHeight - bitmap.dim.height) / 2);
 
   if ((pos.x() < 0) || (pos.y() < 0)) {
     QMessageBox::warning(this, "Internal error", "The Glyph's bitmap is too large for the application capability. Largest bitmap width/height is set to 200 pixels.");
@@ -205,9 +205,9 @@ void BitmapRenderer::loadBitmap(IBMFDefs::Bitmap & bitmap)
 
   int idx;
   int rowp;
-  for (int row = pos.y(), rowp = row * BITMAP_WIDTH, idx = 0;
+  for (int row = pos.y(), rowp = row * bitmapWidth, idx = 0;
        row < pos.y() + bitmap.dim.height;
-       row++, rowp += BITMAP_WIDTH) {
+       row++, rowp += bitmapWidth) {
     for (int col = pos.x();
          col < pos.x() + bitmap.dim.width;
          col++, idx++) {
@@ -230,24 +230,24 @@ bool BitmapRenderer::retrieveBitmap(IBMFDefs::Bitmap ** bitmap)
 
   bool stop = false;
   int idx;
-  for (row = 0, idx = 0; row < BITMAP_HEIGHT; row++) {
-    for (col = 0; col < BITMAP_WIDTH; col++, idx++) {
+  for (row = 0, idx = 0; row < bitmapHeight; row++) {
+    for (col = 0; col < bitmapWidth; col++, idx++) {
       stop = displayBitmap[idx] != 0;
       if (stop) break;
     }
     if (stop) break;
   }
 
-  if (row >= BITMAP_HEIGHT) return false; // The bitmap is empty of black pixels
+  if (row >= bitmapHeight) return false; // The bitmap is empty of black pixels
 
   topLeft.setY(row);
 
   stop = false;
   int rowp;
-  for (row = BITMAP_HEIGHT - 1, rowp = (BITMAP_HEIGHT - 1) * BITMAP_WIDTH;
+  for (row = bitmapHeight - 1, rowp = (bitmapHeight - 1) * bitmapWidth;
        row >= 0;
-       row--, rowp -= BITMAP_WIDTH) {
-    for (col = 0; col < BITMAP_WIDTH; col++) {
+       row--, rowp -= bitmapWidth) {
+    for (col = 0; col < bitmapWidth; col++) {
       stop = displayBitmap[rowp + col] != 0;
       if (stop) break;
     }
@@ -256,8 +256,8 @@ bool BitmapRenderer::retrieveBitmap(IBMFDefs::Bitmap ** bitmap)
   bottomRight.setY(row);
 
   stop = false;
-  for (col = 0; col < BITMAP_WIDTH; col++) {
-    for (row = 0, rowp = 0; row < BITMAP_HEIGHT; row++, rowp += BITMAP_WIDTH) {
+  for (col = 0; col < bitmapWidth; col++) {
+    for (row = 0, rowp = 0; row < bitmapHeight; row++, rowp += bitmapWidth) {
       stop = displayBitmap[rowp + col] != 0;
       if (stop) break;
     }
@@ -266,8 +266,8 @@ bool BitmapRenderer::retrieveBitmap(IBMFDefs::Bitmap ** bitmap)
   topLeft.setX(col);
 
   stop = false;
-  for (col = BITMAP_WIDTH - 1; col >= 0; col--) {
-    for (row = 0, rowp = 0; row < BITMAP_HEIGHT; row++, rowp += BITMAP_WIDTH) {
+  for (col = bitmapWidth - 1; col >= 0; col--) {
+    for (row = 0, rowp = 0; row < bitmapHeight; row++, rowp += bitmapWidth) {
         stop = displayBitmap[rowp + col] != 0;
         if (stop) break;
     }
@@ -281,7 +281,7 @@ bool BitmapRenderer::retrieveBitmap(IBMFDefs::Bitmap ** bitmap)
   theBitmap->pixels = IBMFDefs::Pixels(size, 0);
 
   idx = 0;
-  for (row = topLeft.y(), rowp = row * BITMAP_WIDTH; row <= bottomRight.y(); row++, rowp += BITMAP_WIDTH) {
+  for (row = topLeft.y(), rowp = row * bitmapWidth; row <= bottomRight.y(); row++, rowp += bitmapWidth) {
     for (col = topLeft.x(); col <= bottomRight.x(); col++) {
       theBitmap->pixels[idx++] = displayBitmap[rowp + col] == 0 ? 0 : 0xff;
     }

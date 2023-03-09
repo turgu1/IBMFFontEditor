@@ -88,6 +88,7 @@ private:
   int ibmfGlyphCode;
 
   bool checkFontChanged();
+  bool saveFont();
   bool loadFont(QFile &file);
   bool loadFace(uint8_t face_idx);
   void saveFace();
