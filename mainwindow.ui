@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1000</width>
-    <height>800</height>
+    <width>1603</width>
+    <height>1029</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -344,17 +344,17 @@
             </item>
             <item row="4" column="0">
              <property name="text">
-              <string>Max Height</string>
+              <string>EM Size</string>
              </property>
             </item>
             <item row="5" column="0">
              <property name="text">
-              <string>EM Size</string>
+              <string>Slant Correction</string>
              </property>
             </item>
             <item row="6" column="0">
              <property name="text">
-              <string>Slant Correction</string>
+              <string>Max Height</string>
              </property>
             </item>
             <item row="7" column="0">
@@ -1107,8 +1107,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1000</width>
-     <height>19</height>
+     <width>1603</width>
+     <height>30</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

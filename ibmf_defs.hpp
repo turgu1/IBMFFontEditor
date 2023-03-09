@@ -142,7 +142,60 @@ typedef std::shared_ptr<FaceHeader> FaceHeaderPtr;
 // These implicit characters do not appear in the output, but they can affect ligatures
 // and kerning.
 //
+// -----
+//
+// Here is the original LigKern table entry format (4 bytes). Byte 1, 3 and 4 have
+// two different meanings as show below (a big-endian format...):
+//
+//           Byte 1                   Byte 2
+// +------------------------+------------------------+
+// |        whole           |                        |
+// +------------------------+       Next Char        +
+// |Stop| nextStepRelative  |                        |
+// +------------------------+------------------------+
+//
+//
+//           Byte 3                   Byte 4
+// +------------------------+------------------------+
+// |Kern|       | a | b | c |    Replacement Char    |  <- isAKern (Kern in the diagram) is false
+// +------------------------+------------------------+
+// |isKern|Displacement High|    Displacement Low    |  <- isAKern is true
+// +------------------------+------------------------+
+//
+// The following fields are not used/replaced in this application:
+//
+//    - nextStepRelative
+//    - Ops a, b, and c
+//    - whole can be reduced to one GoTo bit
+//
+// ----
+//
+// Here is the optimized version considering larger characters table
+// and that some fields are not being used (BEWARE: a little-endian format):
+//
+//           Byte 2                   Byte 1
+// +------------------------+------------------------+
+// |Stop|               Next Char                    |
+// +------------------------+------------------------+
+//
+//
+//           Byte 4                   Byte 3
+// +------------------------+------------------------+
+// |Kern|             Replacement Char               |  <- isAKern (Kern in the diagram) is false
+// +------------------------+------------------------+
+// |Kern|GoTo|      Displacement in FIX14            |  <- isAKern is true and GoTo is false => Kerning value
+// +------------------------+------------------------+
+// |Kern|GoTo|          Displacement                 |  <- isAkern and GoTo are true
+// +------------------------+------------------------+
+//
+// Up to 32765 different glyph codes can be managed through this format.
+// Kerning displacements reduced to 14 bits is not a big issue: kernings are
+// usually small numbers. FIX14 and FIX16 are using 6 bits for the fraction. Their
+// remains 8 bits for FIX14 and 10 bits for FIX16, that is more than enough...
+//
 
+#define ORIGINAL_FORMAT 1
+#if ORIGINAL_FORMAT
 union SkipByte {
     uint8_t whole : 8;
     struct {
@@ -175,6 +228,34 @@ struct LigKernStep {
     OpCodeByte op_code;
     RemainderByte remainder;
 };
+#else
+struct Nxt {
+    GlyphCode nextGlyphCode:15;
+    bool stop:1;
+};
+union ReplDisp {
+    struct {
+      GlyphCode replGlyphCode : 15;
+      bool isAKern : 1;
+    } repl;
+    struct {
+      FIX14 kerningValue: 14;
+      bool isAGoTo : 1;
+      bool isAKern : 1;
+    } kern;
+    struct {
+      uint16_t displacement : 14;
+      bool isAGoTo : 1;
+      bool isAKern : 1;
+    } goTo;
+};
+
+struct LigKernStep {
+    Nxt a;
+    ReplDisp b;
+};
+#endif
+
 typedef LigKernStep *LigKernStepPtr;
 
 struct RLEMetrics {
@@ -194,7 +275,7 @@ struct GlyphInfo {
     FIX16 advance;
     RLEMetrics rle_metrics;
 };
-//typedef GlyphInfo *GlyphInfoPtr;
+
 typedef std::shared_ptr<GlyphInfo>  GlyphInfoPtr;
 
 #pragma pack(pop)
