@@ -9,7 +9,7 @@
 #include <QScrollBar>
 #include <QWidget>
 
-#include "ibmf_defs.hpp"
+#include "IBMFDriver/ibmf_defs.hpp"
 
 class BitmapRenderer : public QWidget {
   Q_OBJECT
@@ -28,7 +28,10 @@ public:
   void setBitmapOffsetPos(QPoint pos);
 
 public slots:
-  void clearAndLoadBitmap(IBMFDefs::Bitmap &bitmap);
+  void clearAndLoadBitmap(const IBMFDefs::Bitmap &bitmap, const IBMFDefs::Preamble &preamble,
+                          const IBMFDefs::FaceHeader &faceHeader,
+                          const IBMFDefs::GlyphInfo  &glyphInfo);
+  void clearAndLoadBitmap2(const IBMFDefs::Bitmap &bitmap);
   void clearAndRepaint();
 
 signals:
@@ -43,12 +46,13 @@ protected:
 
 private:
   void setScreenPixel(QPoint pos);
-  void loadBitmap(IBMFDefs::Bitmap &bitmap);
+  void loadBitmap(const IBMFDefs::Bitmap &bitmap);
   void clearBitmap();
 
   typedef char DisplayBitmap[bitmapWidth * bitmapHeight];
 
   bool          bitmapChanged;
+  bool          glyphPresent;
   int           pixelSize;
   DisplayBitmap displayBitmap;
   bool   wasBlack; // used by mouse events to permit sequence of pixels drawing through mouse move
@@ -56,6 +60,11 @@ private:
   bool   noScroll;
   QPoint lastPos;
   QPoint bitmapOffsetPos;
+  QPoint glyphBitmapPos;
+
+  IBMFDefs::Preamble   preamble;
+  IBMFDefs::FaceHeader faceHeader;
+  IBMFDefs::GlyphInfo  glyphInfo;
 };
 
 #endif // BITMAPRENDERER_H

@@ -1,25 +1,29 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QMainWindow>
-#include <QFileDialog>
-#include <QMessageBox>
-#include <QFile>
+#include <QAction>
 #include <QByteArray>
-#include <QTableWidgetItem>
-#include <QStyledItemDelegate>
 #include <QDoubleSpinBox>
+#include <QFile>
+#include <QFileDialog>
+#include <QList>
+#include <QMainWindow>
+#include <QMessageBox>
 #include <QString>
+#include <QStyledItemDelegate>
+#include <QTableWidgetItem>
+#include <QUndoStack>
 
+#include "IBMFDriver/ibmf_font_mod.hpp"
 #include "bitmapRenderer.h"
-#include "ibmf_font_mod.hpp"
 
 QT_BEGIN_NAMESPACE
-namespace Ui { class MainWindow; }
+namespace Ui {
+class MainWindow;
+}
 QT_END_NAMESPACE
 
-class MainWindow : public QMainWindow
-{
+class MainWindow : public QMainWindow {
   Q_OBJECT
 
 public:
@@ -44,12 +48,12 @@ private slots:
   void on_glyphForgetButton_clicked();
   void on_faceForgetButton_clicked();
 
-  void bitmapChanged(Bitmap & bitmap);
+  void bitmapChanged(Bitmap &bitmap);
   void setScrollBarSizes(int value);
   void centerScrollBarPos();
   void updateBitmapOffsetPos();
-
-  void on_pushButton_clicked();
+  void openRecent();
+  void on_centerGridButton_clicked();
   void on_leftSplitter_splitterMoved(int pos, int index);
   void on_bitmapVerticalScrollBar_valueChanged(int value);
   void on_bitmapHorizontalScrollBar_valueChanged(int value);
@@ -58,9 +62,19 @@ private slots:
 
   void on_actionRLE_Encoder_triggered();
 
+  void on_actionSave_triggered();
+
+  void on_actionSaveBackup_triggered();
+
 private:
+  const int MAX_RECENT_FILES = 10;
+
   Ui::MainWindow *ui;
-  QString currentFilename;
+  QString         currentFilePath;
+
+  QUndoStack *undoStack;
+  QAction    *undoAction;
+  QAction    *redoAction;
 
   bool fontChanged;
   bool faceChanged;
@@ -69,44 +83,49 @@ private:
   bool glyphReloading;
   bool faceReloading;
 
-  BitmapRenderer * bitmapRenderer;
-  BitmapRenderer * smallGlyph;
-  BitmapRenderer * largeGlyph;
+  BitmapRenderer *bitmapRenderer;
+  BitmapRenderer *smallGlyph;
+  BitmapRenderer *largeGlyph;
 
   typedef std::unique_ptr<IBMFFontMod> IBMFFontModPtr;
 
-  IBMFFontModPtr              ibmfFont;
-  IBMFDefs::Preamble          ibmfPreamble;
-  IBMFDefs::FaceHeaderPtr     ibmfFaceHeader;
-  IBMFDefs::GlyphInfoPtr      ibmfGlyphInfo;
+  IBMFFontModPtr          ibmfFont;
+  IBMFDefs::Preamble      ibmfPreamble;
+  IBMFDefs::FaceHeaderPtr ibmfFaceHeader;
+  IBMFDefs::GlyphInfoPtr  ibmfGlyphInfo;
 
-  IBMFDefs::Bitmap          * ibmfGlyphBitmap;
+  IBMFDefs::Bitmap *ibmfGlyphBitmap;
 
-  IBMFFontMod::GlyphLigKern * ibmfLigKerns;
+  IBMFFontMod::GlyphLigKern *ibmfLigKerns;
 
-  int ibmfFaceIdx;
-  int ibmfGlyphCode;
+  int              ibmfFaceIdx;
+  int              ibmfGlyphCode;
+  QList<QAction *> recentFileActionList;
 
-  bool checkFontChanged();
-  bool saveFont();
-  bool loadFont(QFile &file);
-  bool loadFace(uint8_t face_idx);
-  void saveFace();
-  void saveGlyph();
-  bool loadGlyph(uint16_t glyph_code);
-  void clearAll();
-  void putValue(QTableWidget * w, int row, int col, QVariant value, bool editable = true);
-  void putFix16Value(QTableWidget * w, int row, int col, QVariant value, bool editable = true);
-  QVariant getValue(QTableWidget * w, int row, int col);
-  void clearEditable(QTableWidget * w, int row, int col);
+  void     writeSettings();
+  void     readSettings();
+  void     createRecentFileActionsAndConnections();
+  void     updateRecentActionList();
+  void     adjustRecentsForCurrentFile();
+  bool     checkFontChanged();
+  bool     saveFont(bool askToConfirmName);
+  bool     loadFont(QFile &file);
+  bool     loadFace(uint8_t face_idx);
+  void     saveFace();
+  void     saveGlyph();
+  bool     loadGlyph(uint16_t glyph_code);
+  void     clearAll();
+  void     putValue(QTableWidget *w, int row, int col, QVariant value, bool editable = true);
+  void     putFix16Value(QTableWidget *w, int row, int col, QVariant value, bool editable = true);
+  QVariant getValue(QTableWidget *w, int row, int col);
+  void     clearEditable(QTableWidget *w, int row, int col);
 };
 
 // The following is to support Fix16 fields editing in QTableWidgets
-class Fix16Delegate : public QStyledItemDelegate
-{
-  QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& style, const QModelIndex& index) const
-  {
-    QDoubleSpinBox* box = new QDoubleSpinBox(parent);
+class Fix16Delegate : public QStyledItemDelegate {
+  QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &style,
+                        const QModelIndex &index) const {
+    QDoubleSpinBox *box = new QDoubleSpinBox(parent);
 
     box->setDecimals(4);
 

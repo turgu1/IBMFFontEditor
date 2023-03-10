@@ -20,10 +20,10 @@ set(PROJECT_SOURCES
         mainwindow.h
         bitmapRenderer.cpp
         bitmapRenderer.h
-        ibmf_font_mod.hpp
-        rle_generator.hpp
-        rle_extractor.hpp
-        ibmf_defs.hpp
+        IBMFDriver/ibmf_font_mod.hpp
+        IBMFDriver/rle_generator.hpp
+        IBMFDriver/rle_extractor.hpp
+        IBMFDriver/ibmf_defs.hpp
         mainwindow.ui
 )
 

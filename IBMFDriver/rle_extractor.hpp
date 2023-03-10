@@ -133,7 +133,7 @@ public:
   bool retrieveBitmap(const RLEBitmap &fromBitmap, Bitmap &toBitmap, const Pos atOffset,
                       const RLEMetrics rleMetrics) {
     // point on the glyphs' bitmap definition
-    memoryPtr = (MemoryPtr)fromBitmap.pixels.data();
+    memoryPtr = (MemoryPtr) fromBitmap.pixels.data();
     memoryEnd = memoryPtr + fromBitmap.length;
     MemoryPtr toRowPtr;
 
@@ -169,18 +169,16 @@ public:
       } else {
         uint32_t count = 0;
 
-        repeatCount    = 0;
-        nybbleFlipper  = 0xf0U;
+        repeatCount   = 0;
+        nybbleFlipper = 0xf0U;
 
-        bool black     = !(rleMetrics.firstIsBlack == 1);
+        bool black = !(rleMetrics.firstIsBlack == 1);
 
         for (uint32_t fromRow = 0; fromRow < fromBitmap.dim.height;
              fromRow++, toRowPtr += toRowSize) {
           for (uint32_t toCol = atOffset.x; toCol < fromBitmap.dim.width + atOffset.x; toCol++) {
             if (count == 0) {
-              if (!getPackedNumber(count, rleMetrics)) {
-                return false;
-              }
+              if (!getPackedNumber(count, rleMetrics)) { return false; }
               black = !black;
               // if (black) {
               //   std::cout << count << ' ';
@@ -193,8 +191,8 @@ public:
             count--;
           }
 
-          // if (repeatCount != 0) std::cout << "Repeat count: " << repeatCount <<
-          // std::endl;
+          // if (repeatCount != 0) std::cout << "Repeat count: " << repeatCount
+          // << std::endl;
           while ((fromRow < fromBitmap.dim.height) && (repeatCount-- > 0)) {
             copyOneRowOneBit(toRowPtr, toRowPtr + toRowSize, atOffset.x, fromBitmap.dim.width);
             fromRow++;
@@ -209,8 +207,8 @@ public:
       uint32_t toRowSize = toBitmap.dim.width;
       toRowPtr           = toBitmap.pixels.data() + (atOffset.y * toRowSize);
 
-      repeatCount        = 0;
-      nybbleFlipper      = 0xf0U;
+      repeatCount   = 0;
+      nybbleFlipper = 0xf0U;
 
       if (rleMetrics.dynF == 14) { // is a bitmap?
         uint32_t count = 8;
@@ -235,18 +233,16 @@ public:
       } else {
         uint32_t count = 0;
 
-        repeatCount    = 0;
-        nybbleFlipper  = 0xf0U;
+        repeatCount   = 0;
+        nybbleFlipper = 0xf0U;
 
-        bool black     = !(rleMetrics.firstIsBlack == 1);
+        bool black = !(rleMetrics.firstIsBlack == 1);
 
         for (uint32_t fromRow = 0; fromRow < (fromBitmap.dim.height);
              fromRow++, toRowPtr += toRowSize) {
           for (uint32_t toCol = atOffset.x; toCol < (fromBitmap.dim.width + atOffset.x); toCol++) {
             if (count == 0) {
-              if (!getPackedNumber(count, rleMetrics)) {
-                return false;
-              }
+              if (!getPackedNumber(count, rleMetrics)) { return false; }
               black = !black;
               // if (black) {
               //   std::cout << count << ' ';
@@ -259,8 +255,8 @@ public:
             count--;
           }
 
-          // if (repeatCount != 0) std::cout << "Repeat count: " << repeatCount <<
-          // std::endl;
+          // if (repeatCount != 0) std::cout << "Repeat count: " << repeatCount
+          // << std::endl;
           while ((fromRow < toBitmap.dim.height) && (repeatCount-- > 0)) {
             copyOneRowEightBits(toRowPtr, toRowPtr + toRowSize, atOffset.x, fromBitmap.dim.width);
             fromRow++;

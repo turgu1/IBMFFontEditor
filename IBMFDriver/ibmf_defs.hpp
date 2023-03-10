@@ -1,9 +1,11 @@
 #pragma once
 
+#include <QChar>
 #include <cinttypes>
 #include <vector>
-#include <QChar>
 
+// clang-format off
+//
 // The following definitions are used by all parts of the driver.
 //
 // The IBMF font files have the current format:
@@ -73,15 +75,17 @@
 //  |                    |
 //  +--------------------+
 //
+// clang-format on
+
 namespace IBMFDefs {
 
 #ifdef DEBUG_IBMF
-  const constexpr int DEBUG = DEBUG_IBMF;
+const constexpr int DEBUG = DEBUG_IBMF;
 #else
-  const constexpr int DEBUG = 0;
+const constexpr int DEBUG = 0;
 #endif
 
-const constexpr uint8_t IBMF_VERSION = 4;
+const constexpr uint8_t IBMF_VERSION    = 4;
 const constexpr uint8_t MAX_GLYPH_COUNT = 254; // Index Value 0xFE and 0xFF are reserved
 
 // The followings have to be adjusted depending on the screen
@@ -89,59 +93,59 @@ const constexpr uint8_t MAX_GLYPH_COUNT = 254; // Index Value 0xFE and 0xFF are 
 // At least, one of BLACK... or WHITE... must be 0. If not, some changes are
 // required in the code.
 
-//const constexpr uint8_t BLACK_ONE_BIT = 0;
-//const constexpr uint8_t WHITE_ONE_BIT = 1;
+// const constexpr uint8_t BLACK_ONE_BIT = 0;
+// const constexpr uint8_t WHITE_ONE_BIT = 1;
 
-//const constexpr uint8_t BLACK_EIGHT_BITS = 0;
-//const constexpr uint8_t WHITE_EIGHT_BITS = 0xFF;
+// const constexpr uint8_t BLACK_EIGHT_BITS = 0;
+// const constexpr uint8_t WHITE_EIGHT_BITS = 0xFF;
 
- const constexpr uint8_t BLACK_ONE_BIT = 1;
- const constexpr uint8_t WHITE_ONE_BIT = 0;
+const constexpr uint8_t BLACK_ONE_BIT = 1;
+const constexpr uint8_t WHITE_ONE_BIT = 0;
 
- const constexpr uint8_t BLACK_EIGHT_BITS = 0xFF;
- const constexpr uint8_t WHITE_EIGHT_BITS = 0x00;
+const constexpr uint8_t BLACK_EIGHT_BITS = 0xFF;
+const constexpr uint8_t WHITE_EIGHT_BITS = 0x00;
 
 enum class PixelResolution : uint8_t { ONE_BIT, EIGHT_BITS };
 
 const constexpr PixelResolution resolution = PixelResolution::EIGHT_BITS;
 
 struct Dim {
-    uint8_t width;
-    uint8_t height;
-    Dim(uint8_t w, uint8_t h) : width(w), height(h) {}
-    Dim() {}
+  uint8_t width;
+  uint8_t height;
+  Dim(uint8_t w, uint8_t h) : width(w), height(h) {}
+  Dim() {}
 };
 
 struct Pos {
-    int8_t x;
-    int8_t y;
-    Pos(int8_t xpos, int8_t ypos) : x(xpos), y(ypos) {}
-    Pos() {}
+  int8_t x;
+  int8_t y;
+  Pos(int8_t xpos, int8_t ypos) : x(xpos), y(ypos) {}
+  Pos() {}
 };
 
-typedef uint8_t * MemoryPtr;
+typedef uint8_t             *MemoryPtr;
 typedef std::vector<uint8_t> Pixels;
-typedef Pixels * PixelsPtr;
+typedef Pixels              *PixelsPtr;
 
 struct RLEBitmap {
-    Pixels pixels;
-    Dim dim;
-    uint16_t length;
-    void clear() {
+  Pixels   pixels;
+  Dim      dim;
+  uint16_t length;
+  void     clear() {
         pixels.clear();
-        dim = Dim(0, 0);
+        dim    = Dim(0, 0);
         length = 0;
-    }
+  }
 };
 typedef RLEBitmap *RLEBitmapPtr;
 
 struct Bitmap {
-    Pixels pixels;
-    Dim dim;
-    void clear() {
-        pixels.clear();
-        dim = Dim(0, 0);
-    }
+  Pixels pixels;
+  Dim    dim;
+  void   clear() {
+      pixels.clear();
+      dim = Dim(0, 0);
+  }
 };
 typedef Bitmap *BitmapPtr;
 
@@ -152,34 +156,36 @@ typedef int16_t FIX14;
 typedef uint8_t FontFormat;
 
 struct Preamble {
-    char marker[4];
-    uint8_t faceCount;
-    struct {
-        uint8_t version : 5;
-        FontFormat fontFormat : 3;
-    } bits;
+  char    marker[4];
+  uint8_t faceCount;
+  struct {
+    uint8_t    version    : 5;
+    FontFormat fontFormat : 3;
+  } bits;
 };
 typedef Preamble *PreamblePtr;
 
 struct FaceHeader {
-    uint8_t pointSize;
-    uint8_t lineHeight;
-    uint16_t dpi;
-    FIX16 xHeight;
-    FIX16 emSize;
-    FIX16 slantCorrection;
-    uint8_t descenderHeight;
-    uint8_t spaceSize;
-    uint16_t glyphCount;
-    uint16_t ligKernStepCount;
-    uint16_t firstCode;
-    uint16_t lastCode;
-    uint8_t kernCount;
-    uint8_t maxHeight;
+  uint8_t  pointSize;
+  uint8_t  lineHeight;
+  uint16_t dpi;
+  FIX16    xHeight;
+  FIX16    emSize;
+  FIX16    slantCorrection;
+  uint8_t  descenderHeight;
+  uint8_t  spaceSize;
+  uint16_t glyphCount;
+  uint16_t ligKernStepCount;
+  uint16_t firstCode;
+  uint16_t lastCode;
+  uint8_t  kernCount;
+  uint8_t  maxHeight;
 };
-//typedef FaceHeader *FaceHeaderPtr;
+// typedef FaceHeader *FaceHeaderPtr;
 typedef std::shared_ptr<FaceHeader> FaceHeaderPtr;
 
+// clang-format off
+//
 // The lig kern array contains instructions (struct LibKernStep) in a simple programming
 // language that explains what to do for special letter pairs. The information in squared
 // brackets relate to fields that are part of the LibKernStep struct. Each entry in this
@@ -271,7 +277,8 @@ typedef std::shared_ptr<FaceHeader> FaceHeaderPtr;
 // +------------------------+------------------------+
 // |Kern|             Replacement Char               |  <- isAKern (Kern in the diagram) is false
 // +------------------------+------------------------+
-// |Kern|GoTo|      Displacement in FIX14            |  <- isAKern is true and GoTo is false => Kerning value
+// |Kern|GoTo|      Displacement in FIX14            |  <- isAKern is true and GoTo is false =>
+// Kerning value
 // +------------------------+------------------------+
 // |Kern|GoTo|          Displacement                 |  <- isAkern and GoTo are true
 // +------------------------+------------------------+
@@ -281,114 +288,115 @@ typedef std::shared_ptr<FaceHeader> FaceHeaderPtr;
 // usually small numbers. FIX14 and FIX16 are using 6 bits for the fraction. Their
 // remains 8 bits for FIX14 and 10 bits for FIX16, that is more than enough...
 //
+// clang-format on
 
 #define ORIGINAL_FORMAT 1
 #if ORIGINAL_FORMAT
 union SkipByte {
-    uint8_t whole : 8;
-    struct {
-        uint8_t nextStepRelative : 7;
-        bool stop : 1;
-    } s;
+  uint8_t whole : 8;
+  struct {
+    uint8_t nextStepRelative : 7;
+    bool    stop             : 1;
+  } s;
 };
 
 union OpCodeByte {
-    struct {
-        bool c_op : 1;
-        bool b_op : 1;
-        uint8_t a_op : 5;
-        bool isAKern : 1;
-    } op;
-    struct {
-        uint8_t displHigh : 7;
-        bool isAKern : 1;
-    } d;
+  struct {
+    bool    c_op    : 1;
+    bool    b_op    : 1;
+    uint8_t a_op    : 5;
+    bool    isAKern : 1;
+  } op;
+  struct {
+    uint8_t displHigh : 7;
+    bool    isAKern   : 1;
+  } d;
 };
 
 union RemainderByte {
-    uint8_t replacementChar : 8;
-    uint8_t displLow : 8; // Ligature: replacement char code, kern: displacement
+  uint8_t replacementChar : 8;
+  uint8_t displLow        : 8; // Ligature: replacement char code, kern: displacement
 };
 
 struct LigKernStep {
-    SkipByte skip;
-    uint8_t nextChar;
-    OpCodeByte opCode;
-    RemainderByte remainder;
+  SkipByte      skip;
+  uint8_t       nextChar;
+  OpCodeByte    opCode;
+  RemainderByte remainder;
 };
 #else
 struct Nxt {
-    GlyphCode nextGlyphCode:15;
-    bool stop:1;
+  GlyphCode nextGlyphCode : 15;
+  bool      stop          : 1;
 };
 union ReplDisp {
-    struct {
-      GlyphCode replGlyphCode : 15;
-      bool isAKern : 1;
-    } repl;
-    struct {
-      FIX14 kerningValue: 14;
-      bool isAGoTo : 1;
-      bool isAKern : 1;
-    } kern;
-    struct {
-      uint16_t displacement : 14;
-      bool isAGoTo : 1;
-      bool isAKern : 1;
-    } goTo;
+  struct {
+    GlyphCode replGlyphCode : 15;
+    bool      isAKern       : 1;
+  } repl;
+  struct {
+    FIX14 kerningValue : 14;
+    bool  isAGoTo      : 1;
+    bool  isAKern      : 1;
+  } kern;
+  struct {
+    uint16_t displacement : 14;
+    bool     isAGoTo      : 1;
+    bool     isAKern      : 1;
+  } goTo;
 };
 
 struct LigKernStep {
-    Nxt a;
-    ReplDisp b;
+  Nxt      a;
+  ReplDisp b;
 };
 #endif
 
 typedef LigKernStep *LigKernStepPtr;
 
 struct RLEMetrics {
-    uint8_t dynF : 4;
-    uint8_t firstIsBlack : 1;
-    uint8_t filler : 3;
+  uint8_t dynF         : 4;
+  uint8_t firstIsBlack : 1;
+  uint8_t filler       : 3;
 };
 
 struct GlyphInfo {
-    uint8_t charCode;
-    uint8_t bitmapWidth;
-    uint8_t bitmapHeight;
-    int8_t horizontalOffset;
-    int8_t verticalOffset;
-    uint8_t ligKernPgmIndex; // = 255 if none
-    uint16_t packetLength;
-    FIX16 advance;
-    RLEMetrics rleMetrics;
+  uint8_t    charCode;
+  uint8_t    bitmapWidth;
+  uint8_t    bitmapHeight;
+  int8_t     horizontalOffset;
+  int8_t     verticalOffset;
+  uint8_t    ligKernPgmIndex; // = 255 if none
+  uint16_t   packetLength;
+  FIX16      advance;
+  RLEMetrics rleMetrics;
 };
 
-typedef std::shared_ptr<GlyphInfo>  GlyphInfoPtr;
+typedef std::shared_ptr<GlyphInfo> GlyphInfoPtr;
 
 #pragma pack(pop)
 
 struct GlyphMetrics {
-    int16_t xoff, yoff;
-    int16_t advance;
-    int16_t lineHeight;
-    int16_t ligatureAndKernPgmIndex;
-    void clear() {
-        xoff = yoff = 0;
-        advance = lineHeight = 0;
-        ligatureAndKernPgmIndex = 255;
-    }
+  int16_t xoff, yoff;
+  int16_t advance;
+  int16_t lineHeight;
+  int16_t ligatureAndKernPgmIndex;
+  void    clear() {
+       xoff = yoff = 0;
+       advance = lineHeight    = 0;
+       ligatureAndKernPgmIndex = 255;
+  }
 };
 
 struct Glyph {
-    GlyphMetrics metrics;
-    Bitmap bitmap;
-    uint8_t pointSize;
-    void clear() {
-        metrics.clear();
-        bitmap.clear();
-        pointSize = 0;
-    }
+  GlyphMetrics metrics;
+  Bitmap       bitmap;
+  uint8_t      pointSize;
+  void         clear() {
+            metrics.clear();
+            bitmap.clear();
+            pointSize = 0;
+  }
 };
 
 // These are the corresponding Unicode value for each of the 174 characters that are part of
