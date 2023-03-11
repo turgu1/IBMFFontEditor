@@ -4,6 +4,7 @@
 #include <QSize>
 
 #include "IBMFDriver/ibmf_defs.hpp"
+using namespace IBMFDefs;
 
 class KerningItem {
 public:
@@ -20,7 +21,7 @@ public:
 
   void setGlyphCode(GlyphCode glyphCode) { myGlyphCode = glyphCode; }
   void setNextCode(GlyphCode nextCode) { myNextCode = nextCode; }
-  void setKern(FIX16 kern) const { myKern = kern; }
+  void setKern(FIX16 kern) { myKern = kern; }
 
 private:
   GlyphCode myGlyphCode;

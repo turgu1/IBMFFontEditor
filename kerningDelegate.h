@@ -6,9 +6,6 @@
 #include <QStyledItemDelegate>
 #include <QWidget>
 
-#include "kerningEditor.h"
-#include "kerningItem.h"
-
 class KerningDelegate : public QStyledItemDelegate {
   Q_OBJECT
 

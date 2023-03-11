@@ -126,6 +126,7 @@ struct Pos {
 typedef uint8_t             *MemoryPtr;
 typedef std::vector<uint8_t> Pixels;
 typedef Pixels              *PixelsPtr;
+typedef uint8_t              GlyphCode;
 
 struct RLEBitmap {
   Pixels   pixels;
@@ -314,13 +315,13 @@ union OpCodeByte {
 };
 
 union RemainderByte {
-  uint8_t replacementChar : 8;
-  uint8_t displLow        : 8; // Ligature: replacement char code, kern: displacement
+  GlyphCode replacementChar : 8;
+  uint8_t   displLow        : 8; // Ligature: replacement char code, kern: displacement
 };
 
 struct LigKernStep {
   SkipByte      skip;
-  uint8_t       nextChar;
+  GlyphCode     nextChar;
   OpCodeByte    opCode;
   RemainderByte remainder;
 };
@@ -361,7 +362,7 @@ struct RLEMetrics {
 };
 
 struct GlyphInfo {
-  uint8_t    charCode;
+  GlyphCode  charCode;
   uint8_t    bitmapWidth;
   uint8_t    bitmapHeight;
   int8_t     horizontalOffset;

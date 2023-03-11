@@ -10,8 +10,8 @@ public:
   KerningEditor(QWidget *parent = nullptr);
 
   QSize       sizeHint() const override;
-  void        setKerningItem(const KerningItem &KerningItem) { myKerningItem = KerningItem; }
-  KerningItem KerningItem() { return myKerningItem; }
+  void        setKerningItem(const KerningItem &kerningItem) { myKerningItem = kerningItem; }
+  KerningItem kerningItem() { return myKerningItem; }
 
 signals:
   void editingFinished();
