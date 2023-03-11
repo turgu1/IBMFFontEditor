@@ -1,5 +1,4 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include <QAction>
 #include <QByteArray>
@@ -13,6 +12,7 @@
 #include <QStyledItemDelegate>
 #include <QTableWidgetItem>
 #include <QUndoStack>
+#include <QUndoView>
 
 #include "IBMFDriver/ibmf_font_mod.hpp"
 #include "bitmapRenderer.h"
@@ -73,6 +73,7 @@ private:
   QString         currentFilePath;
 
   QUndoStack *undoStack;
+  QUndoView  *undoView;
   QAction    *undoAction;
   QAction    *redoAction;
 
@@ -104,6 +105,7 @@ private:
 
   void     writeSettings();
   void     readSettings();
+  void     createUndoView();
   void     createRecentFileActionsAndConnections();
   void     updateRecentActionList();
   void     adjustRecentsForCurrentFile();
@@ -137,5 +139,3 @@ class Fix16Delegate : public QStyledItemDelegate {
     return box;
   }
 };
-
-#endif // MAINWINDOW_H

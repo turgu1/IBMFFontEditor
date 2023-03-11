@@ -20,6 +20,16 @@ set(PROJECT_SOURCES
         mainwindow.h
         bitmapRenderer.cpp
         bitmapRenderer.h
+        setPixelCommand.h
+        setPixelCommand.cpp
+        actionButton.cpp
+        actionButton.h
+        kerningDelegate.cpp
+        kerningDelegate.h
+        kerningEditor.cpp
+        kerningEditor.h
+        kerningItem.cpp
+        kerningItem.h
         IBMFDriver/ibmf_font_mod.hpp
         IBMFDriver/rle_generator.hpp
         IBMFDriver/rle_extractor.hpp

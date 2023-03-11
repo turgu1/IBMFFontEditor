@@ -132,7 +132,7 @@
            </item>
            <item row="3" column="0">
             <property name="text">
-             <string>Char Set</string>
+             <string>Font Format</string>
             </property>
            </item>
           </widget>
@@ -493,7 +493,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="undoButton">
+            <widget class="ActionButton" name="undoButton">
              <property name="minimumSize">
               <size>
                <width>50</width>
@@ -506,7 +506,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="redoButton">
+            <widget class="ActionButton" name="redoButton">
              <property name="minimumSize">
               <size>
                <width>50</width>
@@ -532,7 +532,7 @@
             </spacer>
            </item>
            <item>
-            <widget class="QPushButton" name="clearButton">
+            <widget class="ActionButton" name="clearButton">
              <property name="minimumSize">
               <size>
                <width>50</width>
@@ -545,7 +545,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="copyButton">
+            <widget class="ActionButton" name="copyButton">
              <property name="minimumSize">
               <size>
                <width>50</width>
@@ -558,7 +558,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="pasteButton">
+            <widget class="ActionButton" name="pasteButton">
              <property name="minimumSize">
               <size>
                <width>50</width>
@@ -1186,7 +1186,7 @@
      <x>0</x>
      <y>0</y>
      <width>1603</width>
-     <height>19</height>
+     <height>30</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -1214,7 +1214,13 @@
     <addaction name="actionFont_load_save"/>
     <addaction name="actionRLE_Encoder"/>
    </widget>
+   <widget class="QMenu" name="editMenu">
+    <property name="title">
+     <string>&amp;Edit</string>
+    </property>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="editMenu"/>
    <addaction name="menuTests"/>
   </widget>
   <action name="actionOpen">
@@ -1256,6 +1262,13 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ActionButton</class>
+   <extends>QPushButton</extends>
+   <header>actionButton.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
