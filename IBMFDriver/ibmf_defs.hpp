@@ -1,6 +1,5 @@
 #pragma once
 
-#include <QChar>
 #include <cinttypes>
 #include <vector>
 
@@ -99,8 +98,8 @@ const constexpr uint8_t MAX_GLYPH_COUNT = 254; // Index Value 0xFE and 0xFF are 
 // const constexpr uint8_t BLACK_EIGHT_BITS = 0;
 // const constexpr uint8_t WHITE_EIGHT_BITS = 0xFF;
 
-const constexpr uint8_t BLACK_ONE_BIT = 1;
-const constexpr uint8_t WHITE_ONE_BIT = 0;
+const constexpr uint8_t BLACK_ONE_BIT    = 1;
+const constexpr uint8_t WHITE_ONE_BIT    = 0;
 
 const constexpr uint8_t BLACK_EIGHT_BITS = 0xFF;
 const constexpr uint8_t WHITE_EIGHT_BITS = 0x00;
@@ -123,10 +122,11 @@ struct Pos {
   Pos() {}
 };
 
-typedef uint8_t             *MemoryPtr;
-typedef std::vector<uint8_t> Pixels;
-typedef Pixels              *PixelsPtr;
-typedef uint8_t              GlyphCode;
+typedef uint8_t              *MemoryPtr;
+typedef std::vector<uint8_t>  Pixels;
+typedef Pixels               *PixelsPtr;
+typedef uint16_t              GlyphCode;
+typedef std::vector<char16_t> CharCodes;
 
 struct RLEBitmap {
   Pixels   pixels;
@@ -179,8 +179,8 @@ struct FaceHeader {
   uint16_t ligKernStepCount;
   uint16_t firstCode;
   uint16_t lastCode;
-  uint8_t  kernCount;
   uint8_t  maxHeight;
+  uint8_t  filler;
 };
 // typedef FaceHeader *FaceHeaderPtr;
 typedef std::shared_ptr<FaceHeader> FaceHeaderPtr;
@@ -278,8 +278,7 @@ typedef std::shared_ptr<FaceHeader> FaceHeaderPtr;
 // +------------------------+------------------------+
 // |Kern|             Replacement Char               |  <- isAKern (Kern in the diagram) is false
 // +------------------------+------------------------+
-// |Kern|GoTo|      Displacement in FIX14            |  <- isAKern is true and GoTo is false =>
-// Kerning value
+// |Kern|GoTo|      Displacement in FIX14            |  <- isAKern is true and GoTo is false => Kerning value
 // +------------------------+------------------------+
 // |Kern|GoTo|          Displacement                 |  <- isAkern and GoTo are true
 // +------------------------+------------------------+
@@ -289,9 +288,11 @@ typedef std::shared_ptr<FaceHeader> FaceHeaderPtr;
 // usually small numbers. FIX14 and FIX16 are using 6 bits for the fraction. Their
 // remains 8 bits for FIX14 and 10 bits for FIX16, that is more than enough...
 //
+// This is NOW the format being used.
+//
 // clang-format on
 
-#define ORIGINAL_FORMAT 1
+#define ORIGINAL_FORMAT 0
 #if ORIGINAL_FORMAT
 union SkipByte {
   uint8_t whole : 8;
@@ -367,10 +368,10 @@ struct GlyphInfo {
   uint8_t    bitmapHeight;
   int8_t     horizontalOffset;
   int8_t     verticalOffset;
-  uint8_t    ligKernPgmIndex; // = 255 if none
   uint16_t   packetLength;
   FIX16      advance;
   RLEMetrics rleMetrics;
+  uint8_t    ligKernPgmIndex; // = 255 if none
 };
 
 typedef std::shared_ptr<GlyphInfo> GlyphInfoPtr;
@@ -402,191 +403,191 @@ struct Glyph {
 
 // These are the corresponding Unicode value for each of the 174 characters that are part of
 // an IBMF Font;
-const QChar fontFormat0CharacterCodes[] = {
-    QChar(0x0060), // `
-    QChar(0x00B4), // ´
-    QChar(0x02C6), // ˆ
-    QChar(0x02DC), // ˜
-    QChar(0x00A8), // ¨
-    QChar(0x02DD), // ˝
-    QChar(0x02DA), // ˚
-    QChar(0x02C7), // ˇ
-    QChar(0x02D8), // ˘
-    QChar(0x00AF), // ¯
-    QChar(0x02D9), // ˙
-    QChar(0x00B8), // ¸
-    QChar(0x02DB), // ˛
-    QChar(0x201A), // ‚
-    QChar(0x2039), // ‹
-    QChar(0x203A), // ›
+const CharCodes fontFormat0CharacterCodes = {
+    char16_t(0x0060), // `
+    char16_t(0x00B4), // ´
+    char16_t(0x02C6), // ˆ
+    char16_t(0x02DC), // ˜
+    char16_t(0x00A8), // ¨
+    char16_t(0x02DD), // ˝
+    char16_t(0x02DA), // ˚
+    char16_t(0x02C7), // ˇ
+    char16_t(0x02D8), // ˘
+    char16_t(0x00AF), // ¯
+    char16_t(0x02D9), // ˙
+    char16_t(0x00B8), // ¸
+    char16_t(0x02DB), // ˛
+    char16_t(0x201A), // ‚
+    char16_t(0x2039), // ‹
+    char16_t(0x203A), // ›
 
-    QChar(0x201C), // “
-    QChar(0x201D), // ”
-    QChar(0x201E), // „
-    QChar(0x00AB), // «
-    QChar(0x00BB), // »
-    QChar(0x2013), // –
-    QChar(0x2014), // —
-    QChar(0x00BF), // ¿
-    QChar(0x2080), // ₀
-    QChar(0x0131), // ı
-    QChar(0x0237), // ȷ
-    QChar(0xFB00), // ﬀ
-    QChar(0xFB01), // ﬁ
-    QChar(0xFB02), // ﬂ
-    QChar(0xFB03), // ﬃ
-    QChar(0xFB04), // ﬄ
+    char16_t(0x201C), // “
+    char16_t(0x201D), // ”
+    char16_t(0x201E), // „
+    char16_t(0x00AB), // «
+    char16_t(0x00BB), // »
+    char16_t(0x2013), // –
+    char16_t(0x2014), // —
+    char16_t(0x00BF), // ¿
+    char16_t(0x2080), // ₀
+    char16_t(0x0131), // ı
+    char16_t(0x0237), // ȷ
+    char16_t(0xFB00), // ﬀ
+    char16_t(0xFB01), // ﬁ
+    char16_t(0xFB02), // ﬂ
+    char16_t(0xFB03), // ﬃ
+    char16_t(0xFB04), // ﬄ
 
-    QChar(0x00A1), // ¡
-    QChar(0x0021), // !
-    QChar(0x0022), // "
-    QChar(0x0023), // #
-    QChar(0x0024), // $
-    QChar(0x0025), // %
-    QChar(0x0026), // &
-    QChar(0x2019), // ’
-    QChar(0x0028), // (
-    QChar(0x0029), // )
-    QChar(0x002A), // *
-    QChar(0x002B), // +
-    QChar(0x002C), // ,
-    QChar(0x002D), // .
-    QChar(0x002E), // -
-    QChar(0x002F), // /
+    char16_t(0x00A1), // ¡
+    char16_t(0x0021), // !
+    char16_t(0x0022), // "
+    char16_t(0x0023), // #
+    char16_t(0x0024), // $
+    char16_t(0x0025), // %
+    char16_t(0x0026), // &
+    char16_t(0x2019), // ’
+    char16_t(0x0028), // (
+    char16_t(0x0029), // )
+    char16_t(0x002A), // *
+    char16_t(0x002B), // +
+    char16_t(0x002C), // ,
+    char16_t(0x002D), // .
+    char16_t(0x002E), // -
+    char16_t(0x002F), // /
 
-    QChar(0x0030), // 0
-    QChar(0x0031), // 1
-    QChar(0x0032), // 2
-    QChar(0x0033), // 3
-    QChar(0x0034), // 4
-    QChar(0x0035), // 5
-    QChar(0x0036), // 6
-    QChar(0x0037), // 7
-    QChar(0x0038), // 8
-    QChar(0x0039), // 9
-    QChar(0x003A), // :
-    QChar(0x003B), // ;
-    QChar(0x003C), // <
-    QChar(0x003D), // =
-    QChar(0x003E), // >
-    QChar(0x003F), // ?
+    char16_t(0x0030), // 0
+    char16_t(0x0031), // 1
+    char16_t(0x0032), // 2
+    char16_t(0x0033), // 3
+    char16_t(0x0034), // 4
+    char16_t(0x0035), // 5
+    char16_t(0x0036), // 6
+    char16_t(0x0037), // 7
+    char16_t(0x0038), // 8
+    char16_t(0x0039), // 9
+    char16_t(0x003A), // :
+    char16_t(0x003B), // ;
+    char16_t(0x003C), // <
+    char16_t(0x003D), // =
+    char16_t(0x003E), // >
+    char16_t(0x003F), // ?
 
-    QChar(0x0040), // @
-    QChar(0x0041), // A
-    QChar(0x0042), // B
-    QChar(0x0043), // C
-    QChar(0x0044), // D
-    QChar(0x0045), // E
-    QChar(0x0046), // F
-    QChar(0x0047), // G
-    QChar(0x0048), // H
-    QChar(0x0049), // I
-    QChar(0x004A), // J
-    QChar(0x004B), // K
-    QChar(0x004C), // L
-    QChar(0x004D), // M
-    QChar(0x004E), // N
-    QChar(0x004F), // O
+    char16_t(0x0040), // @
+    char16_t(0x0041), // A
+    char16_t(0x0042), // B
+    char16_t(0x0043), // C
+    char16_t(0x0044), // D
+    char16_t(0x0045), // E
+    char16_t(0x0046), // F
+    char16_t(0x0047), // G
+    char16_t(0x0048), // H
+    char16_t(0x0049), // I
+    char16_t(0x004A), // J
+    char16_t(0x004B), // K
+    char16_t(0x004C), // L
+    char16_t(0x004D), // M
+    char16_t(0x004E), // N
+    char16_t(0x004F), // O
 
-    QChar(0x0050), // P
-    QChar(0x0051), // Q
-    QChar(0x0052), // R
-    QChar(0x0053), // S
-    QChar(0x0054), // T
-    QChar(0x0055), // U
-    QChar(0x0056), // V
-    QChar(0x0057), // W
-    QChar(0x0058), // X
-    QChar(0x0059), // Y
-    QChar(0x005A), // Z
-    QChar(0x005B), // [
-    QChar(0x005C), // \ .
-    QChar(0x005D), // ]
-    QChar(0x005E), // ^
-    QChar(0x005F), // _
+    char16_t(0x0050), // P
+    char16_t(0x0051), // Q
+    char16_t(0x0052), // R
+    char16_t(0x0053), // S
+    char16_t(0x0054), // T
+    char16_t(0x0055), // U
+    char16_t(0x0056), // V
+    char16_t(0x0057), // W
+    char16_t(0x0058), // X
+    char16_t(0x0059), // Y
+    char16_t(0x005A), // Z
+    char16_t(0x005B), // [
+    char16_t(0x005C), // \ .
+    char16_t(0x005D), // ]
+    char16_t(0x005E), // ^
+    char16_t(0x005F), // _
 
-    QChar(0x2018), // ‘
-    QChar(0x0061), // a
-    QChar(0x0062), // b
-    QChar(0x0063), // c
-    QChar(0x0064), // d
-    QChar(0x0065), // e
-    QChar(0x0066), // f
-    QChar(0x0067), // g
-    QChar(0x0068), // h
-    QChar(0x0069), // i
-    QChar(0x006A), // j
-    QChar(0x006B), // k
-    QChar(0x006C), // l
-    QChar(0x006D), // m
-    QChar(0x006E), // n
-    QChar(0x006F), // o
+    char16_t(0x2018), // ‘
+    char16_t(0x0061), // a
+    char16_t(0x0062), // b
+    char16_t(0x0063), // c
+    char16_t(0x0064), // d
+    char16_t(0x0065), // e
+    char16_t(0x0066), // f
+    char16_t(0x0067), // g
+    char16_t(0x0068), // h
+    char16_t(0x0069), // i
+    char16_t(0x006A), // j
+    char16_t(0x006B), // k
+    char16_t(0x006C), // l
+    char16_t(0x006D), // m
+    char16_t(0x006E), // n
+    char16_t(0x006F), // o
 
-    QChar(0x0070), // p
-    QChar(0x0071), // q
-    QChar(0x0072), // r
-    QChar(0x0073), // s
-    QChar(0x0074), // t
-    QChar(0x0075), // u
-    QChar(0x0076), // v
-    QChar(0x0077), // w
-    QChar(0x0078), // x
-    QChar(0x0079), // y
-    QChar(0x007A), // z
-    QChar(0x007B), // {
-    QChar(0x007C), // |
-    QChar(0x007D), // }
-    QChar(0x007E), // ~
-    QChar(0x013D), // Ľ
+    char16_t(0x0070), // p
+    char16_t(0x0071), // q
+    char16_t(0x0072), // r
+    char16_t(0x0073), // s
+    char16_t(0x0074), // t
+    char16_t(0x0075), // u
+    char16_t(0x0076), // v
+    char16_t(0x0077), // w
+    char16_t(0x0078), // x
+    char16_t(0x0079), // y
+    char16_t(0x007A), // z
+    char16_t(0x007B), // {
+    char16_t(0x007C), // |
+    char16_t(0x007D), // }
+    char16_t(0x007E), // ~
+    char16_t(0x013D), // Ľ
 
-    QChar(0x0141), // Ł
-    QChar(0x014A), // Ŋ
-    QChar(0x0132), // Ĳ
-    QChar(0x0111), // đ
-    QChar(0x00A7), // §
-    QChar(0x010F), // ď
-    QChar(0x013E), // ľ
-    QChar(0x0142), // ł
-    QChar(0x014B), // ŋ
-    QChar(0x0165), // ť
-    QChar(0x0133), // ĳ
-    QChar(0x00A3), // £
-    QChar(0x00C6), // Æ
-    QChar(0x00D0), // Ð
-    QChar(0x0152), // Œ
-    QChar(0x00D8), // Ø
+    char16_t(0x0141), // Ł
+    char16_t(0x014A), // Ŋ
+    char16_t(0x0132), // Ĳ
+    char16_t(0x0111), // đ
+    char16_t(0x00A7), // §
+    char16_t(0x010F), // ď
+    char16_t(0x013E), // ľ
+    char16_t(0x0142), // ł
+    char16_t(0x014B), // ŋ
+    char16_t(0x0165), // ť
+    char16_t(0x0133), // ĳ
+    char16_t(0x00A3), // £
+    char16_t(0x00C6), // Æ
+    char16_t(0x00D0), // Ð
+    char16_t(0x0152), // Œ
+    char16_t(0x00D8), // Ø
 
-    QChar(0x00DE), // Þ
-    QChar(0x1E9E), // ẞ
-    QChar(0x00E6), // æ
-    QChar(0x00F0), // ð
-    QChar(0x0153), // œ
-    QChar(0x00F8), // ø
-    QChar(0x00FE), // þ
-    QChar(0x00DF), // ß
-    QChar(0x00A2), // ¢
-    QChar(0x00A4), // ¤
-    QChar(0x00A5), // ¥
-    QChar(0x00A6), // ¦
-    QChar(0x00A9), // ©
-    QChar(0x00AA), // ª
-    QChar(0x00AC), // ¬
-    QChar(0x00AE), // ®
+    char16_t(0x00DE), // Þ
+    char16_t(0x1E9E), // ẞ
+    char16_t(0x00E6), // æ
+    char16_t(0x00F0), // ð
+    char16_t(0x0153), // œ
+    char16_t(0x00F8), // ø
+    char16_t(0x00FE), // þ
+    char16_t(0x00DF), // ß
+    char16_t(0x00A2), // ¢
+    char16_t(0x00A4), // ¤
+    char16_t(0x00A5), // ¥
+    char16_t(0x00A6), // ¦
+    char16_t(0x00A9), // ©
+    char16_t(0x00AA), // ª
+    char16_t(0x00AC), // ¬
+    char16_t(0x00AE), // ®
 
-    QChar(0x00B1), // ±
-    QChar(0x00B2), // ²
-    QChar(0x00B3), // ³
-    QChar(0x00B5), // µ
-    QChar(0x00B6), // ¶
-    QChar(0x00B7), // ·
-    QChar(0x00B9), // ¹
-    QChar(0x00BA), // º
-    QChar(0x00D7), // ×
-    QChar(0x00BC), // ¼
-    QChar(0x00BD), // ½
-    QChar(0x00BE), // ¾
-    QChar(0x00F7), // ÷
-    QChar(0x20AC)  // €
+    char16_t(0x00B1), // ±
+    char16_t(0x00B2), // ²
+    char16_t(0x00B3), // ³
+    char16_t(0x00B5), // µ
+    char16_t(0x00B6), // ¶
+    char16_t(0x00B7), // ·
+    char16_t(0x00B9), // ¹
+    char16_t(0x00BA), // º
+    char16_t(0x00D7), // ×
+    char16_t(0x00BC), // ¼
+    char16_t(0x00BD), // ½
+    char16_t(0x00BE), // ¾
+    char16_t(0x00F7), // ÷
+    char16_t(0x20AC)  // €
 };
 
 #if 0

@@ -94,7 +94,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
       item->setFlags(item->flags() & ~Qt::ItemIsEditable);
       item->setTextAlignment(Qt::AlignCenter | Qt::AlignVCenter);
       if (idx < 174) {
-        item->setData(Qt::EditRole, fontFormat0CharacterCodes[idx]);
+        item->setData(Qt::EditRole, QChar(fontFormat0CharacterCodes[idx]));
 
         item->setToolTip(QString("%1  0o%2  0x%3")
                              .arg(idx)
@@ -496,7 +496,6 @@ void MainWindow::saveFace() {
     face_header.spaceSize        = getValue(ui->faceHeader, 8, 1).toUInt();
     face_header.glyphCount       = getValue(ui->faceHeader, 9, 1).toUInt();
     face_header.ligKernStepCount = getValue(ui->faceHeader, 10, 1).toUInt();
-    face_header.kernCount        = getValue(ui->faceHeader, 11, 1).toUInt();
 
     ibmfFont->save_face_header(ibmfFaceIdx, face_header);
     faceChanged = false;
@@ -522,7 +521,6 @@ bool MainWindow::loadFace(uint8_t face_idx) {
     putValue(ui->faceHeader, 8, 1, ibmfFaceHeader->spaceSize);
     putValue(ui->faceHeader, 9, 1, ibmfFaceHeader->glyphCount, false);
     putValue(ui->faceHeader, 10, 1, ibmfFaceHeader->ligKernStepCount, false);
-    putValue(ui->faceHeader, 11, 1, ibmfFaceHeader->kernCount, false);
 
     faceReloading = false;
 
