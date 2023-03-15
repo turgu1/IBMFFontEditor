@@ -1046,6 +1046,9 @@
              <property name="frameShape">
               <enum>QFrame::Panel</enum>
              </property>
+             <property name="editTriggers">
+              <set>QAbstractItemView::NoEditTriggers</set>
+             </property>
              <column>
               <property name="text">
                <string>Second Char</string>
@@ -1054,9 +1057,6 @@
                <font>
                 <pointsize>9</pointsize>
                </font>
-              </property>
-              <property name="textAlignment">
-               <set>AlignLeading|AlignVCenter</set>
               </property>
              </column>
              <column>
@@ -1067,9 +1067,6 @@
                <font>
                 <pointsize>9</pointsize>
                </font>
-              </property>
-              <property name="textAlignment">
-               <set>AlignLeading|AlignVCenter</set>
               </property>
              </column>
             </widget>
@@ -1091,6 +1088,9 @@
              <property name="frameShape">
               <enum>QFrame::Panel</enum>
              </property>
+             <property name="editTriggers">
+              <set>QAbstractItemView::NoEditTriggers</set>
+             </property>
              <column>
               <property name="text">
                <string>Second Char</string>
@@ -1100,16 +1100,10 @@
                 <pointsize>9</pointsize>
                </font>
               </property>
-              <property name="textAlignment">
-               <set>AlignLeading|AlignVCenter</set>
-              </property>
              </column>
              <column>
               <property name="text">
                <string>Kerning</string>
-              </property>
-              <property name="textAlignment">
-               <set>AlignLeading|AlignVCenter</set>
               </property>
              </column>
             </widget>

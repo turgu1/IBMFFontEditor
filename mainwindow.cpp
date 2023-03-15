@@ -607,6 +607,8 @@ bool MainWindow::loadGlyph(uint16_t glyph_code) {
                                                    .arg(code)
                                                    .arg(code, 3, 8, QChar('0'))
                                                    .arg(code, 2, 16, QChar('0')));
+          ui->ligTable->item(i, 0)->setTextAlignment(Qt::AlignCenter);
+          ui->ligTable->item(i, 1)->setTextAlignment(Qt::AlignCenter);
         }
         ui->kernTable->setRowCount(ibmfLigKerns->kern_steps.size());
         for (int i = 0; i < ibmfLigKerns->kern_steps.size(); i++) {
@@ -618,6 +620,8 @@ bool MainWindow::loadGlyph(uint16_t glyph_code) {
                                                     .arg(code)
                                                     .arg(code, 3, 8, QChar('0'))
                                                     .arg(code, 2, 16, QChar('0')));
+          ui->kernTable->item(i, 0)->setTextAlignment(Qt::AlignCenter);
+          ui->kernTable->item(i, 1)->setTextAlignment(Qt::AlignCenter);
         }
       }
 
