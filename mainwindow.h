@@ -47,11 +47,6 @@ private slots:
   void on_faceHeader_cellChanged(int row, int column);
   void on_glyphForgetButton_clicked();
   void on_faceForgetButton_clicked();
-  void bitmapChanged(Bitmap &bitmap);
-  void setScrollBarSizes(int value);
-  void centerScrollBarPos();
-  void updateBitmapOffsetPos();
-  void openRecent();
   void on_centerGridButton_clicked();
   void on_leftSplitter_splitterMoved(int pos, int index);
   void on_bitmapVerticalScrollBar_valueChanged(int value);
@@ -62,42 +57,48 @@ private slots:
   void on_actionSaveBackup_triggered();
   void on_clearRecentList_triggered();
 
+  void bitmapChanged(Bitmap &bitmap);
+  void setScrollBarSizes(int value);
+  void centerScrollBarPos();
+  void updateBitmapOffsetPos();
+  void openRecent();
+
 private:
   const int MAX_RECENT_FILES = 10;
 
   Ui::MainWindow *ui;
-  QString         currentFilePath;
+  QString         _currentFilePath;
 
-  QUndoStack *undoStack;
-  QUndoView  *undoView;
-  QAction    *undoAction;
-  QAction    *redoAction;
+  QUndoStack *_undoStack;
+  QUndoView  *_undoView;
+  QAction    *_undoAction;
+  QAction    *_redoAction;
 
-  bool fontChanged;
-  bool faceChanged;
-  bool glyphChanged;
-  bool initialized;
-  bool glyphReloading;
-  bool faceReloading;
+  bool _fontChanged;
+  bool _faceChanged;
+  bool _glyphChanged;
+  bool _initialized;
+  bool _glyphReloading;
+  bool _faceReloading;
 
-  BitmapRenderer *bitmapRenderer;
-  BitmapRenderer *smallGlyph;
-  BitmapRenderer *largeGlyph;
+  BitmapRenderer *_bitmapRenderer;
+  BitmapRenderer *_smallGlyph;
+  BitmapRenderer *_largeGlyph;
 
   typedef std::unique_ptr<IBMFFontMod> IBMFFontModPtr;
 
-  IBMFFontModPtr          ibmfFont;
-  IBMFDefs::Preamble      ibmfPreamble;
-  IBMFDefs::FaceHeaderPtr ibmfFaceHeader;
-  IBMFDefs::GlyphInfoPtr  ibmfGlyphInfo;
+  IBMFFontModPtr          _ibmfFont;
+  IBMFDefs::Preamble      _ibmfPreamble;
+  IBMFDefs::FaceHeaderPtr _ibmfFaceHeader;
+  IBMFDefs::GlyphInfoPtr  _ibmfGlyphInfo;
 
-  IBMFDefs::Bitmap *ibmfGlyphBitmap;
+  IBMFDefs::Bitmap *_ibmfGlyphBitmap;
 
-  IBMFFontMod::GlyphLigKern *ibmfLigKerns;
+  IBMFFontMod::GlyphLigKern *_ibmfLigKerns;
 
-  int              ibmfFaceIdx;
-  int              ibmfGlyphCode;
-  QList<QAction *> recentFileActionList;
+  int              _ibmfFaceIdx;
+  int              _ibmfGlyphCode;
+  QList<QAction *> _recentFileActionList;
 
   void     writeSettings();
   void     readSettings();
@@ -108,10 +109,10 @@ private:
   bool     checkFontChanged();
   bool     saveFont(bool askToConfirmName);
   bool     loadFont(QFile &file);
-  bool     loadFace(uint8_t face_idx);
+  bool     loadFace(uint8_t faceIdx);
   void     saveFace();
   void     saveGlyph();
-  bool     loadGlyph(uint16_t glyph_code);
+  bool     loadGlyph(uint16_t glyphCode);
   void     clearAll();
   void     putValue(QTableWidget *w, int row, int col, QVariant value, bool editable = true);
   void     putFix16Value(QTableWidget *w, int row, int col, QVariant value, bool editable = true);

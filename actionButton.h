@@ -19,7 +19,7 @@ class ActionButton : public QPushButton {
 
 private:
   // The action associated to this button.
-  QAction *actionOwner = nullptr;
+  QAction *_actionOwner = nullptr;
 
 public:
   // Default constructor. Parent the widget parent of this button

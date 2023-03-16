@@ -5,26 +5,27 @@
 #include "qwidget.h"
 #include "setPixelCommand.h"
 
-BitmapRenderer::BitmapRenderer(QWidget *parent, int pixelSize, bool noScroll, QUndoStack *undoStack)
-    : QWidget(parent), undoStack(undoStack), bitmapChanged(false), glyphPresent(false),
-      pixelSize(pixelSize), wasBlack(true), editable(true), noScroll(noScroll),
-      bitmapOffsetPos(QPoint(0, 0)) {
+BitmapRenderer::BitmapRenderer(QWidget *parent, int pixelSize, bool noScroll,
+                               QUndoStack *_undoStack)
+    : QWidget(parent), _undoStack(_undoStack), _bitmapChanged(false), _glyphPresent(false),
+      _pixelSize(pixelSize), _wasBlack(true), _editable(true), _noScroll(noScroll),
+      _bitmapOffsetPos(QPoint(0, 0)) {
   setBackgroundRole(QPalette::Base);
   setAutoFillBackground(true);
   clearBitmap();
 }
 
 void BitmapRenderer::resizeEvent(QResizeEvent *event) {
-  if (noScroll) {
-    bitmapOffsetPos = QPoint((bitmapWidth - (width() / pixelSize)) / 2,
-                             (bitmapHeight - (height() / pixelSize)) / 2);
-    if (bitmapOffsetPos.x() < 0) bitmapOffsetPos.setX(0);
-    if (bitmapOffsetPos.y() < 0) bitmapOffsetPos.setY(0);
+  if (_noScroll) {
+    _bitmapOffsetPos = QPoint((bitmapWidth - (width() / _pixelSize)) / 2,
+                              (bitmapHeight - (height() / _pixelSize)) / 2);
+    if (_bitmapOffsetPos.x() < 0) _bitmapOffsetPos.setX(0);
+    if (_bitmapOffsetPos.y() < 0) _bitmapOffsetPos.setY(0);
   }
 }
 
 int BitmapRenderer::getPixelSize() {
-  return pixelSize;
+  return _pixelSize;
 }
 
 void BitmapRenderer::connectTo(BitmapRenderer *main_renderer) {
@@ -32,11 +33,11 @@ void BitmapRenderer::connectTo(BitmapRenderer *main_renderer) {
                    &BitmapRenderer::clearAndReloadBitmap);
   QObject::connect(main_renderer, &BitmapRenderer::bitmapCleared, this,
                    &BitmapRenderer::clearAndRepaint);
-  editable = false;
+  _editable = false;
 }
 
 void BitmapRenderer::clearBitmap() {
-  memset(displayBitmap, PixelType::WHITE, sizeof(displayBitmap));
+  memset(_displayBitmap, PixelType::WHITE, sizeof(_displayBitmap));
 }
 
 void BitmapRenderer::clearAndRepaint() {
@@ -53,7 +54,7 @@ void BitmapRenderer::clearAndEmit(bool repaint_after) {
 void BitmapRenderer::setPixelSize(int pixel_size) {
   IBMFDefs::Bitmap *bitmap;
 
-  pixelSize = pixel_size;
+  _pixelSize = pixel_size;
   if (retrieveBitmap(&bitmap)) {
     clearAndReloadBitmap(*bitmap);
     delete bitmap;
@@ -66,8 +67,8 @@ void BitmapRenderer::setBitmapOffsetPos(QPoint pos) {
   if ((pos.x() < 0) || (pos.x() >= bitmapWidth) || (pos.y() < 0) || (pos.y() >= bitmapHeight)) {
     QMessageBox::warning(this, "Internal error", "setBitmapOffsetPos() received a bad position!");
   }
-  if ((pos.x() != bitmapOffsetPos.x()) || (pos.y() != bitmapOffsetPos.y())) {
-    bitmapOffsetPos = pos;
+  if ((pos.x() != _bitmapOffsetPos.x()) || (pos.y() != _bitmapOffsetPos.y())) {
+    _bitmapOffsetPos = pos;
   }
 }
 
@@ -78,13 +79,13 @@ void BitmapRenderer::setScreenPixel(QPoint pos) {
   painter.setPen(QPen(QBrush(QColorConstants::DarkGray), 1));
   painter.setBrush(QBrush(QColorConstants::DarkGray));
 
-  if (editable) {
+  if (_editable) {
     // Leave some space for grid lines
-    rect = QRect((pos.x() - bitmapOffsetPos.x()) * pixelSize + 2,
-                 (pos.y() - bitmapOffsetPos.y()) * pixelSize + 2, pixelSize - 4, pixelSize - 4);
+    rect = QRect((pos.x() - _bitmapOffsetPos.x()) * _pixelSize + 2,
+                 (pos.y() - _bitmapOffsetPos.y()) * _pixelSize + 2, _pixelSize - 4, _pixelSize - 4);
   } else {
-    rect = QRect((pos.x() - bitmapOffsetPos.x()) * pixelSize,
-                 (pos.y() - bitmapOffsetPos.y()) * pixelSize, pixelSize, pixelSize);
+    rect = QRect((pos.x() - _bitmapOffsetPos.x()) * _pixelSize,
+                 (pos.y() - _bitmapOffsetPos.y()) * _pixelSize, _pixelSize, _pixelSize);
   }
   painter.drawRect(rect);
 }
@@ -95,23 +96,23 @@ void BitmapRenderer::paintEvent(QPaintEvent * /* event */) {
   painter.setPen(QPen(QBrush(QColorConstants::LightGray), 1));
   painter.setBrush(QBrush(QColorConstants::Red));
 
-  if (editable) {
+  if (_editable) {
 
-    for (int row = pixelSize; row < height(); row += pixelSize) {
-      for (int col = pixelSize; col < width(); col += pixelSize) {
+    for (int row = _pixelSize; row < height(); row += _pixelSize) {
+      for (int col = _pixelSize; col < width(); col += _pixelSize) {
         painter.drawLine(QPoint(col, 0), QPoint(col, height()));
         painter.drawLine(QPoint(0, row), QPoint(width(), row));
       }
     }
 
-    if (glyphPresent) {
-      int originRow    = (glyphOriginPos.y() - bitmapOffsetPos.y()) * pixelSize;
-      int originCol    = (glyphOriginPos.x() - bitmapOffsetPos.x()) * pixelSize;
-      int descenderRow = originRow + (faceHeader.descenderHeight * pixelSize);
-      int topRow       = descenderRow - (faceHeader.lineHeight * pixelSize);
-      int xRow         = originRow - (((float) faceHeader.xHeight / 64.0) * pixelSize);
-      int advCol       = originCol + (((float) glyphInfo.advance / 64.0) * pixelSize);
-      // int emCol        = originCol + (floor(((float) faceHeader.emSize / 64.0)) * pixelSize);
+    if (_glyphPresent) {
+      int originRow    = (_glyphOriginPos.y() - _bitmapOffsetPos.y()) * _pixelSize;
+      int originCol    = (_glyphOriginPos.x() - _bitmapOffsetPos.x()) * _pixelSize;
+      int descenderRow = originRow + (_faceHeader.descenderHeight * _pixelSize);
+      int topRow       = descenderRow - (_faceHeader.lineHeight * _pixelSize);
+      int xRow         = originRow - (((float) _faceHeader.xHeight / 64.0) * _pixelSize);
+      int advCol       = originCol + (((float) _glyphInfo.advance / 64.0) * _pixelSize);
+      // int emCol        = originCol + (floor(((float) _faceHeader.emSize / 64.0)) * _pixelSize);
 
       painter.setPen(QPen(QBrush(QColorConstants::Red), 1));
       painter.drawLine(QPoint(originCol, originRow), QPoint(advCol, originRow));
@@ -130,17 +131,17 @@ void BitmapRenderer::paintEvent(QPaintEvent * /* event */) {
   }
 
   int rowp;
-  for (int row = bitmapOffsetPos.y(), rowp = row * bitmapWidth; row < bitmapHeight;
+  for (int row = _bitmapOffsetPos.y(), rowp = row * bitmapWidth; row < bitmapHeight;
        row++, rowp += bitmapWidth) {
-    for (int col = bitmapOffsetPos.x(); col < bitmapWidth; col++) {
-      if (displayBitmap[rowp + col] == PixelType::BLACK) { setScreenPixel(QPoint(col, row)); }
+    for (int col = _bitmapOffsetPos.x(); col < bitmapWidth; col++) {
+      if (_displayBitmap[rowp + col] == PixelType::BLACK) { setScreenPixel(QPoint(col, row)); }
     }
   }
 }
 
 void BitmapRenderer::paintPixel(PixelType pixelType, QPoint atPos) {
-  int idx            = atPos.y() * bitmapWidth + atPos.x();
-  displayBitmap[idx] = pixelType;
+  int idx             = atPos.y() * bitmapWidth + atPos.x();
+  _displayBitmap[idx] = pixelType;
   repaint();
 
   IBMFDefs::Bitmap *theBitmap;
@@ -152,33 +153,33 @@ void BitmapRenderer::paintPixel(PixelType pixelType, QPoint atPos) {
 }
 
 void BitmapRenderer::mousePressEvent(QMouseEvent *event) {
-  if (editable) {
-    lastPos = QPoint(bitmapOffsetPos.x() + event->pos().x() / pixelSize,
-                     bitmapOffsetPos.y() + event->pos().y() / pixelSize);
-    if ((lastPos.x() < bitmapWidth) && (lastPos.y() < bitmapHeight)) {
-      int       idx = lastPos.y() * bitmapWidth + lastPos.x();
+  if (_editable) {
+    _lastPos = QPoint(_bitmapOffsetPos.x() + event->pos().x() / _pixelSize,
+                      _bitmapOffsetPos.y() + event->pos().y() / _pixelSize);
+    if ((_lastPos.x() < bitmapWidth) && (_lastPos.y() < bitmapHeight)) {
+      int       idx = _lastPos.y() * bitmapWidth + _lastPos.x();
       PixelType newPixelType;
-      if (displayBitmap[idx] == PixelType::BLACK) {
+      if (_displayBitmap[idx] == PixelType::BLACK) {
         newPixelType = PixelType::WHITE;
-        wasBlack     = false;
+        _wasBlack    = false;
       } else {
         newPixelType = PixelType::BLACK;
-        wasBlack     = true;
+        _wasBlack    = true;
       }
-      undoStack->push(new SetPixelCommand(this, newPixelType, lastPos));
+      _undoStack->push(new SetPixelCommand(this, newPixelType, _lastPos));
     }
   }
 }
 
 void BitmapRenderer::mouseMoveEvent(QMouseEvent *event) {
-  if (editable) {
-    QPoint pos = QPoint(bitmapOffsetPos.x() + event->pos().x() / pixelSize,
-                        bitmapOffsetPos.y() + event->pos().y() / pixelSize);
+  if (_editable) {
+    QPoint pos = QPoint(_bitmapOffsetPos.x() + event->pos().x() / _pixelSize,
+                        _bitmapOffsetPos.y() + event->pos().y() / _pixelSize);
     if ((pos.x() < bitmapWidth) && (pos.y() < bitmapHeight) &&
-        ((pos.x() != lastPos.x()) || (pos.y() != lastPos.y()))) {
-      PixelType newPixelType = wasBlack ? PixelType::BLACK : PixelType::WHITE;
-      lastPos                = pos;
-      undoStack->push(new SetPixelCommand(this, newPixelType, lastPos));
+        ((pos.x() != _lastPos.x()) || (pos.y() != _lastPos.y()))) {
+      PixelType newPixelType = _wasBlack ? PixelType::BLACK : PixelType::WHITE;
+      _lastPos               = pos;
+      _undoStack->push(new SetPixelCommand(this, newPixelType, _lastPos));
     }
   }
 }
@@ -189,15 +190,15 @@ void BitmapRenderer::clearAndLoadBitmap(const IBMFDefs::Bitmap     &bitmap,
                                         const IBMFDefs::Preamble   &preamble,
                                         const IBMFDefs::FaceHeader &faceHeader,
                                         const IBMFDefs::GlyphInfo  &glyphInfo) {
-  this->preamble   = preamble;
-  this->faceHeader = faceHeader;
-  this->glyphInfo  = glyphInfo;
-  glyphPresent     = true;
+  _preamble     = preamble;
+  _faceHeader   = faceHeader;
+  _glyphInfo    = glyphInfo;
+  _glyphPresent = true;
 
-  glyphBitmapPos =
+  _glyphBitmapPos =
       QPoint((bitmapWidth - bitmap.dim.width) / 2, (bitmapHeight - bitmap.dim.height) / 2);
-  glyphOriginPos = QPoint(glyphBitmapPos.x() + glyphInfo.horizontalOffset,
-                          1 + glyphBitmapPos.y() + glyphInfo.verticalOffset);
+  _glyphOriginPos = QPoint(_glyphBitmapPos.x() + _glyphInfo.horizontalOffset,
+                           1 + _glyphBitmapPos.y() + _glyphInfo.verticalOffset);
   clearAndEmit();
   loadBitmap(bitmap);
 }
@@ -209,7 +210,7 @@ void BitmapRenderer::clearAndReloadBitmap(const IBMFDefs::Bitmap &bitmap) {
 
 void BitmapRenderer::loadBitmap(const IBMFDefs::Bitmap &bitmap) {
 
-  if ((glyphBitmapPos.x() < 0) || (glyphBitmapPos.y() < 0)) {
+  if ((_glyphBitmapPos.x() < 0) || (_glyphBitmapPos.y() < 0)) {
     QMessageBox::warning(this, "Internal error",
                          "The Glyph's bitmap is too large for the application capability. Largest "
                          "bitmap width/height is set to 200 pixels.");
@@ -218,14 +219,15 @@ void BitmapRenderer::loadBitmap(const IBMFDefs::Bitmap &bitmap) {
 
   int idx;
   int rowp;
-  for (int row = glyphBitmapPos.y(), rowp = row * bitmapWidth, idx = 0;
-       row < glyphBitmapPos.y() + bitmap.dim.height; row++, rowp += bitmapWidth) {
-    for (int col = glyphBitmapPos.x(); col < glyphBitmapPos.x() + bitmap.dim.width; col++, idx++) {
-      displayBitmap[rowp + col] = (bitmap.pixels[idx] == 0) ? PixelType::WHITE : PixelType::BLACK;
+  for (int row = _glyphBitmapPos.y(), rowp = row * bitmapWidth, idx = 0;
+       row < _glyphBitmapPos.y() + bitmap.dim.height; row++, rowp += bitmapWidth) {
+    for (int col = _glyphBitmapPos.x(); col < _glyphBitmapPos.x() + bitmap.dim.width;
+         col++, idx++) {
+      _displayBitmap[rowp + col] = (bitmap.pixels[idx] == 0) ? PixelType::WHITE : PixelType::BLACK;
     }
   }
 
-  bitmapChanged = false;
+  _bitmapChanged = false;
 
   this->repaint();
 }
@@ -241,7 +243,7 @@ bool BitmapRenderer::retrieveBitmap(IBMFDefs::Bitmap **bitmap) {
   int  idx;
   for (row = 0, idx = 0; row < bitmapHeight; row++) {
     for (col = 0; col < bitmapWidth; col++, idx++) {
-      stop = displayBitmap[idx] != PixelType::WHITE;
+      stop = _displayBitmap[idx] != PixelType::WHITE;
       if (stop) break;
     }
     if (stop) break;
@@ -256,7 +258,7 @@ bool BitmapRenderer::retrieveBitmap(IBMFDefs::Bitmap **bitmap) {
   for (row = bitmapHeight - 1, rowp = (bitmapHeight - 1) * bitmapWidth; row >= 0;
        row--, rowp -= bitmapWidth) {
     for (col = 0; col < bitmapWidth; col++) {
-      stop = displayBitmap[rowp + col] != PixelType::WHITE;
+      stop = _displayBitmap[rowp + col] != PixelType::WHITE;
       if (stop) break;
     }
     if (stop) break;
@@ -266,7 +268,7 @@ bool BitmapRenderer::retrieveBitmap(IBMFDefs::Bitmap **bitmap) {
   stop = false;
   for (col = 0; col < bitmapWidth; col++) {
     for (row = 0, rowp = 0; row < bitmapHeight; row++, rowp += bitmapWidth) {
-      stop = displayBitmap[rowp + col] != PixelType::WHITE;
+      stop = _displayBitmap[rowp + col] != PixelType::WHITE;
       if (stop) break;
     }
     if (stop) break;
@@ -276,7 +278,7 @@ bool BitmapRenderer::retrieveBitmap(IBMFDefs::Bitmap **bitmap) {
   stop = false;
   for (col = bitmapWidth - 1; col >= 0; col--) {
     for (row = 0, rowp = 0; row < bitmapHeight; row++, rowp += bitmapWidth) {
-      stop = displayBitmap[rowp + col] != PixelType::WHITE;
+      stop = _displayBitmap[rowp + col] != PixelType::WHITE;
       if (stop) break;
     }
     if (stop) break;
@@ -293,7 +295,7 @@ bool BitmapRenderer::retrieveBitmap(IBMFDefs::Bitmap **bitmap) {
   for (row = topLeft.y(), rowp = row * bitmapWidth; row <= bottomRight.y();
        row++, rowp += bitmapWidth) {
     for (col = topLeft.x(); col <= bottomRight.x(); col++) {
-      theBitmap->pixels[idx++] = displayBitmap[rowp + col] == PixelType::WHITE ? 0 : 0xff;
+      theBitmap->pixels[idx++] = _displayBitmap[rowp + col] == PixelType::WHITE ? 0 : 0xff;
     }
   }
 

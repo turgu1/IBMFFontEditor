@@ -2,6 +2,7 @@
 
 #include <cinttypes>
 #include <vector>
+#include <memory>
 
 // clang-format off
 //
@@ -202,15 +203,15 @@ typedef std::shared_ptr<FaceHeader> FaceHeaderPtr;
 //
 // In a kern step [isAKern == true], an additional space equal to kern located at
 // [(displHigh << 8) + displLow] in the kern array is inserted between the current
-// character and [nextChar]. This amount is often negative, so that the characters
+// character and [nextGlyphCode]. This amount is often negative, so that the characters
 // are brought closer together by kerning; but it might be positive.
 //
 // There are eight kinds of ligature steps [isAKern == false], having op byte codes
 // [a_op b_op c_op] where 0 ≤ a_op ≤ b_op + c_op and 0 ≤ b_op, c_op ≤ 1.
 //
 // The character whose code is [replacementChar] is inserted between the current
-// character and [nextChar]; then the current character is deleted if b_op = 0, and
-// [nextChar] is deleted if c_op = 0; then we pass over a_op characters to reach the next
+// character and [nextGlyphCode]; then the current character is deleted if b_op = 0, and
+// [nextGlyphCode] is deleted if c_op = 0; then we pass over a_op characters to reach the next
 // current character (which may have a ligature/kerning program of its own).
 //
 // If the very first instruction of a character’s lig kern program has [whole > 128],
@@ -227,8 +228,8 @@ typedef std::shared_ptr<FaceHeader> FaceHeaderPtr;
 //  of a TeX generated document)
 //
 // If the very first instruction of the lig kern array has [whole == 0xFF], the
-// [nextChar] byte is the so-called right boundary character of this font; the value
-// of [nextChar] need not lie between char codes boundaries.
+// [nextGlyphCode] byte is the so-called right boundary character of this font; the value
+// of [nextGlyphCode] need not lie between char codes boundaries.
 //
 // If the very last instruction of the lig kern array has [whole == 0xFF], there is
 // a special ligature/kerning program for a left boundary character, beginning at location
@@ -322,7 +323,7 @@ union RemainderByte {
 
 struct LigKernStep {
   SkipByte      skip;
-  GlyphCode     nextChar;
+  GlyphCode     nextGlyphCode;
   OpCodeByte    opCode;
   RemainderByte remainder;
 };
@@ -363,7 +364,7 @@ struct RLEMetrics {
 };
 
 struct GlyphInfo {
-  GlyphCode  charCode;
+  GlyphCode  glyphCode;
   uint8_t    bitmapWidth;
   uint8_t    bitmapHeight;
   int8_t     horizontalOffset;

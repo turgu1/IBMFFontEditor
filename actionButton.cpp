@@ -6,13 +6,13 @@ void ActionButton::setAction(QAction *action) {
 
   // if I've got already an action associated to the button
   // remove all connections
-  if (actionOwner && actionOwner != action) {
-    disconnect(actionOwner, &QAction::changed, this, &ActionButton::updateButtonStatusFromAction);
-    disconnect(this, &ActionButton::clicked, actionOwner, &QAction::trigger);
+  if (_actionOwner && _actionOwner != action) {
+    disconnect(_actionOwner, &QAction::changed, this, &ActionButton::updateButtonStatusFromAction);
+    disconnect(this, &ActionButton::clicked, _actionOwner, &QAction::trigger);
   }
 
   // store the action
-  actionOwner = action;
+  _actionOwner = action;
 
   // configure the button
   updateButtonStatusFromAction();
@@ -24,17 +24,17 @@ void ActionButton::setAction(QAction *action) {
 
   // connect the button to the slot that forwards the
   // signal to the action
-  connect(this, &ActionButton::clicked, actionOwner, &QAction::trigger);
+  connect(this, &ActionButton::clicked, _actionOwner, &QAction::trigger);
 }
 
 void ActionButton::updateButtonStatusFromAction() {
 
-  if (!actionOwner) return;
-  // setText(actionOwner->text());
-  setStatusTip(actionOwner->statusTip());
-  setToolTip(actionOwner->toolTip());
-  setIcon(actionOwner->icon());
-  setEnabled(actionOwner->isEnabled());
-  setCheckable(actionOwner->isCheckable());
-  setChecked(actionOwner->isChecked());
+  if (!_actionOwner) return;
+  // setText(_actionOwner->text());
+  setStatusTip(_actionOwner->statusTip());
+  setToolTip(_actionOwner->toolTip());
+  setIcon(_actionOwner->icon());
+  setEnabled(_actionOwner->isEnabled());
+  setCheckable(_actionOwner->isCheckable());
+  setChecked(_actionOwner->isChecked());
 }

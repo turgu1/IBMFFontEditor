@@ -21,10 +21,10 @@ public:
   enum PixelType : uint8_t { WHITE, BLACK };
 
   BitmapRenderer(QWidget *parent = 0, int pixel_size = 20, bool no_scroll = false,
-                 QUndoStack *undoStack = nullptr);
+                 QUndoStack *_undoStack = nullptr);
   bool retrieveBitmap(IBMFDefs::Bitmap **bitmap);
   void clearAndEmit(bool repaint_after = false);
-  bool changed() { return bitmapChanged; }
+  bool changed() { return _bitmapChanged; }
   void setPixelSize(int pixel_size);
   void connectTo(BitmapRenderer *renderer);
   int  getPixelSize();
@@ -57,20 +57,20 @@ private:
 
   typedef PixelType DisplayBitmap[bitmapWidth * bitmapHeight];
 
-  QUndoStack   *undoStack;     // The master undo stack as received from the main window
-  bool          bitmapChanged; // True if some pixel modified on screen
-  bool          glyphPresent;  // True if there is a glyph shown on screen
-  int           pixelSize;     // How large a glyph pixel will appear on screen
-  DisplayBitmap displayBitmap; // Each entry correspond to one pixel of a glyph
-  bool   wasBlack; // used by mouse events to permit sequence of pixels drawing through mouse move
-  bool   editable; // Only the main renderer is editable with lines delimiting pixels on screen
-  bool   noScroll; // True for all secondary BitmapRenderer. No scroll bar will appear on screen
-  QPoint lastPos;  // The last position on the displayBitmap received by a Mouse Event
-  QPoint bitmapOffsetPos; // Offset of the displayBitmap upper left corner as whown on screen
-  QPoint glyphBitmapPos;  // Upper left position of the glyph bitmap on the displayBitmap
-  QPoint glyphOriginPos;  // Origin position of the glyph bitmap on the displayBitmap
+  QUndoStack   *_undoStack;     // The master undo stack as received from the main window
+  bool          _bitmapChanged; // True if some pixel modified on screen
+  bool          _glyphPresent;  // True if there is a glyph shown on screen
+  int           _pixelSize;     // How large a glyph pixel will appear on screen
+  DisplayBitmap _displayBitmap; // Each entry correspond to one pixel of a glyph
+  bool   _wasBlack; // used by mouse events to permit sequence of pixels drawing through mouse move
+  bool   _editable; // Only the main renderer is editable with lines delimiting pixels on screen
+  bool   _noScroll; // True for all secondary BitmapRenderer. No scroll bar will appear on screen
+  QPoint _lastPos;  // The last position on the displayBitmap received by a Mouse Event
+  QPoint _bitmapOffsetPos; // Offset of the displayBitmap upper left corner as whown on screen
+  QPoint _glyphBitmapPos;  // Upper left position of the glyph bitmap on the displayBitmap
+  QPoint _glyphOriginPos;  // Origin position of the glyph bitmap on the displayBitmap
 
-  IBMFDefs::Preamble   preamble;   // Copies of the font structure related to the current glyph
-  IBMFDefs::FaceHeader faceHeader; // idem
-  IBMFDefs::GlyphInfo  glyphInfo;  // idem
+  IBMFDefs::Preamble   _preamble;   // Copies of the font structure related to the current glyph
+  IBMFDefs::FaceHeader _faceHeader; // idem
+  IBMFDefs::GlyphInfo  _glyphInfo;  // idem
 };
