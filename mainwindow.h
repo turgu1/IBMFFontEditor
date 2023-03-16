@@ -47,7 +47,6 @@ private slots:
   void on_faceHeader_cellChanged(int row, int column);
   void on_glyphForgetButton_clicked();
   void on_faceForgetButton_clicked();
-
   void bitmapChanged(Bitmap &bitmap);
   void setScrollBarSizes(int value);
   void centerScrollBarPos();
@@ -57,14 +56,11 @@ private slots:
   void on_leftSplitter_splitterMoved(int pos, int index);
   void on_bitmapVerticalScrollBar_valueChanged(int value);
   void on_bitmapHorizontalScrollBar_valueChanged(int value);
-
   void on_actionFont_load_save_triggered();
-
   void on_actionRLE_Encoder_triggered();
-
   void on_actionSave_triggered();
-
   void on_actionSaveBackup_triggered();
+  void on_clearRecentList_triggered();
 
 private:
   const int MAX_RECENT_FILES = 10;

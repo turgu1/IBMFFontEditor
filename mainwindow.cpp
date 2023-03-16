@@ -205,11 +205,12 @@ void MainWindow::updateRecentActionList() {
   QStringList recentFilePaths = settings.value("recentFiles").toStringList();
 
   auto itEnd                  = 0u;
-  if (recentFilePaths.size() <= MAX_RECENT_FILES)
-    itEnd = recentFilePaths.size();
-  else
-    itEnd = MAX_RECENT_FILES;
 
+  if (recentFilePaths.size() <= MAX_RECENT_FILES) {
+    itEnd = recentFilePaths.size();
+  } else {
+    itEnd = MAX_RECENT_FILES;
+  }
   for (auto i = 0u; i < itEnd; ++i) {
     QString strippedName = QFileInfo(recentFilePaths.at(i)).fileName();
     recentFileActionList.at(i)->setText(strippedName);
@@ -217,8 +218,9 @@ void MainWindow::updateRecentActionList() {
     recentFileActionList.at(i)->setVisible(true);
   }
 
-  for (auto i = itEnd; i < MAX_RECENT_FILES; ++i)
+  for (auto i = itEnd; i < MAX_RECENT_FILES; ++i) {
     recentFileActionList.at(i)->setVisible(false);
+  }
 }
 
 void MainWindow::openRecent() {
@@ -894,3 +896,15 @@ void MainWindow::on_actionRLE_Encoder_triggered() {
 void MainWindow::on_actionSave_triggered() { saveFont(true); }
 
 void MainWindow::on_actionSaveBackup_triggered() { saveFont(false); }
+
+void MainWindow::on_clearRecentList_triggered() {
+  QSettings   settings("gt", "IBMFEditor");
+  QStringList recentFilePaths = QStringList();
+  settings.setValue("recentFiles", recentFilePaths);
+
+  for (int i = 0; i < recentFileActionList.length(); i++) {
+    recentFileActionList.at(i)->setVisible(false);
+    recentFileActionList.at(i)->setText("");
+    recentFileActionList.at(i)->setData("");
+  }
+}

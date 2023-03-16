@@ -1185,6 +1185,8 @@
      <property name="title">
       <string>Open recent ...</string>
      </property>
+     <addaction name="clearRecentList"/>
+     <addaction name="separator"/>
     </widget>
     <addaction name="actionOpen"/>
     <addaction name="menuOpenRecent"/>
@@ -1247,6 +1249,11 @@
   <action name="actionSaveBackup">
    <property name="text">
     <string>Save</string>
+   </property>
+  </action>
+  <action name="clearRecentList">
+   <property name="text">
+    <string>Clear List</string>
    </property>
   </action>
  </widget>
