@@ -28,6 +28,8 @@ set(PROJECT_SOURCES
         IBMFDriver/rle_generator.hpp
         IBMFDriver/rle_extractor.hpp
         IBMFDriver/ibmf_defs.hpp
+        Unicode/UBlocks.hpp
+        Unicode/uBlockSelectionDialog.hpp
         mainwindow.ui
 )
 

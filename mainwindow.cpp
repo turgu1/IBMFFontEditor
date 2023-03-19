@@ -158,8 +158,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
   // --> Overall variables initialization <--
 
-  _ibmfFont         = nullptr;
-  _ibmfGlyphCode    = 0;
+  _ibmfFont        = nullptr;
+  _ibmfGlyphCode   = 0;
   _currentFilePath = "";
   _fontChanged     = false;
   _glyphChanged    = false;
@@ -218,7 +218,9 @@ void MainWindow::updateRecentActionList() {
     _recentFileActionList.at(i)->setVisible(true);
   }
 
-  for (auto i = itEnd; i < MAX_RECENT_FILES; ++i) { _recentFileActionList.at(i)->setVisible(false); }
+  for (auto i = itEnd; i < MAX_RECENT_FILES; ++i) {
+    _recentFileActionList.at(i)->setVisible(false);
+  }
 }
 
 void MainWindow::openRecent() {
@@ -529,16 +531,15 @@ void MainWindow::saveGlyph() {
     IBMFDefs::GlyphInfo glyph_info;
     if (_bitmapRenderer->retrieveBitmap(&theBitmap)) {
 
-      glyph_info.glyphCode                = getValue(ui->characterMetrics, 0, 1).toUInt();
       glyph_info.bitmapWidth             = theBitmap->dim.width;
       glyph_info.bitmapHeight            = theBitmap->dim.height;
-      glyph_info.horizontalOffset        = getValue(ui->characterMetrics, 3, 1).toInt();
-      glyph_info.verticalOffset          = getValue(ui->characterMetrics, 4, 1).toInt();
-      glyph_info.ligKernPgmIndex         = getValue(ui->characterMetrics, 5, 1).toUInt();
-      glyph_info.packetLength            = getValue(ui->characterMetrics, 6, 1).toUInt();
-      glyph_info.advance                 = getValue(ui->characterMetrics, 7, 1).toFloat() * 64.0;
-      glyph_info.rleMetrics.dynF         = getValue(ui->characterMetrics, 8, 1).toUInt();
-      glyph_info.rleMetrics.firstIsBlack = getValue(ui->characterMetrics, 9, 1).toUInt();
+      glyph_info.horizontalOffset        = getValue(ui->characterMetrics, 2, 1).toInt();
+      glyph_info.verticalOffset          = getValue(ui->characterMetrics, 3, 1).toInt();
+      glyph_info.ligKernPgmIndex         = getValue(ui->characterMetrics, 4, 1).toUInt();
+      glyph_info.packetLength            = getValue(ui->characterMetrics, 5, 1).toUInt();
+      glyph_info.advance                 = getValue(ui->characterMetrics, 6, 1).toFloat() * 64.0;
+      glyph_info.rleMetrics.dynF         = getValue(ui->characterMetrics, 7, 1).toUInt();
+      glyph_info.rleMetrics.firstIsBlack = getValue(ui->characterMetrics, 8, 1).toUInt();
 
       _ibmfFont->saveGlyph(_ibmfFaceIdx, _ibmfGlyphCode, &glyph_info, theBitmap);
       _glyphChanged = false;
@@ -557,16 +558,15 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
       _glyphChanged   = false;
       _glyphReloading = true;
 
-      putValue(ui->characterMetrics, 0, 1, _ibmfGlyphInfo->glyphCode, false);
-      putValue(ui->characterMetrics, 1, 1, _ibmfGlyphInfo->bitmapWidth, false);
-      putValue(ui->characterMetrics, 2, 1, _ibmfGlyphInfo->bitmapHeight, false);
-      putValue(ui->characterMetrics, 3, 1, _ibmfGlyphInfo->horizontalOffset);
-      putValue(ui->characterMetrics, 4, 1, _ibmfGlyphInfo->verticalOffset);
-      putValue(ui->characterMetrics, 5, 1, _ibmfGlyphInfo->ligKernPgmIndex, false);
-      putValue(ui->characterMetrics, 6, 1, _ibmfGlyphInfo->packetLength, false);
-      putFix16Value(ui->characterMetrics, 7, 1, (float) _ibmfGlyphInfo->advance / 64.0);
-      putValue(ui->characterMetrics, 8, 1, _ibmfGlyphInfo->rleMetrics.dynF, false);
-      putValue(ui->characterMetrics, 9, 1, _ibmfGlyphInfo->rleMetrics.firstIsBlack, false);
+      putValue(ui->characterMetrics, 0, 1, _ibmfGlyphInfo->bitmapWidth, false);
+      putValue(ui->characterMetrics, 1, 1, _ibmfGlyphInfo->bitmapHeight, false);
+      putValue(ui->characterMetrics, 2, 1, _ibmfGlyphInfo->horizontalOffset);
+      putValue(ui->characterMetrics, 3, 1, _ibmfGlyphInfo->verticalOffset);
+      putValue(ui->characterMetrics, 4, 1, _ibmfGlyphInfo->ligKernPgmIndex, false);
+      putValue(ui->characterMetrics, 5, 1, _ibmfGlyphInfo->packetLength, false);
+      putFix16Value(ui->characterMetrics, 6, 1, (float) _ibmfGlyphInfo->advance / 64.0);
+      putValue(ui->characterMetrics, 7, 1, _ibmfGlyphInfo->rleMetrics.dynF, false);
+      putValue(ui->characterMetrics, 8, 1, _ibmfGlyphInfo->rleMetrics.firstIsBlack, false);
 
       centerScrollBarPos();
       _bitmapRenderer->clearAndLoadBitmap(*_ibmfGlyphBitmap, _ibmfPreamble, *_ibmfFaceHeader,

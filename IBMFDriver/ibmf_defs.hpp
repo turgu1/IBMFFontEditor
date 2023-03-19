@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cinttypes>
-#include <vector>
 #include <memory>
+#include <vector>
 
 // clang-format off
 //
@@ -12,68 +12,49 @@
 //
 //  At Offset 0:
 //  +--------------------+
-//  |                    |  Preamble
+//  |                    |  Preamble (6 bytes)
 //  |                    |
 //  +--------------------+
-//  |                    |  FaceHeader offset vector One 32 bit offset for each face
-//  |                    |
+//  |                    |  Pixel sizes (one byte per face pt size present padded to 32 bits
+//  |                    |  from the start) (not used by this driver)
 //  +--------------------+
-//  |                    |  Pixel sizes (one byte per face pt size present padded to be even)
-//  |                    |  (not used by this driver)
+//  |                    |  FaceHeader offset vector 
+//  |                    |  (32 bit offset for each face)
+//  +--------------------+
+//  |                    |  For FontFormat 1 (FontFormat::UTF32) only: the table that contains corresponding 
+//  |                    |  values between Unicode CodePoints and their internal GlyphCode.
+//  |                    |  (content already well aligned to 32 bits frontiers)
 //  +--------------------+
 //
-//  +--------------------+                       <------------+
-//  |                    |  FaceHeader                        |
-//  |                    |                                    |
-//  |                    |                                    |
-//  +--------------------+                <--+                |
-//  |                    |  GlyphInfo        |                |
-//  |                    |                   |                |
-//  |                    |                   |   Repeat for   |
-//  +--------------------+                   |>  each glyph   |
-//  |                    |  Glyph Pixels     |   part of the  |
-//  |                    |                   |   face         |  Repeat for
-//  |                    |                   |                |> each face
-//  +--------------------+                <--+                |  part of the
-//             .                                              |  font
-//             .                                              |
-//             .                                              |
-//  +--------------------+                                    |
-//  |                    | LigKerSteps                        |
-//  |                    |                                    |
-//  |                    |                                    |
-//  +--------------------+                                    |
-//  |                    | Kerns                              |
-//  |                    |                                    |
-//  +--------------------+                       <------------+
+//  +--------------------+               <------------+
+//  |                    |  FaceHeader                |
+//  |                    |  (32 bits aligned)         |
+//  |                    |                            |
+//  +--------------------+                            |
+//  |                    |  Glyphs' pixels indexes    |
+//  |                    |  in the Pixels Pool        |
+//  |                    |  (32bits each)             |
+//  +--------------------+                            |
+//  |                    |  GlyphsInfo                |
+//  |                    |  Array (16 bits aligned)   |
+//  |                    |                            |  Repeat for
+//  +--------------------+                            |> each face
+//  |                    |                            |  part of the
+//  |                    |  Pixels Pool               |  font
+//  |                    |  (No alignement, all bytes)|
+//  |                    |                            |
+//  +--------------------+                            |
+//  |                    |  Filler (32bits padding)   |
+//  +--------------------+                            |
+//  |                    |                            |
+//  |                    |  LigKerSteps               |
+//  |                    |  (2 x 16 bits each step)   |
+//  |                    |                            |
+//  +--------------------+               <------------+
 //             .
 //             .
 //             .
 //
-// The new upcoming format (Version 5) is the following:
-//
-// 
-//  +--------------------+
-//  |                    |  Preamble
-//  |                    |
-//  +--------------------+
-//  |   Unicode Table    |  The table of all  unicode glyphs part of this font
-//  |                    |
-//  |                    |
-//  |                    |
-//  +--------------------+
-//  |     FaceHeaders    |  All face headers are combined in a single table
-//  |                    |
-//  |                    |
-//  |                    |
-//  +--------------------+
-//  |   Glyphs metrics   | All glyphs metrics of all fonts
-//  |                    |
-//  |                    |
-//  |                    |
-//  |                    |
-//  |                    |
-//  +--------------------+
 //
 // clang-format on
 
@@ -99,8 +80,8 @@ const constexpr uint8_t MAX_GLYPH_COUNT = 254; // Index Value 0xFE and 0xFF are 
 // const constexpr uint8_t BLACK_EIGHT_BITS = 0;
 // const constexpr uint8_t WHITE_EIGHT_BITS = 0xFF;
 
-const constexpr uint8_t BLACK_ONE_BIT    = 1;
-const constexpr uint8_t WHITE_ONE_BIT    = 0;
+const constexpr uint8_t BLACK_ONE_BIT = 1;
+const constexpr uint8_t WHITE_ONE_BIT = 0;
 
 const constexpr uint8_t BLACK_EIGHT_BITS = 0xFF;
 const constexpr uint8_t WHITE_EIGHT_BITS = 0x00;
@@ -129,6 +110,11 @@ typedef Pixels               *PixelsPtr;
 typedef uint16_t              GlyphCode;
 typedef std::vector<char16_t> CharCodes;
 
+// RLE (Run Length Encoded) Bitmap. To get something to show, they have
+// to be processed through the RLEExtractor class.
+// Dim contains the expected width and height once the bitmap has been
+// decompressed. The length is the pixels array size in bytes.
+
 struct RLEBitmap {
   Pixels   pixels;
   Dim      dim;
@@ -140,6 +126,8 @@ struct RLEBitmap {
   }
 };
 typedef RLEBitmap *RLEBitmapPtr;
+
+// Uncompressed Bitmap.
 
 struct Bitmap {
   Pixels pixels;
@@ -168,20 +156,19 @@ struct Preamble {
 typedef Preamble *PreamblePtr;
 
 struct FaceHeader {
-  uint8_t  pointSize;
-  uint8_t  lineHeight;
-  uint16_t dpi;
-  FIX16    xHeight;
-  FIX16    emSize;
-  FIX16    slantCorrection;
-  uint8_t  descenderHeight;
-  uint8_t  spaceSize;
-  uint16_t glyphCount;
-  uint16_t ligKernStepCount;
-  uint16_t firstCode;
-  uint16_t lastCode;
-  uint8_t  maxHeight;
-  uint8_t  filler;
+  uint8_t  pointSize;        // In points (pt) a point is 1 / 72.27 of an inch
+  uint8_t  lineHeight;       // In pixels
+  uint16_t dpi;              // Pixels per inch
+  FIX16    xHeight;          // Hight of character 'x' in pixels
+  FIX16    emSize;           // Hight of character 'M' in pixels
+  FIX16    slantCorrection;  // When an italic face
+  uint8_t  descenderHeight;  // The height of the descending below the origin
+  uint8_t  spaceSize;        // Size of a space character in pixels
+  uint16_t glyphCount;       // Must be the same for all face
+  uint16_t ligKernStepCount; // Length of the Ligature/Kerning table
+  uint32_t pixelsPoolSize;   // Size of the Pixels Pool
+  uint8_t  maxHeight;        // The maximum hight in pixels of every glyph in the face
+  uint8_t  filler[3];        // To keep the struct to be at a frontier of 32 bits
 };
 // typedef FaceHeader *FaceHeaderPtr;
 typedef std::shared_ptr<FaceHeader> FaceHeaderPtr;
@@ -203,15 +190,15 @@ typedef std::shared_ptr<FaceHeader> FaceHeaderPtr;
 //
 // In a kern step [isAKern == true], an additional space equal to kern located at
 // [(displHigh << 8) + displLow] in the kern array is inserted between the current
-// character and [nextGlyphCode]. This amount is often negative, so that the characters
+// character and [nextChar]. This amount is often negative, so that the characters
 // are brought closer together by kerning; but it might be positive.
 //
 // There are eight kinds of ligature steps [isAKern == false], having op byte codes
-// [a_op b_op c_op] where 0 ≤ a_op ≤ b_op + c_op and 0 ≤ b_op, c_op ≤ 1.
+// [aOp bOp cOp] where 0 ≤ aOp ≤ bOp + cOp and 0 ≤ bOp, cOp ≤ 1.
 //
 // The character whose code is [replacementChar] is inserted between the current
-// character and [nextGlyphCode]; then the current character is deleted if b_op = 0, and
-// [nextGlyphCode] is deleted if c_op = 0; then we pass over a_op characters to reach the next
+// character and [nextChar]; then the current character is deleted if bOp = 0, and
+// [nextChar] is deleted if cOp = 0; then we pass over aOp characters to reach the next
 // current character (which may have a ligature/kerning program of its own).
 //
 // If the very first instruction of a character’s lig kern program has [whole > 128],
@@ -228,8 +215,8 @@ typedef std::shared_ptr<FaceHeader> FaceHeaderPtr;
 //  of a TeX generated document)
 //
 // If the very first instruction of the lig kern array has [whole == 0xFF], the
-// [nextGlyphCode] byte is the so-called right boundary character of this font; the value
-// of [nextGlyphCode] need not lie between char codes boundaries.
+// [nextChar] byte is the so-called right boundary character of this font; the value
+// of [nextChar] need not lie between char codes boundaries.
 //
 // If the very last instruction of the lig kern array has [whole == 0xFF], there is
 // a special ligature/kerning program for a left boundary character, beginning at location
@@ -289,7 +276,7 @@ typedef std::shared_ptr<FaceHeader> FaceHeaderPtr;
 // usually small numbers. FIX14 and FIX16 are using 6 bits for the fraction. Their
 // remains 8 bits for FIX14 and 10 bits for FIX16, that is more than enough...
 //
-// This is NOW the format being used.
+// This is NOW the format in use with this driver and other support apps.
 //
 // clang-format on
 
@@ -364,18 +351,53 @@ struct RLEMetrics {
 };
 
 struct GlyphInfo {
-  GlyphCode  glyphCode;
-  uint8_t    bitmapWidth;
-  uint8_t    bitmapHeight;
-  int8_t     horizontalOffset;
-  int8_t     verticalOffset;
-  uint16_t   packetLength;
-  FIX16      advance;
-  RLEMetrics rleMetrics;
-  uint8_t    ligKernPgmIndex; // = 255 if none
+  uint8_t    bitmapWidth;      // Width of bitmap once decompressed
+  uint8_t    bitmapHeight;     // Height of bitmap once decompressed
+  int8_t     horizontalOffset; // Horizontal offset from the orign
+  int8_t     verticalOffset;   // Vertical offset from the origin
+  uint16_t   packetLength;     // Length of the compressed bitmap
+  FIX16      advance;          // Normal advance to the next glyph position in line
+  RLEMetrics rleMetrics;       // RLE Compression information
+  uint8_t    ligKernPgmIndex;  // = 255 if none, Index in the ligature/kern array
 };
 
 typedef std::shared_ptr<GlyphInfo> GlyphInfoPtr;
+
+// clang-format off
+// 
+// For FontFormat 1 (FontFormat::UTF32), there is a table that contains
+// corresponding values between Unicode CodePoints and their internal GlyphCode.
+// The GlyphCode is the index in the glyph table for the character.
+//
+// This table is in two parts:
+//
+// - Unicode plane information for the 4 planes supported
+//   by the driver,
+// - The list of bundle of code points that are part of each plane.
+//   A bundle identifies the first codePoint and the number of consecutive codepoints
+//   that are part of the bundle.
+//
+// For more information about the planes, please consult the followint Wikipedia page:
+//
+//     https://en.wikipedia.org/wiki/Plane_(Unicode)
+//
+// clang-format on
+
+struct Plane {
+  uint16_t  codePointBundlesIdx; // Index of the plane in the CodePointBundles table
+  uint16_t  entriesCount;        // The number of entries in the CodePointBungles table
+  GlyphCode firstGlyphCode;      // glyphCode corresponding to the first codePoint in the bundles
+};
+
+struct CodePointBundle {
+  char16_t firstCodePoint; // The first UTF16 codePoint of the bundle
+  char16_t
+      endCodePoint; // Codepoint corresponding to the one after the last codePoint of that bundle
+};
+
+typedef Plane Planes[4];
+typedef CodePointBundle (*CodePointBundlesPtr)[];
+typedef Plane (*PlanesPtr)[];
 
 #pragma pack(pop)
 
@@ -592,6 +614,19 @@ const CharCodes fontFormat0CharacterCodes = {
 };
 
 #if 0
+// This table is used in support of the latin character set to identify which CodePoint
+// correspond to which glyph code. A glyph code is an index into the IBMF list of glyphs,
+// with diacritical information when required. The table allows glyphCodes between 0 and 2045
+// (0x7FD).
+//
+// At bit positions 12..15, the table contains the diacritical symbol to be added to the glyph if
+// it's value is not 0. In this table, grave accent is identified as 0xF but in the IBMF format, it
+// has glyphCode index 0x000. The apostrophe is identified as 0x0E, with glyphCode index of 0x0027;
+//
+// Note: At this moment, there is no glyphCode index that have a value greater than 173.
+//
+// The index in the table corresponds to UTF16 U+00A1 to U+017F CodePoints.
+
 const constexpr uint16_t latinTranslationSet[] = {
     /* 0x0A1 */ 0x0020, // ¡
     /* 0x0A2 */ 0x0098, // ¢

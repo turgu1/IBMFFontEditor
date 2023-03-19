@@ -861,7 +861,7 @@
              <enum>QFrame::Panel</enum>
             </property>
             <property name="rowCount">
-             <number>10</number>
+             <number>9</number>
             </property>
             <property name="columnCount">
              <number>2</number>
@@ -872,7 +872,6 @@
             <attribute name="verticalHeaderVisible">
              <bool>false</bool>
             </attribute>
-            <row/>
             <row/>
             <row/>
             <row/>
@@ -900,50 +899,45 @@
             </column>
             <item row="0" column="0">
              <property name="text">
-              <string>Char Code</string>
+              <string>Bitmap Width</string>
              </property>
             </item>
             <item row="1" column="0">
              <property name="text">
-              <string>Bitmap Width</string>
+              <string>Bitmap Height</string>
              </property>
             </item>
             <item row="2" column="0">
              <property name="text">
-              <string>Bitmap Height</string>
+              <string>H Offset</string>
              </property>
             </item>
             <item row="3" column="0">
              <property name="text">
-              <string>H Offset</string>
+              <string>V Offset</string>
              </property>
             </item>
             <item row="4" column="0">
              <property name="text">
-              <string>V Offset</string>
+              <string>Lig/Kern Index</string>
              </property>
             </item>
             <item row="5" column="0">
              <property name="text">
-              <string>Lig/Kern Index</string>
+              <string>Packet Length</string>
              </property>
             </item>
             <item row="6" column="0">
              <property name="text">
-              <string>Packet Length</string>
+              <string>Advance</string>
              </property>
             </item>
             <item row="7" column="0">
              <property name="text">
-              <string>Advance</string>
-             </property>
-            </item>
-            <item row="8" column="0">
-             <property name="text">
               <string>Dyn F</string>
              </property>
             </item>
-            <item row="9" column="0">
+            <item row="8" column="0">
              <property name="text">
               <string>First is Black</string>
              </property>

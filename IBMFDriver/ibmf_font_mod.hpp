@@ -14,8 +14,8 @@ using namespace IBMFDefs;
 #define DEBUG 0
 
 #if DEBUG
-  #include <iomanip>
-  #include <iostream>
+#include <iomanip>
+#include <iostream>
 #endif
 
 /**
@@ -81,7 +81,7 @@ private:
     int idx = sizeof(Preamble);
 
     for (int i = 0; i < preamble.faceCount; i++) {
-      uint32_t offset = *((uint32_t *)&memory[idx]);
+      uint32_t offset = *((uint32_t *) &memory[idx]);
       faceOffsets.push_back(offset);
       idx += 4;
     }
@@ -100,10 +100,10 @@ private:
         memcpy(glyph_info.get(), &memory[idx], sizeof(GlyphInfo));
         idx += sizeof(GlyphInfo);
 
-        int     bitmap_size          = glyph_info->bitmapHeight * glyph_info->bitmapWidth;
-        Bitmap *bitmap               = new Bitmap;
-        bitmap->pixels               = Pixels(bitmap_size, 0);
-        bitmap->dim                  = Dim(glyph_info->bitmapWidth, glyph_info->bitmapHeight);
+        int     bitmap_size = glyph_info->bitmapHeight * glyph_info->bitmapWidth;
+        Bitmap *bitmap      = new Bitmap;
+        bitmap->pixels      = Pixels(bitmap_size, 0);
+        bitmap->dim         = Dim(glyph_info->bitmapWidth, glyph_info->bitmapHeight);
 
         RLEBitmap *compressedBitmap = new RLEBitmap;
         compressedBitmap->dim       = bitmap->dim;
@@ -149,11 +149,11 @@ private:
             do {
               if (face->ligKernSteps[lk_idx]->b.kern.isAKern) { // true = kern, false = ligature
                 GlyphKernStep *step = new GlyphKernStep;
-                step->nextGlyphCode  = face->ligKernSteps[lk_idx]->a.nextGlyphCode;
+                step->nextGlyphCode = face->ligKernSteps[lk_idx]->a.nextGlyphCode;
                 step->kern          = face->ligKernSteps[lk_idx]->b.kern.kerningValue;
                 glk->kern_steps.push_back(step);
               } else {
-                GlyphLigStep *step = new GlyphLigStep;
+                GlyphLigStep *step  = new GlyphLigStep;
                 step->nextGlyphCode = face->ligKernSteps[lk_idx]->a.nextGlyphCode;
                 step->glyphCode     = face->ligKernSteps[lk_idx]->b.repl.replGlyphCode;
                 glk->lig_steps.push_back(step);
@@ -176,7 +176,7 @@ public:
 
     memoryEnd   = memory + memoryLength;
     initialized = load();
-    lastError  = 0;
+    lastError   = 0;
   }
 
   ~IBMFFontMod() { clear(); }
@@ -192,14 +192,10 @@ public:
         bitmap->clear();
         delete bitmap;
       }
-      for (auto lig_kern : face->ligKernSteps) {
-        delete lig_kern;
-      }
+      for (auto lig_kern : face->ligKernSteps) { delete lig_kern; }
       for (auto lig_kern : face->glyphsLigKern) {
-        for (auto lig : lig_kern->lig_steps)
-          delete lig;
-        for (auto kern : lig_kern->kern_steps)
-          delete kern;
+        for (auto lig : lig_kern->lig_steps) delete lig;
+        for (auto kern : lig_kern->kern_steps) delete kern;
         delete lig_kern;
       }
       face->glyphs.clear();
@@ -218,27 +214,22 @@ public:
   inline const FaceHeaderPtr getFaceHeader(int faceIdx) { return faces[faceIdx]->header; }
 
   bool getGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKern **glyphLigKern) {
-    if (faceIndex >= preamble.faceCount) return false;
-    if ((glyphCode > faces[faceIndex]->header->lastCode) ||
-        (glyphCode < faces[faceIndex]->header->firstCode))
-      return false;
+    if (faceIndex >= preamble.faceCount) { return false; }
+    if (glyphCode >= faces[faceIndex]->header->glyphCount) { return false; }
 
-    *glyphLigKern =
-        faces[faceIndex]->glyphsLigKern[glyphCode - faces[faceIndex]->header->firstCode];
+    *glyphLigKern = faces[faceIndex]->glyphsLigKern[glyphCode];
 
     return true;
   }
 
   bool getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyph_info, Bitmap **bitmap) {
     if (faceIndex >= preamble.faceCount) return false;
-    if ((glyphCode > faces[faceIndex]->header->lastCode) ||
-        (glyphCode < faces[faceIndex]->header->firstCode))
-      return false;
+    if (glyphCode > faces[faceIndex]->header->glyphCount) { return false; }
 
-    int glyphIndex = glyphCode - faces[faceIndex]->header->firstCode;
+    int glyphIndex = glyphCode;
 
-    glyph_info      = faces[faceIndex]->glyphs[glyphIndex];
-    *bitmap         = faces[faceIndex]->bitmaps[glyphIndex];
+    glyph_info = faces[faceIndex]->glyphs[glyphIndex];
+    *bitmap    = faces[faceIndex]->bitmaps[glyphIndex];
 
     return true;
   }
@@ -252,11 +243,9 @@ public:
   }
 
   bool saveGlyph(int faceIndex, int glyphCode, GlyphInfo *newGlyphInfo, Bitmap *new_bitmap) {
-    if ((faceIndex < preamble.faceCount) &&
-        ((glyphCode <= faces[faceIndex]->header->lastCode) &&
-         (glyphCode >= faces[faceIndex]->header->firstCode))) {
+    if ((faceIndex < preamble.faceCount) && (glyphCode < faces[faceIndex]->header->glyphCount)) {
 
-      int glyphIndex                         = glyphCode - faces[faceIndex]->header->firstCode;
+      int glyphIndex = glyphCode;
 
       *faces[faceIndex]->glyphs[glyphIndex] = *newGlyphInfo;
       delete faces[faceIndex]->bitmaps[glyphIndex];
@@ -269,7 +258,7 @@ public:
   bool convertToOneBit(const Bitmap &bitmapHeightBits, Bitmap **bitmapOneBit) {
     *bitmapOneBit        = new Bitmap;
     (*bitmapOneBit)->dim = bitmapHeightBits.dim;
-    auto pix               = &(*bitmapOneBit)->pixels;
+    auto pix             = &(*bitmapOneBit)->pixels;
     for (int row = 0, idx = 0; row < bitmapHeightBits.dim.height; row++) {
       uint8_t data = 0;
       uint8_t mask = 0x80;
@@ -288,8 +277,8 @@ public:
   }
 
 #define WRITE(v, size)                                                                             \
-  if (out.writeRawData((char *)v, size) == -1) {                                                   \
-    lastError = 1;                                                                                \
+  if (out.writeRawData((char *) v, size) == -1) {                                                  \
+    lastError = 1;                                                                                 \
     return false;                                                                                  \
   }
 
@@ -297,15 +286,11 @@ public:
     lastError = 0;
     WRITE(&preamble, sizeof(Preamble));
 
-    uint32_t offset     = 0;
+    uint32_t offset    = 0;
     auto     offsetPos = out.device()->pos();
-    for (int i = 0; i < preamble.faceCount; i++) {
-      WRITE(&offset, 4);
-    }
+    for (int i = 0; i < preamble.faceCount; i++) { WRITE(&offset, 4); }
 
-    for (auto &face : faces) {
-      WRITE(&face->header->pointSize, 1);
-    }
+    for (auto &face : faces) { WRITE(&face->header->pointSize, 1); }
     if (preamble.faceCount & 1) {
       char filler = 0;
       WRITE(&filler, 1);
