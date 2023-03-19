@@ -1234,7 +1234,7 @@
      <x>0</x>
      <y>0</y>
      <width>1200</width>
-     <height>19</height>
+     <height>30</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -1263,6 +1263,7 @@
     </property>
     <addaction name="actionFont_load_save"/>
     <addaction name="actionRLE_Encoder"/>
+    <addaction name="actionTest_Dialog"/>
    </widget>
    <widget class="QMenu" name="editMenu">
     <property name="title">
@@ -1314,6 +1315,11 @@
   <action name="clearRecentList">
    <property name="text">
     <string>Clear List</string>
+   </property>
+  </action>
+  <action name="actionTest_Dialog">
+   <property name="text">
+    <string>Test Dialog</string>
    </property>
   </action>
  </widget>

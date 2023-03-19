@@ -13,6 +13,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+find_package(Freetype REQUIRED)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -30,6 +31,8 @@ set(PROJECT_SOURCES
         IBMFDriver/ibmf_defs.hpp
         Unicode/UBlocks.hpp
         Unicode/uBlockSelectionDialog.hpp
+        testDialog.cpp
+        testDialog.h
         mainwindow.ui
 )
 
@@ -56,7 +59,7 @@ else()
     endif()
 endif()
 
-target_link_libraries(IBMFFontEditor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(IBMFFontEditor PRIVATE Freetype::Freetype  Qt${QT_VERSION_MAJOR}::Widgets)
 
 set_target_properties(IBMFFontEditor PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com

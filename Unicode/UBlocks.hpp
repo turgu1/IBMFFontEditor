@@ -4,9 +4,9 @@
 #include <QString>
 
 struct UBlockDef {
-  char32_t    first_;
-  char32_t    last_;
-  const char *caption_;
+  unsigned int first_;
+  unsigned int last_;
+  const char  *caption_;
   UBlockDef(char32_t first, char32_t last, const char *caption)
       : first_(first), last_(last), caption_(caption) {}
 };
@@ -18,7 +18,7 @@ typedef std::vector<UBlockDef> UBlocks;
 // Source: https://www.unicode.org/Public/UNIDATA/Blocks.txt
 
 const UBlocks uBlocks = {
-    UBlockDef{ 0x0000,  0x007F,                                      "Basic Latin"},
+    { 0x0000,  0x007F,                                      "Basic Latin"},
     { 0x0080,  0x00FF,                               "Latin-1 Supplement"},
     { 0x0100,  0x017F,                                 "Latin Extended-A"},
     { 0x0180,  0x024F,                                 "Latin Extended-B"},
@@ -341,4 +341,14 @@ const UBlocks uBlocks = {
     {0x2F800, 0x2FA1F,          "CJK Compatibility Ideographs Supplement"},
     {0x30000, 0x3134F,               "CJK Unified Ideographs Extension G"},
     {0x31350, 0x323AF,               "CJK Unified Ideographs Extension H"}
+};
+
+class UnicodeBlocs {
+public:
+  static const int findUBloc(char32_t ch) {
+    for (int idx = 0; idx < uBlocks.size(); idx++) {
+      if ((uBlocks[idx].first_ <= ch) && (uBlocks[idx].last_ >= ch)) return idx;
+    }
+    return -1;
+  }
 };

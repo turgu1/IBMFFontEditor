@@ -63,6 +63,8 @@ private slots:
   void updateBitmapOffsetPos();
   void openRecent();
 
+  void on_actionTest_Dialog_triggered();
+
 private:
   const int MAX_RECENT_FILES = 10;
 
