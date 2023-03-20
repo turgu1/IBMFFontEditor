@@ -12,21 +12,23 @@
 #include FT_RENDER_H
 
 namespace Ui {
-class TestDialog;
+class BlocksDialog;
 }
 
-class TestDialog : public QDialog {
+class BlocksDialog : public QDialog {
   Q_OBJECT
 
 public:
-  explicit TestDialog(QString fontFile, QWidget *parent = nullptr);
+  explicit BlocksDialog(QString fontFile, QString fontName, QWidget *parent = nullptr);
   const QSet<int> &getSelectedBlockIndexes() { return selectedBlockIndexes_; }
-  ~TestDialog();
+  ~BlocksDialog();
 
 private slots:
   void tableSectionClicked(int idx);
   void cbClicked(bool checked);
   void on_buttonBox_accepted();
+
+  void on_buttonBox_rejected();
 
 private:
   struct Block {
@@ -35,7 +37,7 @@ private:
     Block(int idx, int count) : blockIdx_(idx), codePointCount_(count) {}
   };
 
-  Ui::TestDialog *ui;
+  Ui::BlocksDialog *ui;
 
   FT_Library           ftLib_;
   FT_Face              ftFace_;

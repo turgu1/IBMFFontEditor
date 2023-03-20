@@ -31,9 +31,13 @@ set(PROJECT_SOURCES
         IBMFDriver/ibmf_defs.hpp
         Unicode/UBlocks.hpp
         Unicode/uBlockSelectionDialog.hpp
-        testDialog.cpp
-        testDialog.h
+        blocksDialog.cpp
+        blocksDialog.h
         mainwindow.ui
+        blocksDialog.ui
+        fontParameterDialog.h
+        fontParameterDialog.cpp
+        fontParameterDialog.ui
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

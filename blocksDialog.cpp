@@ -1,21 +1,23 @@
-#include "testDialog.h"
+#include "blocksDialog.h"
 
 #include <iostream>
 #include <set>
 
 #include <QCheckBox>
+#include <QDialogButtonBox>
 #include <QHeaderView>
 #include <QMessageBox>
 #include <QTableWidget>
 
 #include "Unicode/UBlocks.hpp"
-#include "ui_testDialog.h"
+#include "ui_blocksDialog.h"
 
-TestDialog::TestDialog(QString fontFile, QWidget *parent)
-    : QDialog(parent), ui(new Ui::TestDialog) {
+BlocksDialog::BlocksDialog(QString fontFile, QString fontName, QWidget *parent)
+    : QDialog(parent), ui(new Ui::BlocksDialog) {
   ui->setupUi(this);
 
   this->setWindowTitle("Font Content");
+  ui->titleLabel->setText("CodePoint Selection from " + fontName);
 
   FT_Error error = FT_Err_Ok;
   error          = FT_Init_FreeType(&ftLib_);
@@ -77,7 +79,7 @@ TestDialog::TestDialog(QString fontFile, QWidget *parent)
   headerView->setSectionsClickable(true);
 
   QObject::connect(headerView, &QHeaderView::sectionClicked, this,
-                   &TestDialog::tableSectionClicked);
+                   &BlocksDialog::tableSectionClicked);
 
   for (auto block : blocks_) {
     int row = ui->blocksTable->rowCount();
@@ -90,7 +92,7 @@ TestDialog::TestDialog(QString fontFile, QWidget *parent)
 
     item = new QTableWidgetItem;
     item->setData(Qt::DisplayRole,
-                  QString("U+%1").arg(uBlocks[block->blockIdx_].first_, 5, 16, u'0'));
+                  QString("U+%1").arg(uBlocks[block->blockIdx_].first_, 5, 16, QChar('0')));
     item->setTextAlignment(Qt::AlignHCenter);
     item->setFlags(item->flags() & ~Qt::ItemIsEditable);
     ui->blocksTable->setItem(row, 1, item);
@@ -98,7 +100,7 @@ TestDialog::TestDialog(QString fontFile, QWidget *parent)
     item = new QTableWidgetItem;
     item->setTextAlignment(Qt::AlignHCenter);
     item->setData(Qt::DisplayRole,
-                  QString("U+%1").arg(uBlocks[block->blockIdx_].last_, 5, 16, u'0'));
+                  QString("U+%1").arg(int(uBlocks[block->blockIdx_].last_), 5, 16, QChar('0')));
     item->setFlags(item->flags() & ~Qt::ItemIsEditable);
     ui->blocksTable->setItem(row, 2, item);
 
@@ -117,10 +119,7 @@ TestDialog::TestDialog(QString fontFile, QWidget *parent)
     checkBox->setObjectName(QString("%1").arg(row));
     ui->blocksTable->setCellWidget(row, 4, frame);
 
-    //    QCheckBox *cb = new QCheckBox();
-    //    cb->setStyleSheet("margin-left:50%; margin-right:50%;");
-    QObject::connect(checkBox, &QCheckBox::clicked, this, &TestDialog::cbClicked);
-    //    ui->blocksTable->setCellWidget(row, 4, cb);
+    QObject::connect(checkBox, &QCheckBox::clicked, this, &BlocksDialog::cbClicked);
   }
 
   allChecked_   = false;
@@ -128,17 +127,17 @@ TestDialog::TestDialog(QString fontFile, QWidget *parent)
   updateQtyLabel();
 }
 
-TestDialog::~TestDialog() {
+BlocksDialog::~BlocksDialog() {
   delete ui;
   FT_Done_FreeType(ftLib_);
 }
 
-void TestDialog::tableSectionClicked(int idx) {
+void BlocksDialog::tableSectionClicked(int idx) {
   if (idx == 4) {
     allChecked_ = !allChecked_;
     for (int i = 0; i < ui->blocksTable->rowCount(); i++) {
-      QFrame    *frame = (QFrame *)(ui->blocksTable->cellWidget(i, 4));
-      QCheckBox *cb    = (QCheckBox *)(frame->layout()->itemAt(0)->widget());
+      QFrame    *frame = (QFrame *) (ui->blocksTable->cellWidget(i, 4));
+      QCheckBox *cb    = (QCheckBox *) (frame->layout()->itemAt(0)->widget());
       cb->setChecked(allChecked_);
     }
     codePointQty_ = allChecked_ ? ftFace_->num_glyphs : 0;
@@ -146,25 +145,28 @@ void TestDialog::tableSectionClicked(int idx) {
   }
 }
 
-void TestDialog::cbClicked(bool checked) {
-  QCheckBox *sender = (QCheckBox *)QObject::sender();
+void BlocksDialog::cbClicked(bool checked) {
+  QCheckBox *sender = (QCheckBox *) QObject::sender();
   int        row    = sender->objectName().toInt();
   int        qty    = ui->blocksTable->item(row, 3)->data(Qt::DisplayRole).toInt();
   codePointQty_ += checked ? qty : -qty;
   updateQtyLabel();
 }
 
-void TestDialog::updateQtyLabel() {
+void BlocksDialog::updateQtyLabel() {
   ui->qtyLabel->setText(QString("Number of CodePoints selected: %1").arg(codePointQty_));
 }
 
-void TestDialog::on_buttonBox_accepted() {
+void BlocksDialog::on_buttonBox_accepted() {
   selectedBlockIndexes_.clear();
   for (int row = 0; row < ui->blocksTable->rowCount(); row++) {
-    QFrame    *frame = (QFrame *)(ui->blocksTable->cellWidget(row, 4));
-    QCheckBox *cb    = (QCheckBox *)(frame->layout()->itemAt(0)->widget());
-    if (cb->isChecked()) {
-      selectedBlockIndexes_.insert(blocks_[row]->blockIdx_);
-    }
+    QFrame    *frame = (QFrame *) (ui->blocksTable->cellWidget(row, 4));
+    QCheckBox *cb    = (QCheckBox *) (frame->layout()->itemAt(0)->widget());
+    if (cb->isChecked()) { selectedBlockIndexes_.insert(blocks_[row]->blockIdx_); }
   }
+  accept();
+}
+
+void BlocksDialog::on_buttonBox_rejected() {
+  reject();
 }
