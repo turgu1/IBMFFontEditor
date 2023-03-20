@@ -56,48 +56,81 @@ private:
   static constexpr uint8_t MAX_GLYPH_COUNT = 254; // Index Value 0xFE and 0xFF are reserved
   static constexpr uint8_t IBMF_VERSION    = 4;
 
-  bool initialized;
+  bool initialized_;
 
-  Preamble preamble;
+  Preamble preamble_;
 
-  std::vector<uint32_t> faceOffsets;
-  std::vector<FacePtr>  faces;
+  std::vector<uint32_t> faceOffsets_;
+  std::vector<FacePtr>  faces_;
 
-  uint8_t *memory;
-  uint32_t memoryLength;
+  uint8_t *memory_;
+  uint32_t memoryLength_;
 
-  uint8_t *memoryPtr;
-  uint8_t *memoryEnd;
+  std::vector<Plane>           planes_;
+  std::vector<CodePointBundle> codePointBundles_;
 
-  // uint32_t      repeatCount;
-
-  int lastError;
+  int lastError_;
 
   bool load() {
-    memcpy(&preamble, memory, sizeof(Preamble));
-    if (strncmp("IBMF", preamble.marker, 4) != 0) return false;
-    if (preamble.bits.version != IBMF_VERSION) return false;
+    // Preamble retrieval
+    memcpy(&preamble_, memory_, sizeof(Preamble));
+    if (strncmp("IBMF", preamble_.marker, 4) != 0) return false;
+    if (preamble_.bits.version != IBMF_VERSION) return false;
 
-    int idx = sizeof(Preamble);
+    int idx = ((sizeof(Preamble) + preamble_.faceCount + 3) & 0xFFFFFFFC);
 
-    for (int i = 0; i < preamble.faceCount; i++) {
-      uint32_t offset = *((uint32_t *) &memory[idx]);
-      faceOffsets.push_back(offset);
+    // Faces offset retrieval
+    for (int i = 0; i < preamble_.faceCount; i++) {
+      uint32_t offset = *((uint32_t *) &memory_[idx]);
+      faceOffsets_.push_back(offset);
       idx += 4;
     }
 
-    for (int i = 0; i < preamble.faceCount; i++) {
-      uint32_t      idx    = faceOffsets[i];
-      FacePtr       face   = FacePtr(new Face);
-      FaceHeaderPtr header = FaceHeaderPtr(new FaceHeader);
-      memcpy(header.get(), &memory[idx], sizeof(FaceHeader));
+    // Unicode CodePoint Table retrieval
+    if (preamble_.bits.fontFormat == FontFormat::UTF32) {
+      PlanesPtr planes      = reinterpret_cast<PlanesPtr>(&memory_[idx]);
+      int       bundleCount = 0;
+      for (int i = 0; i < 4; i++) {
+        planes_.push_back((*planes)[i]);
+        bundleCount += (*planes)[i].entriesCount;
+      }
+      idx += sizeof(Planes);
+
+      CodePointBundlesPtr codePointBundles = reinterpret_cast<CodePointBundlesPtr>(&memory_[idx]);
+      for (int i = 0; i < bundleCount; i++) { codePointBundles_.push_back((*codePointBundles)[i]); }
+      idx += (((*planes)[3].codePointBundlesIdx + (*planes)[3].entriesCount) *
+              sizeof(CodePointBundle));
+    } else {
+      planes_.clear();
+      codePointBundles_.clear();
+    }
+
+    // Faces retrieval
+    for (int i = 0; i < preamble_.faceCount; i++) {
+      if (idx != faceOffsets_[i]) return false;
+
+      // Face Header
+      FacePtr                face   = FacePtr(new Face);
+      FaceHeaderPtr          header = FaceHeaderPtr(new FaceHeader);
+      GlyphsPixelPoolIndexes glyphsPixelPoolIndexes;
+      PixelsPoolPtr          pixelsPool;
+
+      memcpy(header.get(), &memory_[idx], sizeof(FaceHeader));
       idx += sizeof(FaceHeader);
 
+      // Glyphs RLE bitmaps indexes in the bitmaps pool
+      glyphsPixelPoolIndexes = reinterpret_cast<GlyphsPixelPoolIndexes>(&memory_[idx]);
+      idx += (sizeof(PixelPoolIndex) * header->glyphCount);
+
+      pixelsPool =
+          reinterpret_cast<PixelsPoolPtr>(&memory_[idx + (sizeof(GlyphInfo) * header->glyphCount)]);
+
+      // Glyphs info and bitmaps
       face->glyphs.reserve(header->glyphCount);
 
-      for (int j = 0; j < header->glyphCount; j++) {
+      for (int glyphCode = 0; glyphCode < header->glyphCount; glyphCode++) {
         GlyphInfoPtr glyph_info = GlyphInfoPtr(new GlyphInfo);
-        memcpy(glyph_info.get(), &memory[idx], sizeof(GlyphInfo));
+        memcpy(glyph_info.get(), &memory_[idx], sizeof(GlyphInfo));
         idx += sizeof(GlyphInfo);
 
         int     bitmap_size = glyph_info->bitmapHeight * glyph_info->bitmapWidth;
@@ -110,7 +143,8 @@ private:
         compressedBitmap->pixels.reserve(glyph_info->packetLength);
         compressedBitmap->length = glyph_info->packetLength;
         for (int pos = 0; pos < glyph_info->packetLength; pos++) {
-          compressedBitmap->pixels.push_back(memory[idx + pos]);
+          compressedBitmap->pixels.push_back(
+              (*pixelsPool)[pos + (*glyphsPixelPoolIndexes)[glyphCode]]);
         }
 
         RLEExtractor rle;
@@ -121,14 +155,18 @@ private:
         face->bitmaps.push_back(bitmap);
         face->compressedBitmaps.push_back(compressedBitmap);
 
-        idx += glyph_info->packetLength;
+        // idx += glyph_info->packetLength;
       }
+
+      if (&memory_[idx] != (uint8_t *) pixelsPool) { return false; }
+
+      idx += header->pixelsPoolSize;
 
       if (header->ligKernStepCount > 0) {
         face->ligKernSteps.reserve(header->ligKernStepCount);
         for (int j = 0; j < header->ligKernStepCount; j++) {
           LigKernStep *step = new LigKernStep;
-          memcpy(step, &memory[idx], sizeof(LigKernStep));
+          memcpy(step, &memory_[idx], sizeof(LigKernStep));
 
           face->ligKernSteps.push_back(step);
 
@@ -165,25 +203,24 @@ private:
       }
 
       face->header = header;
-      faces.push_back(std::move(face));
+      faces_.push_back(std::move(face));
     }
 
     return true;
   }
 
 public:
-  IBMFFontMod(uint8_t *memoryFont, uint32_t size) : memory(memoryFont), memoryLength(size) {
+  IBMFFontMod(uint8_t *memoryFont, uint32_t size) : memory_(memoryFont), memoryLength_(size) {
 
-    memoryEnd   = memory + memoryLength;
-    initialized = load();
-    lastError   = 0;
+    initialized_ = load();
+    lastError_   = 0;
   }
 
   ~IBMFFontMod() { clear(); }
 
   void clear() {
-    initialized = false;
-    for (auto &face : faces) {
+    initialized_ = false;
+    for (auto &face : faces_) {
       for (auto bitmap : face->bitmaps) {
         bitmap->clear();
         delete bitmap;
@@ -203,53 +240,55 @@ public:
       face->compressedBitmaps.clear();
       face->ligKernSteps.clear();
     }
-    faces.clear();
-    faceOffsets.clear();
+    faces_.clear();
+    faceOffsets_.clear();
+    planes_.clear();
+    codePointBundles_.clear();
   }
 
-  inline Preamble getPreample() { return preamble; }
-  inline bool     isInitialized() { return initialized; }
-  inline int      getLastError() { return lastError; }
+  inline Preamble getPreample() { return preamble_; }
+  inline bool     isInitialized() { return initialized_; }
+  inline int      getLastError() { return lastError_; }
 
-  inline const FaceHeaderPtr getFaceHeader(int faceIdx) { return faces[faceIdx]->header; }
+  inline const FaceHeaderPtr getFaceHeader(int faceIdx) { return faces_[faceIdx]->header; }
 
   bool getGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKern **glyphLigKern) {
-    if (faceIndex >= preamble.faceCount) { return false; }
-    if (glyphCode >= faces[faceIndex]->header->glyphCount) { return false; }
+    if (faceIndex >= preamble_.faceCount) { return false; }
+    if (glyphCode >= faces_[faceIndex]->header->glyphCount) { return false; }
 
-    *glyphLigKern = faces[faceIndex]->glyphsLigKern[glyphCode];
+    *glyphLigKern = faces_[faceIndex]->glyphsLigKern[glyphCode];
 
     return true;
   }
 
   bool getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyph_info, Bitmap **bitmap) {
-    if (faceIndex >= preamble.faceCount) return false;
-    if (glyphCode > faces[faceIndex]->header->glyphCount) { return false; }
+    if (faceIndex >= preamble_.faceCount) return false;
+    if (glyphCode > faces_[faceIndex]->header->glyphCount) { return false; }
 
     int glyphIndex = glyphCode;
 
-    glyph_info = faces[faceIndex]->glyphs[glyphIndex];
-    *bitmap    = faces[faceIndex]->bitmaps[glyphIndex];
+    glyph_info = faces_[faceIndex]->glyphs[glyphIndex];
+    *bitmap    = faces_[faceIndex]->bitmaps[glyphIndex];
 
     return true;
   }
 
   bool saveFaceHeader(int faceIndex, FaceHeader &face_header) {
-    if (faceIndex < preamble.faceCount) {
-      memcpy(faces[faceIndex]->header.get(), &face_header, sizeof(FaceHeader));
+    if (faceIndex < preamble_.faceCount) {
+      memcpy(faces_[faceIndex]->header.get(), &face_header, sizeof(FaceHeader));
       return true;
     }
     return false;
   }
 
   bool saveGlyph(int faceIndex, int glyphCode, GlyphInfo *newGlyphInfo, Bitmap *new_bitmap) {
-    if ((faceIndex < preamble.faceCount) && (glyphCode < faces[faceIndex]->header->glyphCount)) {
+    if ((faceIndex < preamble_.faceCount) && (glyphCode < faces_[faceIndex]->header->glyphCount)) {
 
       int glyphIndex = glyphCode;
 
-      *faces[faceIndex]->glyphs[glyphIndex] = *newGlyphInfo;
-      delete faces[faceIndex]->bitmaps[glyphIndex];
-      faces[faceIndex]->bitmaps[glyphIndex] = new_bitmap;
+      *faces_[faceIndex]->glyphs[glyphIndex] = *newGlyphInfo;
+      delete faces_[faceIndex]->bitmaps[glyphIndex];
+      faces_[faceIndex]->bitmaps[glyphIndex] = new_bitmap;
       return true;
     }
     return false;
@@ -278,25 +317,24 @@ public:
 
 #define WRITE(v, size)                                                                             \
   if (out.writeRawData((char *) v, size) == -1) {                                                  \
-    lastError = 1;                                                                                 \
+    lastError_ = 1;                                                                                \
     return false;                                                                                  \
   }
 
   bool save(QDataStream &out) {
-    lastError = 0;
-    WRITE(&preamble, sizeof(Preamble));
+    lastError_ = 0;
+    WRITE(&preamble_, sizeof(Preamble));
 
     uint32_t offset    = 0;
     auto     offsetPos = out.device()->pos();
-    for (int i = 0; i < preamble.faceCount; i++) { WRITE(&offset, 4); }
+    for (int i = 0; i < preamble_.faceCount; i++) { WRITE(&offset, 4); }
 
-    for (auto &face : faces) { WRITE(&face->header->pointSize, 1); }
-    if (preamble.faceCount & 1) {
-      char filler = 0;
-      WRITE(&filler, 1);
-    }
+    int  fill   = 4 - ((sizeof(Preamble) + preamble_.faceCount) & 3);
+    char filler = 0;
+    for (auto &face : faces_) { WRITE(&face->header->pointSize, 1); }
+    while (fill--) { WRITE(&filler, 1); }
 
-    for (auto &face : faces) {
+    for (auto &face : faces_) {
       // Save current offset position as the location of the font face
       auto pos = out.device()->pos();
       out.device()->seek(offsetPos);
@@ -304,38 +342,51 @@ public:
       offsetPos += 4;
       out.device()->seek(pos);
       if (out.device()->pos() != pos) {
-        lastError = 2;
+        lastError_ = 2;
         return false;
       }
 
-      WRITE(face->header.get(), sizeof(FaceHeader));
-
-      int idx        = 0;
-      int glyphCount = 0;
+      int                   idx        = 0;
+      int                   glyphCount = 0;
+      std::vector<uint8_t> *poolData   = new std::vector<uint8_t>();
 
       for (auto &glyph : face->glyphs) {
         RLEGenerator *gen = new RLEGenerator;
         if (!gen->encodeBitmap(*face->bitmaps[idx++])) {
-          lastError = 3;
+          poolData->clear();
+          delete poolData;
+          lastError_ = 3;
           return false;
         }
         glyph->rleMetrics.dynF         = gen->getDynF();
         glyph->rleMetrics.firstIsBlack = gen->getFirstIsBlack();
         auto data                      = gen->getData();
-        if (data->size() != glyph->packetLength) {
-          lastError = 4;
-          return false;
-        }
-        WRITE(glyph.get(), sizeof(GlyphInfo));
-        WRITE(data->data(), data->size());
+        glyph->packetLength            = data->size();
+
+        copy(data->begin(), data->end(), std::back_inserter(*poolData));
         delete gen;
+      }
+
+      face->header->pixelsPoolSize = poolData->size();
+
+      WRITE(face->header.get(), sizeof(FaceHeader));
+
+      for (auto &glyph : face->glyphs) {
+        WRITE(glyph.get(), sizeof(GlyphInfo));
         glyphCount++;
       }
 
       if (glyphCount != face->header->glyphCount) {
-        lastError = 5;
+        lastError_ = 5;
         return false;
       }
+
+      fill = 4 - (poolData->size() & 3);
+      WRITE(poolData->data(), poolData->size());
+      while (fill--) { WRITE(&filler, 1); }
+
+      poolData->clear();
+      delete poolData;
 
       int lig_kernCount = 0;
       for (auto lig_kern : face->ligKernSteps) {
@@ -344,7 +395,7 @@ public:
       }
 
       if (lig_kernCount != face->header->ligKernStepCount) {
-        lastError = 6;
+        lastError_ = 6;
         return false;
       }
     }

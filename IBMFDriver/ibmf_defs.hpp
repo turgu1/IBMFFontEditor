@@ -86,6 +86,7 @@ const constexpr uint8_t WHITE_ONE_BIT = 0;
 const constexpr uint8_t BLACK_EIGHT_BITS = 0xFF;
 const constexpr uint8_t WHITE_EIGHT_BITS = 0x00;
 
+enum FontFormat : uint8_t { LATIN = 0, UTF32 = 1, UNKNOWN = 7 };
 enum class PixelResolution : uint8_t { ONE_BIT, EIGHT_BITS };
 
 const constexpr PixelResolution resolution = PixelResolution::EIGHT_BITS;
@@ -143,7 +144,6 @@ typedef Bitmap *BitmapPtr;
 
 typedef int16_t FIX16;
 typedef int16_t FIX14;
-typedef uint8_t FontFormat;
 
 struct Preamble {
   char    marker[4];
@@ -172,6 +172,9 @@ struct FaceHeader {
 };
 // typedef FaceHeader *FaceHeaderPtr;
 typedef std::shared_ptr<FaceHeader> FaceHeaderPtr;
+typedef uint8_t (*PixelsPoolPtr)[];
+typedef uint32_t PixelPoolIndex;
+typedef PixelPoolIndex (*GlyphsPixelPoolIndexes)[]; // One for each glyph
 
 // clang-format off
 //
