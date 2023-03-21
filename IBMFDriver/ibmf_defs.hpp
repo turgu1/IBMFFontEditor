@@ -66,8 +66,9 @@ const constexpr int DEBUG = DEBUG_IBMF;
 const constexpr int DEBUG = 0;
 #endif
 
-const constexpr uint8_t IBMF_VERSION    = 4;
-const constexpr uint8_t MAX_GLYPH_COUNT = 254; // Index Value 0xFE and 0xFF are reserved
+const constexpr uint8_t IBMF_VERSION = 4;
+const constexpr uint8_t MAX_GLYPH_COUNT =
+    254; // Index Value 0xFE and 0xFF are reserved
 
 // The followings have to be adjusted depending on the screen
 // software/hardware/firmware' pixels polarity/color/shading/gray-scale
@@ -80,8 +81,8 @@ const constexpr uint8_t MAX_GLYPH_COUNT = 254; // Index Value 0xFE and 0xFF are 
 // const constexpr uint8_t BLACK_EIGHT_BITS = 0;
 // const constexpr uint8_t WHITE_EIGHT_BITS = 0xFF;
 
-const constexpr uint8_t BLACK_ONE_BIT = 1;
-const constexpr uint8_t WHITE_ONE_BIT = 0;
+const constexpr uint8_t BLACK_ONE_BIT    = 1;
+const constexpr uint8_t WHITE_ONE_BIT    = 0;
 
 const constexpr uint8_t BLACK_EIGHT_BITS = 0xFF;
 const constexpr uint8_t WHITE_EIGHT_BITS = 0x00;
@@ -167,8 +168,8 @@ struct FaceHeader {
   uint16_t glyphCount;       // Must be the same for all face
   uint16_t ligKernStepCount; // Length of the Ligature/Kerning table
   uint32_t pixelsPoolSize;   // Size of the Pixels Pool
-  uint8_t  maxHeight;        // The maximum hight in pixels of every glyph in the face
-  uint8_t  filler[3];        // To keep the struct to be at a frontier of 32 bits
+  uint8_t  maxHeight; // The maximum hight in pixels of every glyph in the face
+  uint8_t  filler[3]; // To keep the struct to be at a frontier of 32 bits
 };
 // typedef FaceHeader *FaceHeaderPtr;
 typedef std::shared_ptr<FaceHeader> FaceHeaderPtr;
@@ -308,7 +309,7 @@ union OpCodeByte {
 
 union RemainderByte {
   GlyphCode replacementChar : 8;
-  uint8_t   displLow        : 8; // Ligature: replacement char code, kern: displacement
+  uint8_t   displLow : 8; // Ligature: replacement char code, kern: displacement
 };
 
 struct LigKernStep {
@@ -318,9 +319,14 @@ struct LigKernStep {
   RemainderByte remainder;
 };
 #else
-struct Nxt {
-  GlyphCode nextGlyphCode : 15;
-  bool      stop          : 1;
+union Nxt {
+  struct {
+    GlyphCode nextGlyphCode : 15;
+    bool      stop          : 1;
+  } data;
+  struct {
+    uint16_t val;
+  } whole;
 };
 union ReplDisp {
   struct {
@@ -337,11 +343,19 @@ union ReplDisp {
     bool     isAGoTo      : 1;
     bool     isAKern      : 1;
   } goTo;
+  struct {
+    uint16_t val;
+  } whole;
 };
 
 struct LigKernStep {
   Nxt      a;
   ReplDisp b;
+
+  bool operator==(LigKernStep &rhs) {
+    return ((a.whole.val == rhs.a.whole.val) &&
+            (b.whole.val == rhs.b.whole.val));
+  }
 };
 #endif
 
@@ -359,9 +373,9 @@ struct GlyphInfo {
   int8_t     horizontalOffset; // Horizontal offset from the orign
   int8_t     verticalOffset;   // Vertical offset from the origin
   uint16_t   packetLength;     // Length of the compressed bitmap
-  FIX16      advance;          // Normal advance to the next glyph position in line
-  RLEMetrics rleMetrics;       // RLE Compression information
-  uint8_t    ligKernPgmIndex;  // = 255 if none, Index in the ligature/kern array
+  FIX16      advance;    // Normal advance to the next glyph position in line
+  RLEMetrics rleMetrics; // RLE Compression information
+  uint8_t    ligKernPgmIndex; // = 255 if none, Index in the ligature/kern array
 };
 
 typedef std::shared_ptr<GlyphInfo> GlyphInfoPtr;
@@ -387,15 +401,17 @@ typedef std::shared_ptr<GlyphInfo> GlyphInfoPtr;
 // clang-format on
 
 struct Plane {
-  uint16_t  codePointBundlesIdx; // Index of the plane in the CodePointBundles table
-  uint16_t  entriesCount;        // The number of entries in the CodePointBungles table
-  GlyphCode firstGlyphCode;      // glyphCode corresponding to the first codePoint in the bundles
+  uint16_t
+      codePointBundlesIdx; // Index of the plane in the CodePointBundles table
+  uint16_t  entriesCount; // The number of entries in the CodePointBungles table
+  GlyphCode firstGlyphCode; // glyphCode corresponding to the first codePoint in
+                            // the bundles
 };
 
 struct CodePointBundle {
   char16_t firstCodePoint; // The first UTF16 codePoint of the bundle
-  char16_t
-      endCodePoint; // Codepoint corresponding to the one after the last codePoint of that bundle
+  char16_t endCodePoint;   // Codepoint corresponding to the one after the last
+                           // codePoint of that bundle
 };
 
 typedef Plane Planes[4];
@@ -427,8 +443,8 @@ struct Glyph {
   }
 };
 
-// These are the corresponding Unicode value for each of the 174 characters that are part of
-// an IBMF Font;
+// These are the corresponding Unicode value for each of the 174 characters that
+// are part of an IBMF Font;
 const CharCodes fontFormat0CharacterCodes = {
     char16_t(0x0060), // `
     char16_t(0x00B4), // ´
