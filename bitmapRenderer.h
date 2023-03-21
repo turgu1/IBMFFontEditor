@@ -21,7 +21,7 @@ public:
   enum PixelType : uint8_t { WHITE, BLACK };
 
   BitmapRenderer(QWidget *parent = 0, int pixel_size = 20, bool no_scroll = false,
-                 QUndoStack *_undoStack = nullptr);
+                 QUndoStack *undoStack_ = nullptr);
   bool retrieveBitmap(IBMFDefs::Bitmap **bitmap);
   void clearAndEmit(bool repaint_after = false);
   bool changed() { return _bitmapChanged; }
@@ -57,7 +57,7 @@ private:
 
   typedef PixelType DisplayBitmap[bitmapWidth * bitmapHeight];
 
-  QUndoStack   *_undoStack;     // The master undo stack as received from the main window
+  QUndoStack   *undoStack_;     // The master undo stack as received from the main window
   bool          _bitmapChanged; // True if some pixel modified on screen
   bool          _glyphPresent;  // True if there is a glyph shown on screen
   int           _pixelSize;     // How large a glyph pixel will appear on screen

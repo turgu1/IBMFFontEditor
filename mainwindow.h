@@ -69,38 +69,38 @@ private:
   const int MAX_RECENT_FILES = 10;
 
   Ui::MainWindow *ui;
-  QString         _currentFilePath;
+  QString         currentFilePath_;
 
-  QUndoStack *_undoStack;
-  QUndoView  *_undoView;
-  QAction    *_undoAction;
-  QAction    *_redoAction;
+  QUndoStack *undoStack_;
+  QUndoView  *undoView_;
+  QAction    *undoAction_;
+  QAction    *redoAction_;
 
-  bool _fontChanged;
-  bool _faceChanged;
-  bool _glyphChanged;
-  bool _initialized;
-  bool _glyphReloading;
-  bool _faceReloading;
+  bool fontChanged_;
+  bool faceChanged_;
+  bool glyphChanged_;
+  bool initialized_;
+  bool glyphReloading_;
+  bool faceReloading_;
 
-  BitmapRenderer *_bitmapRenderer;
-  BitmapRenderer *_smallGlyph;
-  BitmapRenderer *_largeGlyph;
+  BitmapRenderer *bitmapRenderer_;
+  BitmapRenderer *smallGlyph_;
+  BitmapRenderer *largeGlyph_;
 
   typedef std::unique_ptr<IBMFFontMod> IBMFFontModPtr;
 
-  IBMFFontModPtr          _ibmfFont;
-  IBMFDefs::Preamble      _ibmfPreamble;
-  IBMFDefs::FaceHeaderPtr _ibmfFaceHeader;
-  IBMFDefs::GlyphInfoPtr  _ibmfGlyphInfo;
+  IBMFFontModPtr          ibmfFont_;
+  IBMFDefs::Preamble      ibmfPreamble_;
+  IBMFDefs::FaceHeaderPtr ibmfFaceHeader_;
+  IBMFDefs::GlyphInfoPtr  ibmfGlyphInfo_;
 
-  IBMFDefs::Bitmap *_ibmfGlyphBitmap;
+  IBMFDefs::Bitmap *ibmfGlyphBitmap_;
 
-  IBMFFontMod::GlyphLigKern *_ibmfLigKerns;
+  IBMFFontMod::GlyphLigKern *ibmfLigKerns_;
 
-  int              _ibmfFaceIdx;
-  int              _ibmfGlyphCode;
-  QList<QAction *> _recentFileActionList;
+  int              ibmfFaceIdx_;
+  int              ibmfGlyphCode_;
+  QList<QAction *> recentFileActionList_;
 
   void     writeSettings();
   void     readSettings();

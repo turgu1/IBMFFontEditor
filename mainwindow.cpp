@@ -11,42 +11,42 @@
 #include "fontParameterDialog.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) {
-  _initialized = false;
+  initialized_ = false;
   ui->setupUi(this);
 
   setWindowTitle("IBMF Font Editor");
 
   // --> Undo / Redo Stack <--
 
-  _undoStack = new QUndoStack(this);
+  undoStack_  = new QUndoStack(this);
 
-  _undoAction = _undoStack->createUndoAction(this, tr("&Undo"));
-  _undoAction->setShortcuts(QKeySequence::Undo);
+  undoAction_ = undoStack_->createUndoAction(this, tr("&Undo"));
+  undoAction_->setShortcuts(QKeySequence::Undo);
 
-  _redoAction = _undoStack->createRedoAction(this, tr("&Redo"));
-  _redoAction->setShortcuts(QKeySequence::Redo);
+  redoAction_ = undoStack_->createRedoAction(this, tr("&Redo"));
+  redoAction_->setShortcuts(QKeySequence::Redo);
 
-  ui->editMenu->addAction(_undoAction);
-  ui->editMenu->addAction(_redoAction);
+  ui->editMenu->addAction(undoAction_);
+  ui->editMenu->addAction(redoAction_);
 
-  ui->undoButton->setAction(_undoAction);
-  ui->redoButton->setAction(_redoAction);
+  ui->undoButton->setAction(undoAction_);
+  ui->redoButton->setAction(redoAction_);
 
   // --> Bitmap Renderers <--
 
-  _bitmapRenderer = new BitmapRenderer(ui->bitmapFrame, 20, false, _undoStack);
-  ui->bitmapFrame->layout()->addWidget(_bitmapRenderer);
+  bitmapRenderer_ = new BitmapRenderer(ui->bitmapFrame, 20, false, undoStack_);
+  ui->bitmapFrame->layout()->addWidget(bitmapRenderer_);
 
-  QObject::connect(_bitmapRenderer, &BitmapRenderer::bitmapHasChanged, this,
+  QObject::connect(bitmapRenderer_, &BitmapRenderer::bitmapHasChanged, this,
                    &MainWindow::bitmapChanged);
 
-  _smallGlyph = new BitmapRenderer(ui->smallGlyphPreview, 2, true, _undoStack);
-  ui->smallGlyphPreview->layout()->addWidget(_smallGlyph);
-  _smallGlyph->connectTo(_bitmapRenderer);
+  smallGlyph_ = new BitmapRenderer(ui->smallGlyphPreview, 2, true, undoStack_);
+  ui->smallGlyphPreview->layout()->addWidget(smallGlyph_);
+  smallGlyph_->connectTo(bitmapRenderer_);
 
-  _largeGlyph = new BitmapRenderer(ui->largeGlyphPreview, 4, true, _undoStack);
-  ui->largeGlyphPreview->layout()->addWidget(_largeGlyph);
-  _largeGlyph->connectTo(_bitmapRenderer);
+  largeGlyph_ = new BitmapRenderer(ui->largeGlyphPreview, 4, true, undoStack_);
+  ui->largeGlyphPreview->layout()->addWidget(largeGlyph_);
+  largeGlyph_->connectTo(bitmapRenderer_);
 
   // ---
 
@@ -160,18 +160,18 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
   // --> Overall variables initialization <--
 
-  _ibmfFont        = nullptr;
-  _ibmfGlyphCode   = 0;
-  _currentFilePath = "";
-  _fontChanged     = false;
-  _glyphChanged    = false;
-  _faceChanged     = false;
-  _glyphReloading  = false;
-  _faceReloading   = false;
+  ibmfFont_        = nullptr;
+  ibmfGlyphCode_   = 0;
+  currentFilePath_ = "";
+  fontChanged_     = false;
+  glyphChanged_    = false;
+  faceChanged_     = false;
+  glyphReloading_  = false;
+  faceReloading_   = false;
 
   this->clearAll();
 
-  _initialized = true;
+  initialized_ = true;
 
   show();
 }
@@ -182,10 +182,10 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::createUndoView() {
-  _undoView = new QUndoView(_undoStack);
-  _undoView->setWindowTitle(tr("Command List"));
-  _undoView->show();
-  _undoView->setAttribute(Qt::WA_QuitOnClose, false);
+  undoView_ = new QUndoView(undoStack_);
+  undoView_->setWindowTitle(tr("Command List"));
+  undoView_->show();
+  undoView_->setAttribute(Qt::WA_QuitOnClose, false);
 }
 
 void MainWindow::createRecentFileActionsAndConnections() {
@@ -195,8 +195,8 @@ void MainWindow::createRecentFileActionsAndConnections() {
     recentFileAction = new QAction(this);
     recentFileAction->setVisible(false);
     QObject::connect(recentFileAction, &QAction::triggered, this, &MainWindow::openRecent);
-    _recentFileActionList.append(recentFileAction);
-    recentFilesMenu->addAction(_recentFileActionList.at(i));
+    recentFileActionList_.append(recentFileAction);
+    recentFilesMenu->addAction(recentFileActionList_.at(i));
   }
 
   updateRecentActionList();
@@ -206,7 +206,7 @@ void MainWindow::updateRecentActionList() {
   QSettings   settings("ibmf", "IBMFEditor");
   QStringList recentFilePaths = settings.value("recentFiles").toStringList();
 
-  auto itEnd = 0u;
+  auto itEnd                  = 0u;
 
   if (recentFilePaths.size() <= MAX_RECENT_FILES) {
     itEnd = recentFilePaths.size();
@@ -215,13 +215,13 @@ void MainWindow::updateRecentActionList() {
   }
   for (auto i = 0u; i < itEnd; ++i) {
     QString strippedName = QFileInfo(recentFilePaths.at(i)).fileName();
-    _recentFileActionList.at(i)->setText(strippedName);
-    _recentFileActionList.at(i)->setData(recentFilePaths.at(i));
-    _recentFileActionList.at(i)->setVisible(true);
+    recentFileActionList_.at(i)->setText(strippedName);
+    recentFileActionList_.at(i)->setData(recentFilePaths.at(i));
+    recentFileActionList_.at(i)->setVisible(true);
   }
 
   for (auto i = itEnd; i < MAX_RECENT_FILES; ++i) {
-    _recentFileActionList.at(i)->setVisible(false);
+    recentFileActionList_.at(i)->setVisible(false);
   }
 }
 
@@ -235,12 +235,12 @@ void MainWindow::openRecent() {
       QMessageBox::warning(this, "Warning", "Unable to open file " + file.errorString());
     } else {
       if (loadFont(file)) {
-        _currentFilePath = action->data().toString();
+        currentFilePath_ = action->data().toString();
         adjustRecentsForCurrentFile();
-        _fontChanged = false;
-        setWindowTitle("IBMF Font Editor - " + _currentFilePath);
+        fontChanged_ = false;
+        setWindowTitle("IBMF Font Editor - " + currentFilePath_);
       } else {
-        QMessageBox::warning(this, "Warning", "Unable to load IBMF file " + _currentFilePath);
+        QMessageBox::warning(this, "Warning", "Unable to load IBMF file " + currentFilePath_);
       }
       file.close();
     }
@@ -265,17 +265,25 @@ void MainWindow::readSettings() {
 
   settings.beginGroup("MainWindow");
   const auto geometry = settings.value("geometry", QByteArray()).toByteArray();
-  if (geometry.isEmpty()) setGeometry(200, 200, 800, 800);
-  else restoreGeometry(geometry);
+  if (geometry.isEmpty())
+    setGeometry(200, 200, 800, 800);
+  else
+    restoreGeometry(geometry);
 
   const auto rightSplitterState = settings.value("RightSplitter", QByteArray()).toByteArray();
-  if (!rightSplitterState.isEmpty()) { ui->rightSplitter->restoreState(rightSplitterState); }
+  if (!rightSplitterState.isEmpty()) {
+    ui->rightSplitter->restoreState(rightSplitterState);
+  }
 
   const auto leftSplitterState = settings.value("LeftSplitter", QByteArray()).toByteArray();
-  if (!leftSplitterState.isEmpty()) { ui->leftSplitter->restoreState(leftSplitterState); }
+  if (!leftSplitterState.isEmpty()) {
+    ui->leftSplitter->restoreState(leftSplitterState);
+  }
 
   const auto leftFrameState = settings.value("LeftFrame", QByteArray()).toByteArray();
-  if (!leftFrameState.isEmpty()) { ui->leftFrame->restoreState(leftFrameState); }
+  if (!leftFrameState.isEmpty()) {
+    ui->leftFrame->restoreState(leftFrameState);
+  }
 
   const auto faceCharsSplitterState =
       settings.value("FaceCharsSplitter", QByteArray()).toByteArray();
@@ -284,7 +292,9 @@ void MainWindow::readSettings() {
   }
 
   const auto rightFrameState = settings.value("RightFrame", QByteArray()).toByteArray();
-  if (!rightFrameState.isEmpty()) { ui->rightFrame->restoreState(rightFrameState); }
+  if (!rightFrameState.isEmpty()) {
+    ui->rightFrame->restoreState(rightFrameState);
+  }
 
   settings.endGroup();
 }
@@ -292,9 +302,10 @@ void MainWindow::readSettings() {
 void MainWindow::adjustRecentsForCurrentFile() {
   QSettings   settings("ibmf", "IBMFEditor");
   QStringList recentFilePaths = settings.value("recentFiles").toStringList();
-  recentFilePaths.removeAll(_currentFilePath);
-  recentFilePaths.prepend(_currentFilePath);
-  while (recentFilePaths.size() > MAX_RECENT_FILES) recentFilePaths.removeLast();
+  recentFilePaths.removeAll(currentFilePath_);
+  recentFilePaths.prepend(currentFilePath_);
+  while (recentFilePaths.size() > MAX_RECENT_FILES)
+    recentFilePaths.removeLast();
   settings.setValue("recentFiles", recentFilePaths);
   updateRecentActionList();
 }
@@ -306,32 +317,32 @@ void MainWindow::closeEvent(QCloseEvent *event) {
 void MainWindow::resizeEvent(QResizeEvent *event) {}
 
 void MainWindow::paintEvent(QPaintEvent *event) {
-  setScrollBarSizes(_bitmapRenderer->getPixelSize());
+  setScrollBarSizes(bitmapRenderer_->getPixelSize());
   updateBitmapOffsetPos();
 }
 
 void MainWindow::bitmapChanged(Bitmap &bitmap) {
-  if (_ibmfFont != nullptr) {
-    if (!_fontChanged) {
-      _fontChanged = true;
+  if (ibmfFont_ != nullptr) {
+    if (!fontChanged_) {
+      fontChanged_ = true;
       this->setWindowTitle(this->windowTitle() + '*');
     }
-    _glyphChanged = true;
+    glyphChanged_ = true;
   }
 }
 
 bool MainWindow::saveFont(bool askToConfirmName) {
   QString            newFilePath;
   QRegularExpression theDateTimeWithExt("_\\d\\d\\d\\d\\d\\d\\d\\d_\\d\\d\\d\\d\\d\\d\\.ibmf$");
-  QRegularExpressionMatch match = theDateTimeWithExt.match(_currentFilePath);
+  QRegularExpressionMatch match = theDateTimeWithExt.match(currentFilePath_);
   if (!match.hasMatch()) {
     QRegularExpression extension("\\.ibmf$");
-    match = extension.match(_currentFilePath);
+    match = extension.match(currentFilePath_);
   }
   if (match.hasMatch()) {
     QMessageBox::information(this, "match:", match.captured());
     QString newExt   = "_" + QDateTime::currentDateTimeUtc().toString("yyyyMMdd_hhmmss") + ".ibmf";
-    QString filePath = _currentFilePath;
+    QString filePath = currentFilePath_;
     filePath.replace(match.captured(), newExt);
     if (askToConfirmName) {
       newFilePath = QFileDialog::getSaveFileName(this, "Save IBMF Font File", filePath, "*.ibmf");
@@ -348,11 +359,11 @@ bool MainWindow::saveFont(bool askToConfirmName) {
     outFile.setFileName(newFilePath);
     if (outFile.open(QIODevice::WriteOnly)) {
       QDataStream out(&outFile);
-      if (_ibmfFont->save(out)) {
-        _currentFilePath = newFilePath;
+      if (ibmfFont_->save(out)) {
+        currentFilePath_ = newFilePath;
         adjustRecentsForCurrentFile();
-        _fontChanged = false;
-        setWindowTitle("IBMF Font Editor - " + _currentFilePath);
+        fontChanged_ = false;
+        setWindowTitle("IBMF Font Editor - " + currentFilePath_);
         outFile.close();
       } else {
         outFile.close();
@@ -371,36 +382,36 @@ bool MainWindow::loadFont(QFile &file) {
   QByteArray content = file.readAll();
   file.close();
   clearAll();
-  _ibmfFont = IBMFFontModPtr(new IBMFFontMod((uint8_t *) content.data(), content.size()));
-  if (_ibmfFont->isInitialized()) {
-    _ibmfPreamble = _ibmfFont->getPreample();
+  ibmfFont_ = IBMFFontModPtr(new IBMFFontMod((uint8_t *)content.data(), content.size()));
+  if (ibmfFont_->isInitialized()) {
+    ibmfPreamble_ = ibmfFont_->getPreample();
 
     char marker[5];
-    memcpy(marker, _ibmfPreamble.marker, 4);
+    memcpy(marker, ibmfPreamble_.marker, 4);
     marker[4] = 0;
 
     putValue(ui->fontHeader, 0, 1, QByteArray(marker), false);
-    putValue(ui->fontHeader, 1, 1, _ibmfPreamble.faceCount, false);
-    putValue(ui->fontHeader, 2, 1, _ibmfPreamble.bits.version, false);
-    putValue(ui->fontHeader, 3, 1, _ibmfPreamble.bits.fontFormat, false);
+    putValue(ui->fontHeader, 1, 1, ibmfPreamble_.faceCount, false);
+    putValue(ui->fontHeader, 2, 1, ibmfPreamble_.bits.version, false);
+    putValue(ui->fontHeader, 3, 1, ibmfPreamble_.bits.fontFormat, false);
 
-    for (int i = 0; i < _ibmfPreamble.faceCount; i++) {
-      IBMFDefs::FaceHeaderPtr face_header = _ibmfFont->getFaceHeader(i);
+    for (int i = 0; i < ibmfPreamble_.faceCount; i++) {
+      IBMFDefs::FaceHeaderPtr face_header = ibmfFont_->getFaceHeader(i);
       ui->faceIndex->addItem(QString::number(face_header->pointSize).append(" pts"));
     }
 
     loadFace(0);
 
-    _fontChanged  = false;
-    _faceChanged  = false;
-    _glyphChanged = false;
-    _undoStack->clear();
+    fontChanged_  = false;
+    faceChanged_  = false;
+    glyphChanged_ = false;
+    undoStack_->clear();
   }
-  return _ibmfFont->isInitialized();
+  return ibmfFont_->isInitialized();
 }
 
 bool MainWindow::checkFontChanged() {
-  if (_fontChanged) {
+  if (fontChanged_) {
     saveGlyph();
     QMessageBox::StandardButton button =
         QMessageBox::question(this, "File Changed", "File was changed. Do you want to save it ?",
@@ -427,12 +438,12 @@ void MainWindow::on_actionOpen_triggered() {
       QMessageBox::warning(this, "Warning", "Unable to open file " + file.errorString());
     } else {
       if (loadFont(file)) {
-        _currentFilePath = filePath;
+        currentFilePath_ = filePath;
         adjustRecentsForCurrentFile();
-        _fontChanged = false;
+        fontChanged_ = false;
         setWindowTitle("IBMF Font Editor - " + filePath);
       } else {
-        QMessageBox::warning(this, "Warning", "Unable to load IBMF file " + _currentFilePath);
+        QMessageBox::warning(this, "Warning", "Unable to load IBMF file " + currentFilePath_);
       }
       file.close();
     }
@@ -441,7 +452,7 @@ void MainWindow::on_actionOpen_triggered() {
 
 void MainWindow::clearAll() {
   ui->faceIndex->clear();
-  _bitmapRenderer->clearAndEmit(); // Will clear other renderers through signaling
+  bitmapRenderer_->clearAndEmit(); // Will clear other renderers through signaling
 }
 
 void MainWindow::on_actionExit_triggered() {
@@ -475,7 +486,7 @@ QVariant MainWindow::getValue(QTableWidget *w, int row, int col) {
 }
 
 void MainWindow::saveFace() {
-  if ((_ibmfFont != nullptr) && _ibmfFont->isInitialized() && _faceChanged) {
+  if ((ibmfFont_ != nullptr) && ibmfFont_->isInitialized() && faceChanged_) {
     IBMFDefs::FaceHeader face_header;
 
     face_header.pointSize        = getValue(ui->faceHeader, 0, 1).toUInt();
@@ -490,36 +501,36 @@ void MainWindow::saveFace() {
     face_header.glyphCount       = getValue(ui->faceHeader, 9, 1).toUInt();
     face_header.ligKernStepCount = getValue(ui->faceHeader, 10, 1).toUInt();
 
-    _ibmfFont->saveFaceHeader(_ibmfFaceIdx, face_header);
-    _faceChanged = false;
+    ibmfFont_->saveFaceHeader(ibmfFaceIdx_, face_header);
+    faceChanged_ = false;
   }
 }
 
 bool MainWindow::loadFace(uint8_t faceIdx) {
   saveFace();
-  if ((_ibmfFont != nullptr) && (_ibmfFont->isInitialized()) &&
-      (faceIdx < _ibmfPreamble.faceCount)) {
-    _ibmfFaceHeader = _ibmfFont->getFaceHeader(faceIdx);
+  if ((ibmfFont_ != nullptr) && (ibmfFont_->isInitialized()) &&
+      (faceIdx < ibmfPreamble_.faceCount)) {
+    ibmfFaceHeader_ = ibmfFont_->getFaceHeader(faceIdx);
 
-    _faceReloading = true;
+    faceReloading_  = true;
 
-    putValue(ui->faceHeader, 0, 1, _ibmfFaceHeader->pointSize, false);
-    putValue(ui->faceHeader, 1, 1, _ibmfFaceHeader->lineHeight);
-    putValue(ui->faceHeader, 2, 1, _ibmfFaceHeader->dpi, false);
-    putFix16Value(ui->faceHeader, 3, 1, (float) _ibmfFaceHeader->xHeight / 64.0);
-    putFix16Value(ui->faceHeader, 4, 1, (float) _ibmfFaceHeader->emSize / 64.0);
-    putFix16Value(ui->faceHeader, 5, 1, (float) _ibmfFaceHeader->slantCorrection / 64.0);
-    putValue(ui->faceHeader, 6, 1, _ibmfFaceHeader->maxHeight, false);
-    putValue(ui->faceHeader, 7, 1, _ibmfFaceHeader->descenderHeight);
-    putValue(ui->faceHeader, 8, 1, _ibmfFaceHeader->spaceSize);
-    putValue(ui->faceHeader, 9, 1, _ibmfFaceHeader->glyphCount, false);
-    putValue(ui->faceHeader, 10, 1, _ibmfFaceHeader->ligKernStepCount, false);
+    putValue(ui->faceHeader, 0, 1, ibmfFaceHeader_->pointSize, false);
+    putValue(ui->faceHeader, 1, 1, ibmfFaceHeader_->lineHeight);
+    putValue(ui->faceHeader, 2, 1, ibmfFaceHeader_->dpi, false);
+    putFix16Value(ui->faceHeader, 3, 1, (float)ibmfFaceHeader_->xHeight / 64.0);
+    putFix16Value(ui->faceHeader, 4, 1, (float)ibmfFaceHeader_->emSize / 64.0);
+    putFix16Value(ui->faceHeader, 5, 1, (float)ibmfFaceHeader_->slantCorrection / 64.0);
+    putValue(ui->faceHeader, 6, 1, ibmfFaceHeader_->maxHeight, false);
+    putValue(ui->faceHeader, 7, 1, ibmfFaceHeader_->descenderHeight);
+    putValue(ui->faceHeader, 8, 1, ibmfFaceHeader_->spaceSize);
+    putValue(ui->faceHeader, 9, 1, ibmfFaceHeader_->glyphCount, false);
+    putValue(ui->faceHeader, 10, 1, ibmfFaceHeader_->ligKernStepCount, false);
 
-    _faceReloading = false;
+    faceReloading_ = false;
 
-    _ibmfFaceIdx = faceIdx;
+    ibmfFaceIdx_   = faceIdx;
 
-    loadGlyph(_ibmfGlyphCode);
+    loadGlyph(ibmfGlyphCode_);
   } else {
     return false;
   }
@@ -528,10 +539,10 @@ bool MainWindow::loadFace(uint8_t faceIdx) {
 }
 
 void MainWindow::saveGlyph() {
-  if ((_ibmfFont != nullptr) && _ibmfFont->isInitialized() && _glyphChanged) {
+  if ((ibmfFont_ != nullptr) && ibmfFont_->isInitialized() && glyphChanged_) {
     Bitmap             *theBitmap;
     IBMFDefs::GlyphInfo glyph_info;
-    if (_bitmapRenderer->retrieveBitmap(&theBitmap)) {
+    if (bitmapRenderer_->retrieveBitmap(&theBitmap)) {
 
       glyph_info.bitmapWidth             = theBitmap->dim.width;
       glyph_info.bitmapHeight            = theBitmap->dim.height;
@@ -543,57 +554,57 @@ void MainWindow::saveGlyph() {
       glyph_info.rleMetrics.dynF         = getValue(ui->characterMetrics, 7, 1).toUInt();
       glyph_info.rleMetrics.firstIsBlack = getValue(ui->characterMetrics, 8, 1).toUInt();
 
-      _ibmfFont->saveGlyph(_ibmfFaceIdx, _ibmfGlyphCode, &glyph_info, theBitmap);
-      _glyphChanged = false;
+      ibmfFont_->saveGlyph(ibmfFaceIdx_, ibmfGlyphCode_, &glyph_info, theBitmap);
+      glyphChanged_ = false;
     }
   }
 }
 
 bool MainWindow::loadGlyph(uint16_t glyphCode) {
   saveGlyph();
-  if ((_ibmfFont != nullptr) && (_ibmfFont->isInitialized()) &&
-      (_ibmfFaceIdx < _ibmfPreamble.faceCount) && (glyphCode < _ibmfFaceHeader->glyphCount)) {
+  if ((ibmfFont_ != nullptr) && (ibmfFont_->isInitialized()) &&
+      (ibmfFaceIdx_ < ibmfPreamble_.faceCount) && (glyphCode < ibmfFaceHeader_->glyphCount)) {
 
-    if (_ibmfFont->getGlyph(_ibmfFaceIdx, glyphCode, _ibmfGlyphInfo, &_ibmfGlyphBitmap)) {
-      _ibmfGlyphCode = glyphCode;
+    if (ibmfFont_->getGlyph(ibmfFaceIdx_, glyphCode, ibmfGlyphInfo_, &ibmfGlyphBitmap_)) {
+      ibmfGlyphCode_  = glyphCode;
 
-      _glyphChanged   = false;
-      _glyphReloading = true;
+      glyphChanged_   = false;
+      glyphReloading_ = true;
 
-      putValue(ui->characterMetrics, 0, 1, _ibmfGlyphInfo->bitmapWidth, false);
-      putValue(ui->characterMetrics, 1, 1, _ibmfGlyphInfo->bitmapHeight, false);
-      putValue(ui->characterMetrics, 2, 1, _ibmfGlyphInfo->horizontalOffset);
-      putValue(ui->characterMetrics, 3, 1, _ibmfGlyphInfo->verticalOffset);
-      putValue(ui->characterMetrics, 4, 1, _ibmfGlyphInfo->ligKernPgmIndex, false);
-      putValue(ui->characterMetrics, 5, 1, _ibmfGlyphInfo->packetLength, false);
-      putFix16Value(ui->characterMetrics, 6, 1, (float) _ibmfGlyphInfo->advance / 64.0);
-      putValue(ui->characterMetrics, 7, 1, _ibmfGlyphInfo->rleMetrics.dynF, false);
-      putValue(ui->characterMetrics, 8, 1, _ibmfGlyphInfo->rleMetrics.firstIsBlack, false);
+      putValue(ui->characterMetrics, 0, 1, ibmfGlyphInfo_->bitmapWidth, false);
+      putValue(ui->characterMetrics, 1, 1, ibmfGlyphInfo_->bitmapHeight, false);
+      putValue(ui->characterMetrics, 2, 1, ibmfGlyphInfo_->horizontalOffset);
+      putValue(ui->characterMetrics, 3, 1, ibmfGlyphInfo_->verticalOffset);
+      putValue(ui->characterMetrics, 4, 1, ibmfGlyphInfo_->ligKernPgmIndex, false);
+      putValue(ui->characterMetrics, 5, 1, ibmfGlyphInfo_->packetLength, false);
+      putFix16Value(ui->characterMetrics, 6, 1, (float)ibmfGlyphInfo_->advance / 64.0);
+      putValue(ui->characterMetrics, 7, 1, ibmfGlyphInfo_->rleMetrics.dynF, false);
+      putValue(ui->characterMetrics, 8, 1, ibmfGlyphInfo_->rleMetrics.firstIsBlack, false);
 
       centerScrollBarPos();
-      _bitmapRenderer->clearAndLoadBitmap(*_ibmfGlyphBitmap, _ibmfPreamble, *_ibmfFaceHeader,
-                                          *_ibmfGlyphInfo);
-      _smallGlyph->clearAndLoadBitmap(*_ibmfGlyphBitmap, _ibmfPreamble, *_ibmfFaceHeader,
-                                      *_ibmfGlyphInfo);
-      _largeGlyph->clearAndLoadBitmap(*_ibmfGlyphBitmap, _ibmfPreamble, *_ibmfFaceHeader,
-                                      *_ibmfGlyphInfo);
+      bitmapRenderer_->clearAndLoadBitmap(*ibmfGlyphBitmap_, ibmfPreamble_, *ibmfFaceHeader_,
+                                          *ibmfGlyphInfo_);
+      smallGlyph_->clearAndLoadBitmap(*ibmfGlyphBitmap_, ibmfPreamble_, *ibmfFaceHeader_,
+                                      *ibmfGlyphInfo_);
+      largeGlyph_->clearAndLoadBitmap(*ibmfGlyphBitmap_, ibmfPreamble_, *ibmfFaceHeader_,
+                                      *ibmfGlyphInfo_);
 
       ui->ligTable->clearContents();
       ui->kernTable->clearContents();
 
-      if (_ibmfFont->getGlyphLigKern(_ibmfFaceIdx, _ibmfGlyphCode, &_ibmfLigKerns)) {
-        ui->ligTable->setRowCount(_ibmfLigKerns->lig_steps.size());
-        for (int i = 0; i < _ibmfLigKerns->lig_steps.size(); i++) {
+      if (ibmfFont_->getGlyphLigKern(ibmfFaceIdx_, ibmfGlyphCode_, &ibmfLigKerns_)) {
+        ui->ligTable->setRowCount(ibmfLigKerns_->ligSteps.size());
+        for (int i = 0; i < ibmfLigKerns_->ligSteps.size(); i++) {
           putValue(ui->ligTable, i, 0,
-                   QChar(fontFormat0CharacterCodes[_ibmfLigKerns->lig_steps[i]->nextGlyphCode]));
+                   QChar(fontFormat0CharacterCodes[ibmfLigKerns_->ligSteps[i]->nextGlyphCode]));
           putValue(ui->ligTable, i, 1,
-                   QChar(fontFormat0CharacterCodes[_ibmfLigKerns->lig_steps[i]->glyphCode]));
-          int code = _ibmfLigKerns->lig_steps[i]->nextGlyphCode;
+                   QChar(fontFormat0CharacterCodes[ibmfLigKerns_->ligSteps[i]->glyphCode]));
+          int code = ibmfLigKerns_->ligSteps[i]->nextGlyphCode;
           ui->ligTable->item(i, 0)->setToolTip(QString("%1  0o%2  0x%3")
                                                    .arg(code)
                                                    .arg(code, 3, 8, QChar('0'))
                                                    .arg(code, 2, 16, QChar('0')));
-          code = _ibmfLigKerns->lig_steps[i]->glyphCode;
+          code = ibmfLigKerns_->ligSteps[i]->glyphCode;
           ui->ligTable->item(i, 1)->setToolTip(QString("%1  0o%2  0x%3")
                                                    .arg(code)
                                                    .arg(code, 3, 8, QChar('0'))
@@ -601,12 +612,12 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
           ui->ligTable->item(i, 0)->setTextAlignment(Qt::AlignCenter);
           ui->ligTable->item(i, 1)->setTextAlignment(Qt::AlignCenter);
         }
-        ui->kernTable->setRowCount(_ibmfLigKerns->kern_steps.size());
-        for (int i = 0; i < _ibmfLigKerns->kern_steps.size(); i++) {
+        ui->kernTable->setRowCount(ibmfLigKerns_->kernSteps.size());
+        for (int i = 0; i < ibmfLigKerns_->kernSteps.size(); i++) {
           putValue(ui->kernTable, i, 0,
-                   QChar(fontFormat0CharacterCodes[_ibmfLigKerns->kern_steps[i]->nextGlyphCode]));
-          putFix16Value(ui->kernTable, i, 1, (float) _ibmfLigKerns->kern_steps[i]->kern / 64.0);
-          int code = _ibmfLigKerns->kern_steps[i]->nextGlyphCode;
+                   QChar(fontFormat0CharacterCodes[ibmfLigKerns_->kernSteps[i]->nextGlyphCode]));
+          putFix16Value(ui->kernTable, i, 1, (float)ibmfLigKerns_->kernSteps[i]->kern / 64.0);
+          int code = ibmfLigKerns_->kernSteps[i]->nextGlyphCode;
           ui->kernTable->item(i, 0)->setToolTip(QString("%1  0o%2  0x%3")
                                                     .arg(code)
                                                     .arg(code, 3, 8, QChar('0'))
@@ -618,7 +629,7 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
 
       ui->charactersList->setCurrentCell(glyphCode / 5, glyphCode % 5);
 
-      _glyphReloading = false;
+      glyphReloading_ = false;
     } else {
       return false;
     }
@@ -630,24 +641,24 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
 }
 
 void MainWindow::on_leftButton_clicked() {
-  if ((_ibmfFont == nullptr) || !_ibmfFont->isInitialized()) return;
+  if ((ibmfFont_ == nullptr) || !ibmfFont_->isInitialized()) return;
 
-  uint16_t glyphCode = _ibmfGlyphCode;
+  uint16_t glyphCode = ibmfGlyphCode_;
 
   if (glyphCode > 0) {
     glyphCode -= 1;
   } else {
-    glyphCode = _ibmfFaceHeader->glyphCount - 1;
+    glyphCode = ibmfFaceHeader_->glyphCount - 1;
   }
   loadGlyph(glyphCode);
 }
 
 void MainWindow::on_rightButton_clicked() {
-  if ((_ibmfFont == nullptr) || !_ibmfFont->isInitialized()) return;
+  if ((ibmfFont_ == nullptr) || !ibmfFont_->isInitialized()) return;
 
-  uint16_t glyphCode = _ibmfGlyphCode;
+  uint16_t glyphCode = ibmfGlyphCode_;
 
-  if (glyphCode >= _ibmfFaceHeader->glyphCount - 1) {
+  if (glyphCode >= ibmfFaceHeader_->glyphCount - 1) {
     glyphCode = 0;
   } else {
     glyphCode += 1;
@@ -656,7 +667,7 @@ void MainWindow::on_rightButton_clicked() {
 }
 
 void MainWindow::on_faceIndex_currentIndexChanged(int index) {
-  if ((_ibmfFont == nullptr) || !_ibmfFont->isInitialized()) return;
+  if ((ibmfFont_ == nullptr) || !ibmfFont_->isInitialized()) return;
 
   loadFace(index);
 }
@@ -664,10 +675,10 @@ void MainWindow::on_faceIndex_currentIndexChanged(int index) {
 void MainWindow::setScrollBarSizes(int pixelSize) {
   ui->bitmapHorizontalScrollBar->setPageStep(
       (ui->bitmapFrame->width() / pixelSize) *
-      ((float) ui->bitmapHorizontalScrollBar->maximum() / BitmapRenderer::bitmapWidth));
+      ((float)ui->bitmapHorizontalScrollBar->maximum() / BitmapRenderer::bitmapWidth));
   ui->bitmapVerticalScrollBar->setPageStep(
       (ui->bitmapFrame->height() / pixelSize) *
-      ((float) ui->bitmapVerticalScrollBar->maximum() / BitmapRenderer::bitmapHeight));
+      ((float)ui->bitmapVerticalScrollBar->maximum() / BitmapRenderer::bitmapHeight));
 }
 
 void MainWindow::centerScrollBarPos() {
@@ -677,17 +688,17 @@ void MainWindow::centerScrollBarPos() {
 
 void MainWindow::updateBitmapOffsetPos() {
   QPoint pos =
-      QPoint((float) ui->bitmapHorizontalScrollBar->value() /
+      QPoint((float)ui->bitmapHorizontalScrollBar->value() /
                      ui->bitmapHorizontalScrollBar->maximum() * BitmapRenderer::bitmapWidth -
-                 ((_bitmapRenderer->width() / _bitmapRenderer->getPixelSize()) / 2),
-             (float) ui->bitmapVerticalScrollBar->value() / ui->bitmapVerticalScrollBar->maximum() *
+                 ((bitmapRenderer_->width() / bitmapRenderer_->getPixelSize()) / 2),
+             (float)ui->bitmapVerticalScrollBar->value() / ui->bitmapVerticalScrollBar->maximum() *
                      BitmapRenderer::bitmapHeight -
-                 ((_bitmapRenderer->height() / _bitmapRenderer->getPixelSize()) / 2));
+                 ((bitmapRenderer_->height() / bitmapRenderer_->getPixelSize()) / 2));
 
   int maxX =
-      BitmapRenderer::bitmapWidth - (_bitmapRenderer->width() / _bitmapRenderer->getPixelSize());
+      BitmapRenderer::bitmapWidth - (bitmapRenderer_->width() / bitmapRenderer_->getPixelSize());
   int maxY =
-      BitmapRenderer::bitmapHeight - (_bitmapRenderer->height() / _bitmapRenderer->getPixelSize());
+      BitmapRenderer::bitmapHeight - (bitmapRenderer_->height() / bitmapRenderer_->getPixelSize());
 
   if (pos.x() < 0) pos.setX(0);
   if (pos.y() < 0) pos.setY(0);
@@ -710,64 +721,64 @@ void MainWindow::updateBitmapOffsetPos() {
             << ui->bitmapVerticalScrollBar->maximum()
             << std::endl;
 
-  std::cout << "BitmapRender Size: " << _bitmapRenderer->width() << ", " << _bitmapRenderer->height() << std::endl;
-  std::cout << "BitmapRender Pixel Size: " << _bitmapRenderer->getPixelSize() << std::endl;
+  std::cout << "BitmapRender Size: " << bitmapRenderer_->width() << ", " << bitmapRenderer_->height() << std::endl;
+  std::cout << "BitmapRender Pixel Size: " << bitmapRenderer_->getPixelSize() << std::endl;
   std::cout << "BitmapOffsetPos = " << pos.x() << ", " << pos.y() << std::endl;
 #endif
 
-  _bitmapRenderer->setBitmapOffsetPos(pos);
+  bitmapRenderer_->setBitmapOffsetPos(pos);
 }
 
 void MainWindow::on_pixelSize_valueChanged(int value) {
-  _bitmapRenderer->setPixelSize(ui->pixelSize->value());
+  bitmapRenderer_->setPixelSize(ui->pixelSize->value());
 
   setScrollBarSizes(value);
 }
 
 void MainWindow::on_charactersList_cellClicked(int row, int column) {
   int idx = (row * 5) + column;
-  if (_ibmfFont != nullptr) {
+  if (ibmfFont_ != nullptr) {
     loadGlyph(idx);
   } else {
-    _ibmfGlyphCode = idx; // Retain the selection for when a font will be loaded
+    ibmfGlyphCode_ = idx; // Retain the selection for when a font will be loaded
   }
 }
 
 void MainWindow::on_characterMetrics_cellChanged(int row, int column) {
-  if ((_ibmfFont != nullptr) && _ibmfFont->isInitialized() && _initialized && !_glyphReloading) {
-    _glyphChanged = true;
+  if ((ibmfFont_ != nullptr) && ibmfFont_->isInitialized() && initialized_ && !glyphReloading_) {
+    glyphChanged_ = true;
   }
 }
 
 void MainWindow::on_faceHeader_cellChanged(int row, int column) {
-  if ((_ibmfFont != nullptr) && _ibmfFont->isInitialized() && _initialized && !_faceReloading) {
-    _faceChanged = true;
+  if ((ibmfFont_ != nullptr) && ibmfFont_->isInitialized() && initialized_ && !faceReloading_) {
+    faceChanged_ = true;
   }
 }
 
 void MainWindow::on_glyphForgetButton_clicked() {
-  if (_glyphChanged) {
+  if (glyphChanged_) {
     QMessageBox::StandardButton button =
         QMessageBox::question(this, "Character has been Modified",
                               "You will loose all changes to the bitmap and metrics. Are-you sure?",
                               QMessageBox::Yes | QMessageBox::No);
     if (button == QMessageBox::Yes) {
-      _undoStack->clear();
-      _glyphChanged = false;
-      loadGlyph(_ibmfGlyphCode);
+      undoStack_->clear();
+      glyphChanged_ = false;
+      loadGlyph(ibmfGlyphCode_);
     }
   }
 }
 
 void MainWindow::on_faceForgetButton_clicked() {
-  if (_faceChanged) {
+  if (faceChanged_) {
     QMessageBox::StandardButton button =
         QMessageBox::question(this, "Face Header Modified",
                               "You will loose all changes to the Face Header. Are-you sure?",
                               QMessageBox::Yes | QMessageBox::No);
     if (button == QMessageBox::Yes) {
-      _faceChanged = false;
-      loadFace(_ibmfFaceIdx);
+      faceChanged_ = false;
+      loadFace(ibmfFaceIdx_);
     }
   }
 }
@@ -775,22 +786,22 @@ void MainWindow::on_faceForgetButton_clicked() {
 void MainWindow::on_centerGridButton_clicked() {
   centerScrollBarPos();
   updateBitmapOffsetPos();
-  _bitmapRenderer->repaint();
+  bitmapRenderer_->repaint();
 }
 
 void MainWindow::on_leftSplitter_splitterMoved(int pos, int index) {}
 
 void MainWindow::on_bitmapVerticalScrollBar_valueChanged(int value) {
-  if (_initialized) {
+  if (initialized_) {
     updateBitmapOffsetPos();
-    _bitmapRenderer->repaint();
+    bitmapRenderer_->repaint();
   }
 }
 
 void MainWindow::on_bitmapHorizontalScrollBar_valueChanged(int value) {
-  if (_initialized) {
+  if (initialized_) {
     updateBitmapOffsetPos();
-    _bitmapRenderer->repaint();
+    bitmapRenderer_->repaint();
   }
 }
 
@@ -809,7 +820,7 @@ void MainWindow::on_actionFont_load_save_triggered() {
     QByteArray original_content = in_file.readAll();
     in_file.close();
     auto font = IBMFFontModPtr(
-        new IBMFFontMod((uint8_t *) original_content.data(), original_content.size()));
+        new IBMFFontMod((uint8_t *)original_content.data(), original_content.size()));
     if (font->isInitialized()) {
       filePath.append(".test");
       out_file.setFileName(filePath);
@@ -824,12 +835,12 @@ void MainWindow::on_actionFont_load_save_triggered() {
         } else {
           out_file.close();
           QMessageBox::critical(this, "Error",
-                                "Unable to save IBMF file " + _currentFilePath +
+                                "Unable to save IBMF file " + currentFilePath_ +
                                     " error: " + QString::number(font->getLastError()));
         }
       }
     } else {
-      QMessageBox::critical(this, "Error", "Unable to load IBMF file " + _currentFilePath);
+      QMessageBox::critical(this, "Error", "Unable to load IBMF file " + currentFilePath_);
     }
   }
 }
@@ -848,7 +859,7 @@ void MainWindow::on_actionRLE_Encoder_triggered() {
     QByteArray original_content = in_file.readAll();
     in_file.close();
     auto font = IBMFFontModPtr(
-        new IBMFFontMod((uint8_t *) original_content.data(), original_content.size()));
+        new IBMFFontMod((uint8_t *)original_content.data(), original_content.size()));
     if (font->isInitialized()) {
       IBMFDefs::GlyphInfoPtr glyph_info;
       Bitmap                *bitmapHeightBits;
@@ -877,28 +888,24 @@ void MainWindow::on_actionRLE_Encoder_triggered() {
       }
       QMessageBox::information(this, "Completed", "Completed");
     } else {
-      QMessageBox::critical(this, "Error", "Unable to load IBMF file " + _currentFilePath);
+      QMessageBox::critical(this, "Error", "Unable to load IBMF file " + currentFilePath_);
     }
   }
 }
 
-void MainWindow::on_actionSave_triggered() {
-  saveFont(true);
-}
+void MainWindow::on_actionSave_triggered() { saveFont(true); }
 
-void MainWindow::on_actionSaveBackup_triggered() {
-  saveFont(false);
-}
+void MainWindow::on_actionSaveBackup_triggered() { saveFont(false); }
 
 void MainWindow::on_clearRecentList_triggered() {
   QSettings   settings("ibmf", "IBMFEditor");
   QStringList recentFilePaths = QStringList();
   settings.setValue("recentFiles", recentFilePaths);
 
-  for (int i = 0; i < _recentFileActionList.length(); i++) {
-    _recentFileActionList.at(i)->setVisible(false);
-    _recentFileActionList.at(i)->setText("");
-    _recentFileActionList.at(i)->setData("");
+  for (int i = 0; i < recentFileActionList_.length(); i++) {
+    recentFileActionList_.at(i)->setVisible(false);
+    recentFileActionList_.at(i)->setText("");
+    recentFileActionList_.at(i)->setData("");
   }
 }
 
@@ -910,7 +917,7 @@ void MainWindow::on_actionTest_Dialog_triggered() {
     QFileInfo     fileInfo(filePath);
     BlocksDialog *blocksDialog = new BlocksDialog(filePath, fileInfo.fileName());
     if (blocksDialog->exec() == QDialog::Accepted) {
-      auto blockIndexes = blocksDialog->getSelectedBlockIndexes();
+      auto blockIndexes               = blocksDialog->getSelectedBlockIndexes();
 
       FontParameterDialog *fontDialog = new FontParameterDialog();
       if (fontDialog->exec() == QDialog::Accepted) {
