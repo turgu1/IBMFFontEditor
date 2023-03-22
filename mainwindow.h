@@ -65,6 +65,8 @@ private slots:
 
   void on_actionTest_Dialog_triggered();
 
+  void on_actionImportTrueTypeFont_triggered();
+
 private:
   const int MAX_RECENT_FILES = 10;
 
@@ -117,8 +119,10 @@ private:
   void     saveGlyph();
   bool     loadGlyph(uint16_t glyphCode);
   void     clearAll();
-  void     putValue(QTableWidget *w, int row, int col, QVariant value, bool editable = true);
-  void     putFix16Value(QTableWidget *w, int row, int col, QVariant value, bool editable = true);
+  void     putValue(QTableWidget *w, int row, int col, QVariant value,
+                    bool editable = true);
+  void     putFix16Value(QTableWidget *w, int row, int col, QVariant value,
+                         bool editable = true);
   QVariant getValue(QTableWidget *w, int row, int col);
   void     clearEditable(QTableWidget *w, int row, int col);
 };

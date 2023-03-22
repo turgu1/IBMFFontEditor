@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1200</width>
-    <height>800</height>
+    <width>1527</width>
+    <height>877</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -1233,7 +1233,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1200</width>
+     <width>1527</width>
      <height>30</height>
     </rect>
    </property>
@@ -1243,10 +1243,16 @@
     </property>
     <widget class="QMenu" name="menuOpenRecent">
      <property name="title">
-      <string>Open recent ...</string>
+      <string>Open recent</string>
      </property>
      <addaction name="clearRecentList"/>
      <addaction name="separator"/>
+    </widget>
+    <widget class="QMenu" name="menuImport">
+     <property name="title">
+      <string>Import</string>
+     </property>
+     <addaction name="actionImportTrueTypeFont"/>
     </widget>
     <addaction name="actionOpen"/>
     <addaction name="menuOpenRecent"/>
@@ -1254,7 +1260,7 @@
     <addaction name="actionSave"/>
     <addaction name="actionExit"/>
     <addaction name="separator"/>
-    <addaction name="actionImport"/>
+    <addaction name="menuImport"/>
     <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menuTests">
@@ -1292,11 +1298,6 @@
     <string>Exit the application</string>
    </property>
   </action>
-  <action name="actionImport">
-   <property name="text">
-    <string>Import ...</string>
-   </property>
-  </action>
   <action name="actionFont_load_save">
    <property name="text">
     <string>Font load / save </string>
@@ -1320,6 +1321,11 @@
   <action name="actionTest_Dialog">
    <property name="text">
     <string>Test Dialog</string>
+   </property>
+  </action>
+  <action name="actionImportTrueTypeFont">
+   <property name="text">
+    <string>TrueType Font ...</string>
    </property>
   </action>
  </widget>

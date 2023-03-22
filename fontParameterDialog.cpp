@@ -1,18 +1,38 @@
 #include "fontParameterDialog.h"
-#include "ui_fontParameterDialog.h"
 
+#include <QDir>
 #include <QFileDialog>
 #include <QFormLayout>
 #include <QHBoxLayout>
+#include <QSettings>
 
-FontParameterDialog::FontParameterDialog(QWidget *parent)
+#include "blocksDialog.h"
+#include "ui_fontParameterDialog.h"
+
+FontParameterDialog::FontParameterDialog(QString title, QWidget *parent)
     : QDialog(parent), ui(new Ui::FontParameterDialog) {
   ui->setupUi(this);
+
+  QSettings settings("ibmf", "IBMFEditor");
+
+  setWindowTitle(title);
+
+  ui->nextButton->setEnabled(false);
+
+  ttfSelections_               = new TTFSelections;
+  codePointBlocks_             = nullptr;
+
+  QHBoxLayout *ttfFontFilename = new QHBoxLayout();
+  ttfFontFilename_             = new QLineEdit();
+  QPushButton *ttfBrowse       = new QPushButton("...");
+  ttfBrowse->setMaximumWidth(40);
+  ttfFontFilename->addWidget(ttfFontFilename_);
+  ttfFontFilename->addWidget(ttfBrowse);
 
   QHBoxLayout *fontFilename = new QHBoxLayout();
   ibmfFontFilename_         = new QLineEdit();
   QPushButton *browse       = new QPushButton("...");
-  browse->setMaximumWidth(50);
+  browse->setMaximumWidth(40);
   fontFilename->addWidget(ibmfFontFilename_);
   fontFilename->addWidget(browse);
 
@@ -35,31 +55,92 @@ FontParameterDialog::FontParameterDialog(QWidget *parent)
   pointSizes->addWidget(pt17_);
 
   QFormLayout *formLayout = new QFormLayout;
-  formLayout->addRow(tr("&IBMF Font File Name:"), fontFilename);
-  formLayout->addRow(tr("&Resolution:"), dpi);
-  formLayout->addRow(tr("&Face Sizes:"), pointSizes);
+  formLayout->addRow(tr("TTF Font File Name:"), ttfFontFilename);
+  formLayout->addRow(tr("IBMF Font File Name:"), fontFilename);
+  formLayout->addRow(tr("Resolution:"), dpi);
+  formLayout->addRow(tr("Face Sizes:"), pointSizes);
 
   ui->mainFrame->setLayout(formLayout);
 
-  QObject::connect(browse, &QPushButton::clicked, this, &FontParameterDialog::browseFontFilename);
+  QObject::connect(browse, &QPushButton::clicked, this,
+                   &FontParameterDialog::browseIBMFFontFilename);
+  QObject::connect(ttfBrowse, &QPushButton::clicked, this,
+                   &FontParameterDialog::browseTTFFontFilename);
+  QObject::connect(pt12_, &QCheckBox::clicked, this,
+                   &FontParameterDialog::onCheckBoxClicked);
+  QObject::connect(pt14_, &QCheckBox::clicked, this,
+                   &FontParameterDialog::onCheckBoxClicked);
+  QObject::connect(pt17_, &QCheckBox::clicked, this,
+                   &FontParameterDialog::onCheckBoxClicked);
 }
 
 FontParameterDialog::~FontParameterDialog() {
   delete ui;
+  delete ttfSelections_;
 }
 
-void FontParameterDialog::on_buttonBox_accepted() {
-  fontParameters_ = {.dpi      = dpi75_->isChecked()    ? 75
-                                 : dpi100_->isChecked() ? 100
-                                                        : 120,
-                     .pt12     = pt12_->isChecked(),
-                     .pt14     = pt14_->isChecked(),
-                     .pt17     = pt17_->isChecked(),
-                     .filename = ibmfFontFilename_->text()};
+void FontParameterDialog::checkForNext() {
+  bool wasDisabled = !ui->nextButton->isEnabled();
+  ui->nextButton->setEnabled(
+      !(ttfFontFilename_->text().isEmpty() ||
+        ibmfFontFilename_->text().isEmpty()) &&
+      (pt12_->isChecked() || pt14_->isChecked() || pt17_->isChecked()));
+  if (wasDisabled && ui->nextButton->isEnabled())
+    ui->nextButton->setFocus(Qt::OtherFocusReason);
 }
 
-void FontParameterDialog::browseFontFilename() {
-  QString newFilePath =
-      QFileDialog::getSaveFileName(this, "New IBMF Font File", ibmfFontFilename_->text(), "*.ibmf");
-  if (!newFilePath.isEmpty()) { ibmfFontFilename_->setText(newFilePath); }
+void FontParameterDialog::browseIBMFFontFilename() {
+  QSettings settings("ibmf", "IBMFEditor");
+  QString   filename = ibmfFontFilename_->text();
+  if (filename.isEmpty()) filename = settings.value("ibmfFolder").toString();
+  QString newFilePath = QFileDialog::getSaveFileName(this, "New IBMF Font File",
+                                                     filename, "*.ibmf");
+  if (!newFilePath.isEmpty()) {
+    ibmfFontFilename_->setText(newFilePath);
+  }
+  checkForNext();
 }
+
+void FontParameterDialog::browseTTFFontFilename() {
+  QSettings settings("ibmf", "IBMFEditor");
+  QString   filename = ttfFontFilename_->text();
+  if (filename.isEmpty()) filename = settings.value("ttfFolder").toString();
+  QString newFilePath = QFileDialog::getOpenFileName(
+      this, "Open TTF/OTF Font File", filename, "Font (*.ttf *.otf)");
+  if (!newFilePath.isEmpty()) {
+    ttfFontFilename_->setText(newFilePath);
+  }
+  checkForNext();
+}
+
+void FontParameterDialog::on_nextButton_clicked() {
+
+  QSettings settings("ibmf", "IBMFEditor");
+  QFileInfo fileInfo(ibmfFontFilename_->text());
+  settings.setValue("ibmfFolder", fileInfo.absolutePath());
+  fileInfo.setFile(ttfFontFilename_->text());
+  settings.setValue("ttfFolder", fileInfo.absolutePath());
+
+  BlocksDialog *blocksDialog =
+      new BlocksDialog(ttfFontFilename_->text(), fileInfo.fileName());
+  if (blocksDialog->exec() == QDialog::Accepted) {
+    auto blockIndexes = blocksDialog->getSelectedBlockIndexes();
+    codePointBlocks_  = blocksDialog->getCodePointBlocks();
+
+    ttfSelections_->push_back(
+        TTFSelection({.filename        = ttfFontFilename_->text(),
+                      .codePointBlocks = codePointBlocks_}));
+    fontParameters_ = {.dpi           = dpi75_->isChecked()    ? 75
+                                        : dpi100_->isChecked() ? 100
+                                                               : 120,
+                       .pt12          = pt12_->isChecked(),
+                       .pt14          = pt14_->isChecked(),
+                       .pt17          = pt17_->isChecked(),
+                       .filename      = ibmfFontFilename_->text(),
+                       .ttfSelections = ttfSelections_};
+  }
+}
+
+void FontParameterDialog::on_cancelButton_clicked() { reject(); }
+
+void FontParameterDialog::onCheckBoxClicked() { checkForNext(); }

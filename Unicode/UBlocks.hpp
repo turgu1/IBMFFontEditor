@@ -3,6 +3,17 @@
 #include <QList>
 #include <QString>
 
+struct CodePointBlock {
+  int blockIdx_;
+  int codePointCount_;
+  CodePointBlock(int idx, int count) : blockIdx_(idx), codePointCount_(count) {}
+};
+
+typedef std::vector<CodePointBlock *> CodePointBlocks;
+typedef CodePointBlocks              *CodePointBlocksPtr;
+
+//----
+
 struct UBlockDef {
   unsigned int first_;
   unsigned int last_;
