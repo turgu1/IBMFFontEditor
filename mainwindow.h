@@ -44,7 +44,7 @@ private slots:
   void on_pixelSize_valueChanged(int value);
   void on_charactersList_cellClicked(int row, int column);
   void on_characterMetrics_cellChanged(int row, int column);
-  void on_faceHeader_cellChanged(int row, int column);
+  void onfaceHeader__cellChanged(int row, int column);
   void on_glyphForgetButton_clicked();
   void on_faceForgetButton_clicked();
   void on_centerGridButton_clicked();
@@ -102,6 +102,7 @@ private:
   int              ibmfGlyphCode_;
   QList<QAction *> recentFileActionList_;
 
+  void     updateCharactersList();
   void     writeSettings();
   void     readSettings();
   void     createUndoView();

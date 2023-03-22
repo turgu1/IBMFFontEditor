@@ -46,22 +46,24 @@ BlocksDialog::BlocksDialog(QString fontFile, QString fontName, QWidget *parent)
   char32_t ch = FT_Get_First_Char(ftFace_, &index);
 
   struct CustomCmp {
-    bool operator()(const Block *a, const Block *b) const { return a->blockIdx_ < b->blockIdx_; }
+    bool operator()(const CodePointBlock *a, const CodePointBlock *b) const {
+      return a->blockIdx_ < b->blockIdx_;
+    }
   };
 
-  std::set<Block *, CustomCmp> blocksSet;
+  std::set<CodePointBlock *, CustomCmp> blocksSet;
 
   while (index != 0) {
     int idx;
     //    std::cout << "CodePoint: " << +ch << "(" << ch << ")" << std::endl;
     if ((idx = UnicodeBlocs::findUBloc(ch)) != -1) {
       // std::cout << "block: " << uBlocks[idx].caption_ << std::endl;
-      Block blk(idx, 1);
-      auto  it = blocksSet.find(&blk);
+      CodePointBlock blk(idx, 1);
+      auto           it = blocksSet.find(&blk);
       if (it != blocksSet.end()) {
         (*it)->codePointCount_++;
       } else {
-        blocksSet.insert(new Block(idx, 1));
+        blocksSet.insert(new CodePointBlock(idx, 1));
       }
     }
     ch = FT_Get_Next_Char(ftFace_, ch, &index);

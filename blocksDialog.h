@@ -27,24 +27,23 @@ private slots:
   void tableSectionClicked(int idx);
   void cbClicked(bool checked);
   void on_buttonBox_accepted();
-
   void on_buttonBox_rejected();
 
 private:
-  struct Block {
+  struct CodePointBlock {
     int blockIdx_;
     int codePointCount_;
-    Block(int idx, int count) : blockIdx_(idx), codePointCount_(count) {}
+    CodePointBlock(int idx, int count) : blockIdx_(idx), codePointCount_(count) {}
   };
 
   Ui::BlocksDialog *ui;
 
-  FT_Library           ftLib_;
-  FT_Face              ftFace_;
-  bool                 allChecked_;
-  int                  codePointQty_;
-  QSet<int>            selectedBlockIndexes_;
-  std::vector<Block *> blocks_;
+  FT_Library                    ftLib_;
+  FT_Face                       ftFace_;
+  bool                          allChecked_;
+  int                           codePointQty_;
+  QSet<int>                     selectedBlockIndexes_;
+  std::vector<CodePointBlock *> blocks_;
 
   void updateQtyLabel();
 };
