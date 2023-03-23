@@ -38,6 +38,8 @@ set(PROJECT_SOURCES
         fontParameterDialog.h
         fontParameterDialog.cpp
         fontParameterDialog.ui
+        freeType.h
+        freeType.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

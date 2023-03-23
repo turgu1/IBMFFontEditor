@@ -7,6 +7,7 @@
 
 #include <freetype/freetype.h>
 
+#include "freeType.h"
 #include "ibmf_defs.hpp"
 using namespace IBMFDefs;
 
@@ -267,8 +268,6 @@ private:
 
     return true;
   }
-
-  bool loadTTF() { return true; }
 
   bool load() {
     // Preamble retrieval
@@ -661,5 +660,92 @@ public:
       }
     }
     return codePoint;
+  }
+
+  void prepareCodePlanes(CharSelections &charSelections) {
+    int planeIdx          = 0;
+    int codePointBlockIdx = 0;
+    if (charSelections.size() == 1) { auto cpb = charSelections[0].codePointBlocks; }
+  }
+
+  bool loadTTF(FreeType &ft, FontParametersPtr fontParameters) {
+    clear();
+
+    std::vector<uint8_t> pointSizes;
+
+    if (fontParameters->pt12) pointSizes.push_back(12);
+    if (fontParameters->pt14) pointSizes.push_back(14);
+    if (fontParameters->pt17) pointSizes.push_back(17);
+
+    // ----- Preamble -----
+
+    uint8_t faceCount = pointSizes.size();
+
+    // clang-format off
+    preamble_ = {
+      .marker    = {'I', 'B', 'M', 'F'},
+      .faceCount = faceCount,
+      .bits      = {.version = IBMF_VERSION, .fontFormat = FontFormat::UTF32}
+    };
+    // clang-format on
+
+    CharSelections *sel = fontParameters->charSelections;
+    if (sel->size() == 1) {
+      prepareCodePlanes(*sel);
+      QString filename = (*sel)[0].filename;
+
+      if (ft.openFace(filename)) {
+        auto face = ft.getFace();
+
+        for (int faceIdx = 0; faceIdx < faceCount; faceIdx++) {
+          int      error   = FT_Set_Char_Size(face, // handle to face object
+                                              0,    // char_width in 1/64th of points
+                                              pointSizes[faceIdx] * 64, // char_height in 1/64th of points
+                                              fontParameters->dpi, // horizontal device resolution
+                                              fontParameters->dpi);
+          FT_ULong index   = FT_Get_Char_Index(face, 'x');
+          FIX16    xHeight = 0;
+          if (index != 0) {
+            FT_Load_Char(face, index, FT_LOAD_NO_BITMAP);
+            xHeight = face->glyph->metrics.height << 6;
+          } else {
+            QMessageBox::warning(nullptr, "No 'x' character",
+                                 "There is no 'x' character in this font");
+          }
+
+          index             = FT_Get_Char_Index(face, ' ');
+          uint8_t spaceSize = 5;
+          if (index != 0) {
+            FT_Load_Char(face, index, FT_LOAD_NO_BITMAP);
+            spaceSize = face->glyph->linearHoriAdvance;
+          } else {
+            QMessageBox::warning(nullptr, "No space character",
+                                 "There is no space character in this font");
+          }
+
+          FIX16      emSize = (float(fontParameters->dpi * pointSizes[faceIdx]) / 72.27) * 64.0;
+          FaceHeader header = {
+              .pointSize        = pointSizes[faceIdx],
+              .lineHeight       = static_cast<uint8_t>(face->size->metrics.height >> 6),
+              .dpi              = static_cast<uint16_t>(fontParameters->dpi),
+              .xHeight          = xHeight,
+              .emSize           = emSize,
+              .slantCorrection  = 0,
+              .descenderHeight  = static_cast<uint8_t>(face->size->metrics.descender >> 6),
+              .spaceSize        = spaceSize,
+              .glyphCount       = 0,
+              .ligKernStepCount = 0,
+              .pixelsPoolSize   = 0,
+              .maxHeight        = 0,
+              .filler           = {0, 0, 0}
+          };
+        }
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+    return true;
   }
 };

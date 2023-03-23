@@ -7,10 +7,12 @@
 #include <QSettings>
 
 #include "blocksDialog.h"
+#include "freeType.h"
 #include "ui_fontParameterDialog.h"
 
-FontParameterDialog::FontParameterDialog(QString title, QWidget *parent)
-    : QDialog(parent), ui(new Ui::FontParameterDialog) {
+FontParameterDialog::FontParameterDialog(FreeType &ft, QString title, QWidget *parent)
+    : QDialog(parent), ft_(ft), ui(new Ui::FontParameterDialog), fontParameters_(nullptr) {
+
   ui->setupUi(this);
 
   QSettings settings("ibmf", "IBMFEditor");
@@ -19,8 +21,8 @@ FontParameterDialog::FontParameterDialog(QString title, QWidget *parent)
 
   ui->nextButton->setEnabled(false);
 
-  ttfSelections_               = new TTFSelections;
-  codePointBlocks_             = nullptr;
+  charSelections_  = new IBMFDefs::CharSelections;
+  codePointBlocks_ = nullptr;
 
   QHBoxLayout *ttfFontFilename = new QHBoxLayout();
   ttfFontFilename_             = new QLineEdit();
@@ -66,38 +68,30 @@ FontParameterDialog::FontParameterDialog(QString title, QWidget *parent)
                    &FontParameterDialog::browseIBMFFontFilename);
   QObject::connect(ttfBrowse, &QPushButton::clicked, this,
                    &FontParameterDialog::browseTTFFontFilename);
-  QObject::connect(pt12_, &QCheckBox::clicked, this,
-                   &FontParameterDialog::onCheckBoxClicked);
-  QObject::connect(pt14_, &QCheckBox::clicked, this,
-                   &FontParameterDialog::onCheckBoxClicked);
-  QObject::connect(pt17_, &QCheckBox::clicked, this,
-                   &FontParameterDialog::onCheckBoxClicked);
+  QObject::connect(pt12_, &QCheckBox::clicked, this, &FontParameterDialog::onCheckBoxClicked);
+  QObject::connect(pt14_, &QCheckBox::clicked, this, &FontParameterDialog::onCheckBoxClicked);
+  QObject::connect(pt17_, &QCheckBox::clicked, this, &FontParameterDialog::onCheckBoxClicked);
 }
 
 FontParameterDialog::~FontParameterDialog() {
   delete ui;
-  delete ttfSelections_;
+  delete charSelections_;
 }
 
 void FontParameterDialog::checkForNext() {
-  bool wasDisabled = !ui->nextButton->isEnabled();
   ui->nextButton->setEnabled(
-      !(ttfFontFilename_->text().isEmpty() ||
-        ibmfFontFilename_->text().isEmpty()) &&
+      !(ttfFontFilename_->text().isEmpty() || ibmfFontFilename_->text().isEmpty()) &&
       (pt12_->isChecked() || pt14_->isChecked() || pt17_->isChecked()));
-  if (wasDisabled && ui->nextButton->isEnabled())
-    ui->nextButton->setFocus(Qt::OtherFocusReason);
+  if (ui->nextButton->isEnabled()) { ui->nextButton->setFocus(Qt::OtherFocusReason); }
 }
 
 void FontParameterDialog::browseIBMFFontFilename() {
   QSettings settings("ibmf", "IBMFEditor");
   QString   filename = ibmfFontFilename_->text();
   if (filename.isEmpty()) filename = settings.value("ibmfFolder").toString();
-  QString newFilePath = QFileDialog::getSaveFileName(this, "New IBMF Font File",
-                                                     filename, "*.ibmf");
-  if (!newFilePath.isEmpty()) {
-    ibmfFontFilename_->setText(newFilePath);
-  }
+  QString newFilePath =
+      QFileDialog::getSaveFileName(this, "New IBMF Font File", filename, "*.ibmf");
+  if (!newFilePath.isEmpty()) { ibmfFontFilename_->setText(newFilePath); }
   checkForNext();
 }
 
@@ -105,11 +99,9 @@ void FontParameterDialog::browseTTFFontFilename() {
   QSettings settings("ibmf", "IBMFEditor");
   QString   filename = ttfFontFilename_->text();
   if (filename.isEmpty()) filename = settings.value("ttfFolder").toString();
-  QString newFilePath = QFileDialog::getOpenFileName(
-      this, "Open TTF/OTF Font File", filename, "Font (*.ttf *.otf)");
-  if (!newFilePath.isEmpty()) {
-    ttfFontFilename_->setText(newFilePath);
-  }
+  QString newFilePath =
+      QFileDialog::getOpenFileName(this, "Open TTF/OTF Font File", filename, "Font (*.ttf *.otf)");
+  if (!newFilePath.isEmpty()) { ttfFontFilename_->setText(newFilePath); }
   checkForNext();
 }
 
@@ -121,26 +113,31 @@ void FontParameterDialog::on_nextButton_clicked() {
   fileInfo.setFile(ttfFontFilename_->text());
   settings.setValue("ttfFolder", fileInfo.absolutePath());
 
-  BlocksDialog *blocksDialog =
-      new BlocksDialog(ttfFontFilename_->text(), fileInfo.fileName());
+  BlocksDialog *blocksDialog = new BlocksDialog(ft_, ttfFontFilename_->text(), fileInfo.fileName());
   if (blocksDialog->exec() == QDialog::Accepted) {
     auto blockIndexes = blocksDialog->getSelectedBlockIndexes();
     codePointBlocks_  = blocksDialog->getCodePointBlocks();
 
-    ttfSelections_->push_back(
-        TTFSelection({.filename        = ttfFontFilename_->text(),
-                      .codePointBlocks = codePointBlocks_}));
-    fontParameters_ = {.dpi           = dpi75_->isChecked()    ? 75
-                                        : dpi100_->isChecked() ? 100
-                                                               : 120,
-                       .pt12          = pt12_->isChecked(),
-                       .pt14          = pt14_->isChecked(),
-                       .pt17          = pt17_->isChecked(),
-                       .filename      = ibmfFontFilename_->text(),
-                       .ttfSelections = ttfSelections_};
+    charSelections_->push_back(IBMFDefs::CharSelection(
+        {.filename = ttfFontFilename_->text(), .codePointBlocks = codePointBlocks_}));
+
+    fontParameters_  = new IBMFDefs::FontParameters;
+    *fontParameters_ = {.dpi            = dpi75_->isChecked()    ? 75
+                                          : dpi100_->isChecked() ? 100
+                                                                 : 120,
+                        .pt12           = pt12_->isChecked(),
+                        .pt14           = pt14_->isChecked(),
+                        .pt17           = pt17_->isChecked(),
+                        .filename       = ibmfFontFilename_->text(),
+                        .charSelections = charSelections_};
+    accept();
   }
 }
 
-void FontParameterDialog::on_cancelButton_clicked() { reject(); }
+void FontParameterDialog::on_cancelButton_clicked() {
+  reject();
+}
 
-void FontParameterDialog::onCheckBoxClicked() { checkForNext(); }
+void FontParameterDialog::onCheckBoxClicked() {
+  checkForNext();
+}

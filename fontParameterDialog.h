@@ -6,7 +6,9 @@
 #include <QPushButton>
 #include <QRadioButton>
 
+#include "IBMFDriver/ibmf_defs.hpp"
 #include "Unicode/UBlocks.hpp"
+#include "freeType.h"
 
 namespace Ui {
 class FontParameterDialog;
@@ -16,25 +18,10 @@ class FontParameterDialog : public QDialog {
   Q_OBJECT
 
 public:
-  explicit FontParameterDialog(QString title, QWidget *parent = nullptr);
+  explicit FontParameterDialog(FreeType &ft, QString title, QWidget *parent = nullptr);
   ~FontParameterDialog();
 
-  struct TTFSelection {
-    QString          filename;
-    CodePointBlocks *codePointBlocks;
-  };
-  typedef std::vector<TTFSelection> TTFSelections;
-
-  struct FontParameters {
-    int            dpi;
-    bool           pt12;
-    bool           pt14;
-    bool           pt17;
-    QString        filename;
-    TTFSelections *ttfSelections;
-  };
-
-  FontParameters getParameters() { return fontParameters_; }
+  IBMFDefs::FontParametersPtr getParameters() { return fontParameters_; }
 
 private slots:
   void browseIBMFFontFilename();
@@ -44,19 +31,20 @@ private slots:
   void onCheckBoxClicked();
 
 private:
-  Ui::FontParameterDialog *ui;
-  FontParameters           fontParameters_;
+  Ui::FontParameterDialog    *ui;
+  IBMFDefs::FontParametersPtr fontParameters_;
+  FreeType                   &ft_;
 
-  TTFSelections   *ttfSelections_;
-  QLineEdit       *ibmfFontFilename_;
-  QLineEdit       *ttfFontFilename_;
-  CodePointBlocks *codePointBlocks_;
-  QRadioButton    *dpi75_;
-  QRadioButton    *dpi100_;
-  QRadioButton    *dpi120_;
-  QCheckBox       *pt12_;
-  QCheckBox       *pt14_;
-  QCheckBox       *pt17_;
+  IBMFDefs::CharSelections *charSelections_;
+  QLineEdit                *ibmfFontFilename_;
+  QLineEdit                *ttfFontFilename_;
+  CodePointBlocks          *codePointBlocks_;
+  QRadioButton             *dpi75_;
+  QRadioButton             *dpi100_;
+  QRadioButton             *dpi120_;
+  QCheckBox                *pt12_;
+  QCheckBox                *pt14_;
+  QCheckBox                *pt17_;
 
   void checkForNext();
 };

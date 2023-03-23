@@ -4,6 +4,8 @@
 #include <memory>
 #include <vector>
 
+#include "../Unicode/UBlocks.hpp"
+
 // clang-format off
 //
 // The following definitions are used by all parts of the driver.
@@ -435,6 +437,26 @@ struct Glyph {
             pointSize = 0;
   }
 };
+
+// These are the structure required to create a new font
+// from some parameters. For now, it is used to create UTF32
+// font format files.
+
+struct CharSelection {
+  QString          filename; // Filename to import from
+  CodePointBlocks *codePointBlocks;
+};
+typedef std::vector<CharSelection> CharSelections;
+
+struct FontParameters {
+  int             dpi;
+  bool            pt12;
+  bool            pt14;
+  bool            pt17;
+  QString         filename;
+  CharSelections *charSelections;
+};
+typedef FontParameters *FontParametersPtr;
 
 // These are the corresponding Unicode value for each of the 174 characters that
 // are part of an IBMF Font;

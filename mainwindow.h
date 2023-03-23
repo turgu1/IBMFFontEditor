@@ -16,6 +16,7 @@
 
 #include "IBMFDriver/ibmf_font_mod.hpp"
 #include "bitmapRenderer.h"
+#include "freeType.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -73,6 +74,7 @@ private:
   Ui::MainWindow *ui;
   QString         currentFilePath_;
 
+  FreeType    ft_;
   QUndoStack *undoStack_;
   QUndoView  *undoView_;
   QAction    *undoAction_;
@@ -113,16 +115,15 @@ private:
   void     adjustRecentsForCurrentFile();
   bool     checkFontChanged();
   bool     saveFont(bool askToConfirmName);
+  void     newFontLoaded(QString filePath);
   bool     loadFont(QFile &file);
   bool     loadFace(uint8_t faceIdx);
   void     saveFace();
   void     saveGlyph();
   bool     loadGlyph(uint16_t glyphCode);
   void     clearAll();
-  void     putValue(QTableWidget *w, int row, int col, QVariant value,
-                    bool editable = true);
-  void     putFix16Value(QTableWidget *w, int row, int col, QVariant value,
-                         bool editable = true);
+  void     putValue(QTableWidget *w, int row, int col, QVariant value, bool editable = true);
+  void     putFix16Value(QTableWidget *w, int row, int col, QVariant value, bool editable = true);
   QVariant getValue(QTableWidget *w, int row, int col);
   void     clearEditable(QTableWidget *w, int row, int col);
 };

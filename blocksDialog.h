@@ -1,17 +1,11 @@
 #pragma once
 
-#include <freetype/freetype.h>
-
 #include <QCheckBox>
 #include <QDialog>
 #include <QSet>
 
 #include "Unicode/UBlocks.hpp"
-#include FT_FREETYPE_H
-#include FT_GLYPH_H
-#include FT_TYPES_H
-#include FT_OUTLINE_H
-#include FT_RENDER_H
+#include "freeType.h"
 
 namespace Ui {
 class BlocksDialog;
@@ -24,12 +18,10 @@ public:
   typedef QSet<int>             SelectedBlockIndexes;
   typedef SelectedBlockIndexes *SelectedBlockIndexesPtr;
 
-  explicit BlocksDialog(QString fontFile, QString fontName,
+  explicit BlocksDialog(FreeType &ft, QString fontFile, QString fontName,
                         QWidget *parent = nullptr);
-  SelectedBlockIndexesPtr getSelectedBlockIndexes() {
-    return selectedBlockIndexes_;
-  }
-  CodePointBlocksPtr getCodePointBlocks() { return codePointBlocks_; }
+  SelectedBlockIndexesPtr getSelectedBlockIndexes() { return selectedBlockIndexes_; }
+  CodePointBlocksPtr      getCodePointBlocks() { return codePointBlocks_; }
 
   ~BlocksDialog();
 
@@ -41,9 +33,9 @@ private slots:
 
 private:
   Ui::BlocksDialog *ui;
+  FreeType          ft_;
 
-  FT_Library              ftLib_;
-  FT_Face                 ftFace_;
+  FT_Face                 face_;
   bool                    allChecked_;
   int                     codePointQty_;
   SelectedBlockIndexesPtr selectedBlockIndexes_;
