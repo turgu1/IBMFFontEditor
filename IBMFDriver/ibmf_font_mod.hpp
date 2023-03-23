@@ -2,10 +2,9 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <freetype/freetype.h>
 #include <set>
 #include <vector>
-
-#include <freetype/freetype.h>
 
 #include "freeType.h"
 #include "ibmf_defs.hpp"
@@ -21,8 +20,8 @@ using namespace IBMFDefs;
 #define DEBUG 0
 
 #if DEBUG
-#include <iomanip>
-#include <iostream>
+  #include <iomanip>
+  #include <iostream>
 #endif
 
 /**
@@ -38,24 +37,31 @@ public:
     uint16_t nextGlyphCode;
     FIX16    kern;
   };
+  typedef GlyphKernStep *GlyphKernStepPtr;
 
   struct GlyphLigStep {
     uint16_t nextGlyphCode;
-    uint16_t glyphCode;
+    uint16_t replacementGlyphCode;
   };
+  typedef GlyphLigStep *GlyphLigStepPtr;
 
   struct GlyphLigKern {
-    std::vector<GlyphLigStep *>  ligSteps;
-    std::vector<GlyphKernStep *> kernSteps;
+    std::vector<GlyphLigStepPtr>  ligSteps;
+    std::vector<GlyphKernStepPtr> kernSteps;
   };
+  typedef GlyphLigKern *GlyphLigKernPtr;
 
   struct Face {
-    FaceHeaderPtr               header;
-    std::vector<GlyphInfoPtr>   glyphs;
-    std::vector<Bitmap *>       bitmaps;
-    std::vector<RLEBitmap *>    compressedBitmaps; // Todo: maybe unused at the end
-    std::vector<LigKernStep *>  ligKernSteps;      // The complete list of lig/kerns
-    std::vector<GlyphLigKern *> glyphsLigKern;     // Specific to each glyph
+    FaceHeaderPtr                header;
+    std::vector<GlyphInfoPtr>    glyphs;
+    std::vector<BitmapPtr>       bitmaps;
+    std::vector<GlyphLigKernPtr> glyphsLigKern; // Specific to each glyph
+
+    // used ontly at save and load time
+    std::vector<RLEBitmap *> compressedBitmaps; // Todo: maybe unused at the end
+
+    // used only at save time
+    std::vector<LigKernStep *> ligKernSteps; // The complete list of lig/kerns
   };
 
   typedef std::unique_ptr<Face> FacePtr;
@@ -113,7 +119,8 @@ private:
   // For all faces:
   //
   // - Retrieves all ligature and kerning for each face glyphs, setting the
-  // index in the integrated vector, optimizing the glyphs' list to reuse the ones that are similar
+  // index in the integrated vector, optimizing the glyphs' list to reuse the
+  // ones that are similar
   //
   // - If there is some series with index beyond 254, create goto entries. All
   // starting indexes must be before 255
@@ -145,12 +152,13 @@ private:
 
       int glyphIdx = 0;
       for (int glyphIdx = 0; glyphIdx < face->header->glyphCount; glyphIdx++) {
-        //      for (int glyphIdx = face->header->glyphCount - 1; glyphIdx >= 0; glyphIdx--) {
+        //      for (int glyphIdx = face->header->glyphCount - 1; glyphIdx >= 0;
+        //      glyphIdx--) {
 
         LigKernStep *lks = nullptr;
 
-        auto lSteps = face->glyphsLigKern[glyphIdx]->ligSteps;
-        auto kSteps = face->glyphsLigKern[glyphIdx]->kernSteps;
+        auto lSteps      = face->glyphsLigKern[glyphIdx]->ligSteps;
+        auto kSteps      = face->glyphsLigKern[glyphIdx]->kernSteps;
 
         glyphPgm.clear();
         glyphPgm.reserve(lSteps.size() + kSteps.size());
@@ -159,7 +167,7 @@ private:
         for (auto lStep : lSteps) {
           lks = new LigKernStep({
             .a = {.data = {.nextGlyphCode = lStep->nextGlyphCode, .stop = false}},
-            .b = {.repl = {.replGlyphCode = lStep->glyphCode, .isAKern = false}}
+            .b = {.repl = {.replGlyphCode = lStep->replacementGlyphCode, .isAKern = false}}
           });
           glyphPgm.push_back(lks);
         }
@@ -178,18 +186,25 @@ private:
         } else if (lks != nullptr) {
           lks->a.data.stop = true;
           int sameIdx; // Idx of the equivalent pgm if found (-1 otherwise)
-          //           Must start at 2 as cannot have a sameIdx equal to 0 or 1: Cannot negate 0,
-          //           and -1 is reserved for a null pgm in glyphsPgmIndexes
+          //           Must start at 2 as cannot have a sameIdx equal to 0 or 1:
+          //           Cannot negate 0, and -1 is reserved for a null pgm in
+          //           glyphsPgmIndexes
           if ((sameIdx = findList(glyphPgm, lkSteps)) > 1) {
-            // We found a duplicated list. Remove the duplicate one and make it point
-            // to the first found to be similar.
-            for (auto entry : glyphPgm) { delete entry; }
+            // We found a duplicated list. Remove the duplicate one and make it
+            // point to the first found to be similar.
+            for (auto entry : glyphPgm) {
+              delete entry;
+            }
             glyphPgm.clear();
             glyphsPgmIndexes[glyphIdx] = -sameIdx; // negative to signify a duplicate list
-            if (sameIdx >= 255) { overflowList.insert(sameIdx); }
+            if (sameIdx >= 255) {
+              overflowList.insert(sameIdx);
+            }
           } else {
             int index = lkSteps.size();
-            if (index >= 255) { overflowList.insert(index); }
+            if (index >= 255) {
+              overflowList.insert(index);
+            }
             uniquePgmIndexes.push_back(index);
             glyphsPgmIndexes[glyphIdx] = index;
             std::move(glyphPgm.begin(), glyphPgm.end(), std::back_inserter(lkSteps));
@@ -219,18 +234,20 @@ private:
             spaceRequired += 1;
             overflowList.insert(uniquePgmIndexes[i]);
             i -= 1;
-          } else break;
+          } else
+            break;
         }
 
         overflowList.insert(uniquePgmIndexes[i]);
 
-        // Starting at index uniquePgmIndexes[i], all items must go down for an amount of
-        // spaceRequired The corresponding indices in the glyphs table must be adjusted accordingly.
+        // Starting at index uniquePgmIndexes[i], all items must go down for an
+        // amount of spaceRequired The corresponding indices in the glyphs table
+        // must be adjusted accordingly.
 
         int newLigKernIdx = uniquePgmIndexes[i];
 
-        // Doing it in reverse order will avoid potential collision between old vs new
-        // indexes.
+        // Doing it in reverse order will avoid potential collision between old
+        // vs new indexes.
         for (auto idx = overflowList.rbegin(); idx != overflowList.rend(); idx++) {
           // std::cout << *idx << " treatment: " << std::endl;
           LigKernStep *lks = new LigKernStep;
@@ -241,7 +258,8 @@ private:
 
           lkSteps.insert(lkSteps.begin() + newLigKernIdx, lks);
           for (auto pgmIdx = glyphsPgmIndexes.begin(); pgmIdx != glyphsPgmIndexes.end(); pgmIdx++) {
-            if (abs(*pgmIdx) == *idx) { // Must look at both duplicated and non-duplicated indexes
+            if (abs(*pgmIdx) == *idx) { // Must look at both duplicated and
+                                        // non-duplicated indexes
               *pgmIdx = -newLigKernIdx;
             }
           }
@@ -256,7 +274,8 @@ private:
         } else {
           if (abs(glyphsPgmIndexes[glyphIdx]) >= 255) {
             QMessageBox::warning(nullptr, "Logic Error",
-                                 "A logic error was encoutered in method prepareLigKernVectors() "
+                                 "A logic error was encoutered in method "
+                                 "prepareLigKernVectors() "
                                  "-> computed LigKern PGM index >= 255!!");
             return false;
           }
@@ -279,7 +298,7 @@ private:
 
     // Faces offset retrieval
     for (int i = 0; i < preamble_.faceCount; i++) {
-      uint32_t offset = *((uint32_t *) &memory_[idx]);
+      uint32_t offset = *((uint32_t *)&memory_[idx]);
       faceOffsets_.push_back(offset);
       idx += 4;
     }
@@ -295,7 +314,9 @@ private:
       idx += sizeof(Planes);
 
       CodePointBundlesPtr codePointBundles = reinterpret_cast<CodePointBundlesPtr>(&memory_[idx]);
-      for (int i = 0; i < bundleCount; i++) { codePointBundles_.push_back((*codePointBundles)[i]); }
+      for (int i = 0; i < bundleCount; i++) {
+        codePointBundles_.push_back((*codePointBundles)[i]);
+      }
       idx += (((*planes)[3].codePointBundlesIdx + (*planes)[3].entriesCount) *
               sizeof(CodePointBundle));
     } else {
@@ -331,10 +352,10 @@ private:
         memcpy(glyph_info.get(), &memory_[idx], sizeof(GlyphInfo));
         idx += sizeof(GlyphInfo);
 
-        int     bitmap_size = glyph_info->bitmapHeight * glyph_info->bitmapWidth;
-        Bitmap *bitmap      = new Bitmap;
-        bitmap->pixels      = Pixels(bitmap_size, 0);
-        bitmap->dim         = Dim(glyph_info->bitmapWidth, glyph_info->bitmapHeight);
+        int     bitmap_size         = glyph_info->bitmapHeight * glyph_info->bitmapWidth;
+        Bitmap *bitmap              = new Bitmap;
+        bitmap->pixels              = Pixels(bitmap_size, 0);
+        bitmap->dim                 = Dim(glyph_info->bitmapWidth, glyph_info->bitmapHeight);
 
         RLEBitmap *compressedBitmap = new RLEBitmap;
         compressedBitmap->dim       = bitmap->dim;
@@ -356,7 +377,9 @@ private:
         // idx += glyph_info->packetLength;
       }
 
-      if (&memory_[idx] != (uint8_t *) pixelsPool) { return false; }
+      if (&memory_[idx] != (uint8_t *)pixelsPool) {
+        return false;
+      }
 
       idx += header->pixelsPoolSize;
 
@@ -389,9 +412,9 @@ private:
                 step->kern          = face->ligKernSteps[lk_idx]->b.kern.kerningValue;
                 glk->kernSteps.push_back(step);
               } else {
-                GlyphLigStep *step  = new GlyphLigStep;
-                step->nextGlyphCode = face->ligKernSteps[lk_idx]->a.data.nextGlyphCode;
-                step->glyphCode     = face->ligKernSteps[lk_idx]->b.repl.replGlyphCode;
+                GlyphLigStep *step         = new GlyphLigStep;
+                step->nextGlyphCode        = face->ligKernSteps[lk_idx]->a.data.nextGlyphCode;
+                step->replacementGlyphCode = face->ligKernSteps[lk_idx]->b.repl.replGlyphCode;
                 glk->ligSteps.push_back(step);
               }
             } while (!face->ligKernSteps[lk_idx++]->a.data.stop);
@@ -415,8 +438,8 @@ public:
   }
 
   // The following constructor is used ONLY for importing other font formats.
-  // A specific load method must then be used to retrieve the font information and
-  // populate the structure from that foreign format.
+  // A specific load method must then be used to retrieve the font information
+  // and populate the structure from that foreign format.
   IBMFFontMod() : memory_(nullptr), memoryLength_(0) {}
 
   ~IBMFFontMod() { clear(); }
@@ -432,10 +455,14 @@ public:
         bitmap->clear();
         delete bitmap;
       }
-      for (auto ligKern : face->ligKernSteps) { delete ligKern; }
+      for (auto ligKern : face->ligKernSteps) {
+        delete ligKern;
+      }
       for (auto ligKern : face->glyphsLigKern) {
-        for (auto lig : ligKern->ligSteps) delete lig;
-        for (auto kern : ligKern->kernSteps) delete kern;
+        for (auto lig : ligKern->ligSteps)
+          delete lig;
+        for (auto kern : ligKern->kernSteps)
+          delete kern;
         delete ligKern;
       }
       face->glyphs.clear();
@@ -456,8 +483,12 @@ public:
   inline const FaceHeaderPtr getFaceHeader(int faceIdx) { return faces_[faceIdx]->header; }
 
   bool getGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKern **glyphLigKern) {
-    if (faceIndex >= preamble_.faceCount) { return false; }
-    if (glyphCode >= faces_[faceIndex]->header->glyphCount) { return false; }
+    if (faceIndex >= preamble_.faceCount) {
+      return false;
+    }
+    if (glyphCode >= faces_[faceIndex]->header->glyphCount) {
+      return false;
+    }
 
     *glyphLigKern = faces_[faceIndex]->glyphsLigKern[glyphCode];
 
@@ -466,12 +497,14 @@ public:
 
   bool getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyph_info, Bitmap **bitmap) {
     if (faceIndex >= preamble_.faceCount) return false;
-    if (glyphCode > faces_[faceIndex]->header->glyphCount) { return false; }
+    if (glyphCode > faces_[faceIndex]->header->glyphCount) {
+      return false;
+    }
 
     int glyphIndex = glyphCode;
 
-    glyph_info = faces_[faceIndex]->glyphs[glyphIndex];
-    *bitmap    = faces_[faceIndex]->bitmaps[glyphIndex];
+    glyph_info     = faces_[faceIndex]->glyphs[glyphIndex];
+    *bitmap        = faces_[faceIndex]->bitmaps[glyphIndex];
 
     return true;
   }
@@ -487,7 +520,7 @@ public:
   bool saveGlyph(int faceIndex, int glyphCode, GlyphInfo *newGlyphInfo, Bitmap *new_bitmap) {
     if ((faceIndex < preamble_.faceCount) && (glyphCode < faces_[faceIndex]->header->glyphCount)) {
 
-      int glyphIndex = glyphCode;
+      int glyphIndex                         = glyphCode;
 
       *faces_[faceIndex]->glyphs[glyphIndex] = *newGlyphInfo;
       delete faces_[faceIndex]->bitmaps[glyphIndex];
@@ -519,7 +552,7 @@ public:
   }
 
 #define WRITE(v, size)                                                                             \
-  if (out.writeRawData((char *) v, size) == -1) {                                                  \
+  if (out.writeRawData((char *)v, size) == -1) {                                                   \
     lastError_ = 1;                                                                                \
     return false;                                                                                  \
   }
@@ -534,15 +567,23 @@ public:
 
     int  fill   = 4 - ((sizeof(Preamble) + preamble_.faceCount) & 3);
     char filler = 0;
-    for (auto &face : faces_) { WRITE(&face->header->pointSize, 1); }
-    while (fill--) { WRITE(&filler, 1); }
+    for (auto &face : faces_) {
+      WRITE(&face->header->pointSize, 1);
+    }
+    while (fill--) {
+      WRITE(&filler, 1);
+    }
 
     uint32_t offset    = 0;
     auto     offsetPos = out.device()->pos();
-    for (int i = 0; i < preamble_.faceCount; i++) { WRITE(&offset, 4); }
+    for (int i = 0; i < preamble_.faceCount; i++) {
+      WRITE(&offset, 4);
+    }
 
     if (preamble_.bits.fontFormat == FontFormat::UTF32) {
-      for (auto &plane : planes_) { WRITE(&plane, sizeof(Plane)); }
+      for (auto &plane : planes_) {
+        WRITE(&plane, sizeof(Plane));
+      }
       for (auto &codePointBundle : codePointBundles_) {
         WRITE(&codePointBundle, sizeof(CodePointBundle));
       }
@@ -592,7 +633,9 @@ public:
 
       WRITE(face->header.get(), sizeof(FaceHeader));
 
-      for (auto idx : *poolIndexes) { WRITE(&idx, sizeof(uint32_t)); }
+      for (auto idx : *poolIndexes) {
+        WRITE(&idx, sizeof(uint32_t));
+      }
 
       for (auto &glyph : face->glyphs) {
         WRITE(glyph.get(), sizeof(GlyphInfo));
@@ -605,7 +648,9 @@ public:
       }
 
       WRITE(poolData->data(), poolData->size());
-      while (fill--) { WRITE(&filler, 1); }
+      while (fill--) {
+        WRITE(&filler, 1);
+      }
 
       poolIndexes->clear();
       poolData->clear();
@@ -641,13 +686,15 @@ public:
         int idx          = planes_[i].firstGlyphCode;
         int entriesCount = planes_[i].entriesCount;
         int j            = 0;
-        int bundleSize =
-            codePointBundles_[bundleIdx].endCodePoint - codePointBundles_[bundleIdx].firstCodePoint;
+        int bundleSize   = codePointBundles_[bundleIdx].lastCodePoint -
+                         codePointBundles_[bundleIdx].firstCodePoint + 1;
 
         while (j < entriesCount) {
           if ((idx + bundleSize) > glyphCode) break;
           idx += bundleSize;
           bundleIdx += 1;
+          bundleSize = codePointBundles_[bundleIdx].lastCodePoint -
+                       codePointBundles_[bundleIdx].firstCodePoint + 1;
           j += 1;
         }
         if (j < entriesCount) {
@@ -655,20 +702,137 @@ public:
         }
       }
     } else {
-      if (glyphCode < fontFormat0CharacterCodes.size()) {
-        codePoint = fontFormat0CharacterCodes[glyphCode];
+      if (glyphCode < fontFormat0CodePoints.size()) {
+        codePoint = fontFormat0CodePoints[glyphCode];
       }
     }
     return codePoint;
   }
 
-  void prepareCodePlanes(CharSelections &charSelections) {
-    int planeIdx          = 0;
-    int codePointBlockIdx = 0;
-    if (charSelections.size() == 1) { auto cpb = charSelections[0].codePointBlocks; }
+  bool charSelected(char32_t ch, SelectedBlockIndexesPtr &selectedBlockIndexes) {
+    // Don't populate with space and non-break-space characters
+    if ((ch != ' ') && (ch != char32_t(160))) {
+      for (auto selectedBlock : *selectedBlockIndexes) {
+        if ((ch >= uBlocks[selectedBlock].first_) && (ch <= uBlocks[selectedBlock].last_)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  int prepareCodePlanes(FT_Face &face, CharSelections &charSelections) {
+
+    uint16_t glyphCode = 0;
+
+    if (charSelections.size() == 1) {
+
+      for (int i = 0; i < 4; i++) {
+        planes_.push_back(Plane({0, 0, 0}));
+      }
+
+      SelectedBlockIndexesPtr selectedBlockIndexes = charSelections[0].selectedBlockIndexes;
+
+      FT_UInt  index;
+      char32_t ch                     = FT_Get_First_Char(face, &index);
+      bool     firstSelected          = false;
+      char16_t currCodePoint          = 0;
+      int      currPlaneIdx           = 0;
+      int      currCodePointBundleIdx = 0;
+
+      while (index != 0) {
+        if (charSelected(ch, selectedBlockIndexes)) {
+          int planeIdx = ch >> 16;
+          if (planeIdx < 4) { // Only the first 4 planes are managed
+            char16_t u16 = static_cast<char16_t>(ch & 0x0000FFFF);
+            if (!firstSelected) {
+              currCodePoint     = u16;
+              currPlaneIdx      = planeIdx;
+              planes_[planeIdx] = Plane{
+                  .codePointBundlesIdx = static_cast<uint16_t>(codePointBundles_.size()),
+                  .entriesCount        = 1,
+                  .firstGlyphCode      = 0,
+              };
+              currCodePointBundleIdx = codePointBundles_.size();
+              CodePointBundle bundle =
+                  CodePointBundle({.firstCodePoint = u16, .lastCodePoint = u16});
+              codePointBundles_.push_back(bundle);
+              firstSelected = true;
+            } else {
+              if (planeIdx != currPlaneIdx) {
+                for (int idx = planeIdx + 1; idx <= currPlaneIdx; idx++) {
+                  planes_[idx].codePointBundlesIdx = codePointBundles_.size();
+                }
+                planes_[planeIdx] =
+                    Plane{.codePointBundlesIdx = static_cast<uint16_t>(codePointBundles_.size()),
+                          .entriesCount        = 1,
+                          .firstGlyphCode      = glyphCode};
+                currCodePointBundleIdx = codePointBundles_.size();
+                CodePointBundle bundle =
+                    CodePointBundle({.firstCodePoint = u16, .lastCodePoint = u16});
+                codePointBundles_.push_back(bundle);
+                currCodePoint = u16;
+                currPlaneIdx  = planeIdx;
+              } else {
+                if (u16 == (currCodePoint + 1)) {
+                  codePointBundles_[currCodePointBundleIdx].lastCodePoint = u16;
+                } else {
+                  currCodePointBundleIdx = codePointBundles_.size();
+                  CodePointBundle bundle =
+                      CodePointBundle({.firstCodePoint = u16, .lastCodePoint = u16});
+                  codePointBundles_.push_back(bundle);
+                  planes_[currPlaneIdx].entriesCount += 1;
+                }
+                currCodePoint = u16;
+              }
+            }
+          }
+          glyphCode += 1;
+        }
+        ch = FT_Get_Next_Char(face, ch, &index);
+      }
+      // Completes the info of planes not used
+      for (int idx = currPlaneIdx + 1; idx < 4; idx++) {
+        planes_[idx].codePointBundlesIdx = codePointBundles_.size();
+        planes_[idx].firstGlyphCode      = glyphCode;
+      }
+    }
+
+    return glyphCode;
+  }
+
+  GlyphCode toGlyphCode(char32_t codePoint) {
+
+    GlyphCode glyphCode = NO_GLYPH_CODE;
+
+    uint16_t planeIdx   = static_cast<uint16_t>(codePoint >> 16);
+
+    if (planeIdx <= 3) {
+      char16_t u16                = static_cast<char16_t>(codePoint);
+
+      uint16_t codePointBundleIdx = planes_[planeIdx].codePointBundlesIdx;
+      uint16_t entriesCount       = planes_[planeIdx].entriesCount;
+      int      gCode              = planes_[planeIdx].firstGlyphCode;
+      int      i                  = 0;
+      while (i < entriesCount) {
+        if (u16 <= codePointBundles_[codePointBundleIdx].lastCodePoint) {
+          break;
+        }
+        gCode += (codePointBundles_[codePointBundleIdx].lastCodePoint -
+                  codePointBundles_[codePointBundleIdx].firstCodePoint + 1);
+        i++;
+        codePointBundleIdx++;
+      }
+      if ((i < entriesCount) && (u16 >= codePointBundles_[codePointBundleIdx].firstCodePoint)) {
+        glyphCode = gCode + u16 - codePointBundles_[codePointBundleIdx].firstCodePoint;
+      }
+    }
+
+    return glyphCode;
   }
 
   bool loadTTF(FreeType &ft, FontParametersPtr fontParameters) {
+
     clear();
 
     std::vector<uint8_t> pointSizes;
@@ -691,54 +855,141 @@ public:
 
     CharSelections *sel = fontParameters->charSelections;
     if (sel->size() == 1) {
-      prepareCodePlanes(*sel);
       QString filename = (*sel)[0].filename;
 
       if (ft.openFace(filename)) {
-        auto face = ft.getFace();
+        FT_Face ftFace      = ft.getFace();
+
+        uint16_t glyphCount = prepareCodePlanes(ftFace, *sel);
+
+        // This is a test that could be removed in the future
+        for (GlyphCode i = 0; i < glyphCount; i++) {
+          if ((i != toGlyphCode(getUTF32(i)))) {
+            QMessageBox::critical(nullptr, "Internal Error!!",
+                                  QString("Problem with getUTF32() and toGlyphCode() that are not "
+                                          "orthogonal for glyphCode %1")
+                                      .arg(i));
+          }
+        }
+
+        ft.closeFace();
+        ft.openFace(filename);
 
         for (int faceIdx = 0; faceIdx < faceCount; faceIdx++) {
-          int      error   = FT_Set_Char_Size(face, // handle to face object
-                                              0,    // char_width in 1/64th of points
-                                              pointSizes[faceIdx] * 64, // char_height in 1/64th of points
-                                              fontParameters->dpi, // horizontal device resolution
-                                              fontParameters->dpi);
-          FT_ULong index   = FT_Get_Char_Index(face, 'x');
-          FIX16    xHeight = 0;
+          FT_Error error =
+              FT_Set_Char_Size(ftFace,                   // handle to face object
+                               0,                        // char_width in 1/64th of points
+                               pointSizes[faceIdx] * 64, // char_height in 1/64th of points
+                               fontParameters->dpi,      // horizontal device resolution
+                               fontParameters->dpi);
+
+          FacePtr face = FacePtr(new Face);
+
+          for (int glyphCode = 0; glyphCode < glyphCount; glyphCode++) {
+
+            char32_t ch    = getUTF32(glyphCode);
+            FT_UInt  index = FT_Get_Char_Index(ftFace, ch);
+            if (index != 0) {
+              error = FT_Load_Char(ftFace, index, FT_LOAD_DEFAULT);
+
+              if (ftFace->glyph->format != FT_GLYPH_FORMAT_BITMAP) {
+                error = FT_Render_Glyph(ftFace->glyph, FT_RENDER_MODE_MONO);
+              }
+
+              BitmapPtr bitmap = new Bitmap();
+              uint8_t  *buffer = ftFace->glyph->bitmap.buffer;
+              for (int row = 0; row < ftFace->glyph->bitmap.rows; row++) {
+                uint8_t mask = 0x80;
+                for (int col = 0; col < ftFace->glyph->bitmap.width; col++) {
+                  uint8_t pixel = ((buffer[col >> 3] & mask) == 0) ? 0 : 0xFF;
+                  bitmap->pixels.push_back(pixel);
+                  mask >>= 1;
+                  if (mask == 0) mask = 0x80;
+                }
+                buffer += ftFace->glyph->bitmap.pitch;
+              }
+              bitmap->dim = Dim(ftFace->glyph->bitmap.width, ftFace->glyph->bitmap.rows);
+
+              face->bitmaps.push_back(bitmap);
+              GlyphLigKernPtr glyphLigKern = new GlyphLigKern;
+
+              // Create ligatures for the glyph if available
+              char32_t firstChar = getUTF32(glyphCode);
+              for (auto &ligature : ligatures) {
+                if (ligature.firstChar == firstChar) {
+                  GlyphCode nextGlyphCode        = toGlyphCode(ligature.nextChar);
+                  GlyphCode replacementGlyphCode = toGlyphCode(ligature.replacement);
+                  if ((nextGlyphCode != NO_GLYPH_CODE) && (replacementGlyphCode != NO_GLYPH_CODE)) {
+                    GlyphLigStepPtr glyphLigStep =
+                        new GlyphLigStep({.nextGlyphCode        = nextGlyphCode,
+                                          .replacementGlyphCode = replacementGlyphCode});
+                    glyphLigKern->ligSteps.push_back(glyphLigStep);
+                  }
+                }
+              }
+
+              face->glyphsLigKern.push_back(glyphLigKern);
+
+              GlyphInfoPtr glyphInfo = GlyphInfoPtr(new GlyphInfo({
+                  .bitmapWidth      = static_cast<uint8_t>(ftFace->glyph->bitmap.width),
+                  .bitmapHeight     = static_cast<uint8_t>(ftFace->glyph->bitmap.rows),
+                  .horizontalOffset = static_cast<int8_t>(ftFace->glyph->bitmap_left),
+                  .verticalOffset   = static_cast<int8_t>(-ftFace->glyph->bitmap_top),
+                  .packetLength     = static_cast<uint16_t>(ftFace->glyph->bitmap.width *
+                                                        ftFace->glyph->bitmap.rows),
+                  .advance          = static_cast<FIX16>(ftFace->glyph->advance.x),
+                  .rleMetrics       = RLEMetrics{.dynF = 0, .firstIsBlack = false, .filler = 0},
+                  .ligKernPgmIndex  = 0, // completed at save time
+              }));
+
+              face->glyphs.push_back(glyphInfo);
+
+            } else {
+              QMessageBox::critical(
+                  nullptr, "Internal error!",
+                  QString("Can't find utf32 codePoint for glyphCode %1)").arg(glyphCode));
+              return false;
+            }
+          }
+
+          FT_UInt index   = FT_Get_Char_Index(ftFace, 'x');
+          FIX16   xHeight = 0;
           if (index != 0) {
-            FT_Load_Char(face, index, FT_LOAD_NO_BITMAP);
-            xHeight = face->glyph->metrics.height << 6;
+            FT_Load_Char(ftFace, index, FT_LOAD_NO_BITMAP);
+            xHeight = static_cast<FIX16>(ftFace->glyph->metrics.height);
           } else {
             QMessageBox::warning(nullptr, "No 'x' character",
                                  "There is no 'x' character in this font");
           }
 
-          index             = FT_Get_Char_Index(face, ' ');
-          uint8_t spaceSize = 5;
+          FIX16 emSize      = static_cast<FIX16>(ftFace->size->metrics.x_ppem << 6);
+
+          index             = FT_Get_Char_Index(ftFace, ' ');
+          uint8_t spaceSize = emSize / 2;
           if (index != 0) {
-            FT_Load_Char(face, index, FT_LOAD_NO_BITMAP);
-            spaceSize = face->glyph->linearHoriAdvance;
+            FT_Load_Char(ftFace, index, FT_LOAD_NO_BITMAP);
+            spaceSize = static_cast<uint8_t>(ftFace->glyph->metrics.horiAdvance >> 6);
           } else {
             QMessageBox::warning(nullptr, "No space character",
                                  "There is no space character in this font");
           }
 
-          FIX16      emSize = (float(fontParameters->dpi * pointSizes[faceIdx]) / 72.27) * 64.0;
-          FaceHeader header = {
+          face->header = FaceHeaderPtr(new FaceHeader({
               .pointSize        = pointSizes[faceIdx],
-              .lineHeight       = static_cast<uint8_t>(face->size->metrics.height >> 6),
+              .lineHeight       = static_cast<uint8_t>(ftFace->size->metrics.height >> 6),
               .dpi              = static_cast<uint16_t>(fontParameters->dpi),
               .xHeight          = xHeight,
               .emSize           = emSize,
-              .slantCorrection  = 0,
-              .descenderHeight  = static_cast<uint8_t>(face->size->metrics.descender >> 6),
+              .slantCorrection  = 0, // not available for FreeType
+              .descenderHeight  = static_cast<uint8_t>(-(ftFace->size->metrics.descender >> 6)),
               .spaceSize        = spaceSize,
-              .glyphCount       = 0,
-              .ligKernStepCount = 0,
-              .pixelsPoolSize   = 0,
+              .glyphCount       = glyphCount,
+              .ligKernStepCount = 0, // will be set at save time
+              .pixelsPoolSize   = 0, // will be set at save time
               .maxHeight        = 0,
               .filler           = {0, 0, 0}
-          };
+          }));
+          faces_.push_back(std::move(face));
         }
       } else {
         return false;

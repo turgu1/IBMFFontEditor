@@ -15,9 +15,6 @@ class BlocksDialog : public QDialog {
   Q_OBJECT
 
 public:
-  typedef QSet<int>             SelectedBlockIndexes;
-  typedef SelectedBlockIndexes *SelectedBlockIndexesPtr;
-
   explicit BlocksDialog(FreeType &ft, QString fontFile, QString fontName,
                         QWidget *parent = nullptr);
   SelectedBlockIndexesPtr getSelectedBlockIndexes() { return selectedBlockIndexes_; }

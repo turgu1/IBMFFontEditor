@@ -82,8 +82,8 @@ const constexpr uint8_t MAX_GLYPH_COUNT = 254; // Index Value 0xFE and 0xFF are 
 // const constexpr uint8_t BLACK_EIGHT_BITS = 0;
 // const constexpr uint8_t WHITE_EIGHT_BITS = 0xFF;
 
-const constexpr uint8_t BLACK_ONE_BIT = 1;
-const constexpr uint8_t WHITE_ONE_BIT = 0;
+const constexpr uint8_t BLACK_ONE_BIT    = 1;
+const constexpr uint8_t WHITE_ONE_BIT    = 0;
 
 const constexpr uint8_t BLACK_EIGHT_BITS = 0xFF;
 const constexpr uint8_t WHITE_EIGHT_BITS = 0x00;
@@ -113,6 +113,8 @@ typedef Pixels               *PixelsPtr;
 typedef uint16_t              GlyphCode;
 typedef std::vector<char16_t> CharCodes;
 
+const constexpr GlyphCode NO_GLYPH_CODE = 0x7FFF;
+
 // RLE (Run Length Encoded) Bitmap. To get something to show, they have
 // to be processed through the RLEExtractor class.
 // Dim contains the expected width and height once the bitmap has been
@@ -135,9 +137,10 @@ typedef RLEBitmap *RLEBitmapPtr;
 struct Bitmap {
   Pixels pixels;
   Dim    dim;
-  void   clear() {
-      pixels.clear();
-      dim = Dim(0, 0);
+  Bitmap() { clear(); }
+  void clear() {
+    pixels.clear();
+    dim = Dim(0, 0);
   }
 };
 typedef Bitmap *BitmapPtr;
@@ -405,8 +408,7 @@ struct Plane {
 
 struct CodePointBundle {
   char16_t firstCodePoint; // The first UTF16 codePoint of the bundle
-  char16_t endCodePoint;   // Codepoint corresponding to the one after the last
-                           // codePoint of that bundle
+  char16_t lastCodePoint;  // The last UTF16 codePoint of the bundle
 };
 
 typedef Plane Planes[4];
@@ -443,24 +445,53 @@ struct Glyph {
 // font format files.
 
 struct CharSelection {
-  QString          filename; // Filename to import from
-  CodePointBlocks *codePointBlocks;
+  QString                 filename; // Filename to import from
+  SelectedBlockIndexesPtr selectedBlockIndexes;
 };
 typedef std::vector<CharSelection> CharSelections;
+typedef CharSelections            *CharSelectionsPtr;
 
 struct FontParameters {
-  int             dpi;
-  bool            pt12;
-  bool            pt14;
-  bool            pt17;
-  QString         filename;
-  CharSelections *charSelections;
+  int               dpi;
+  bool              pt12;
+  bool              pt14;
+  bool              pt17;
+  QString           filename;
+  CharSelectionsPtr charSelections;
 };
 typedef FontParameters *FontParametersPtr;
 
+// Ligature table. Used to create entries in a new font defintition.
+// Of course, the three letters must be present in the resulting font to have
+// that ligature added to the font.
+
+const struct Ligature {
+  char32_t firstChar;
+  char32_t nextChar;
+  char32_t replacement;
+} ligatures[] = {
+    {0x0066, 0x0066, 0xFB00}, // f, f, ﬀ
+    {0x0066, 0x0069, 0xFB01}, // f, i, ﬁ
+    {0x0066, 0x006C, 0xFB02}, // f, l, ﬂ
+    {0xFB00, 0x0069, 0xFB03}, // ﬀ ,i, ﬃ
+    {0xFB00, 0x006C, 0xFB04}, // ﬀ ,l, ﬄ
+    {0x0069, 0x006A, 0x0133}, // i, j, ĳ
+    {0x0049, 0x004F, 0x0132}, // I, J, Ĳ
+    {0x003C, 0x003C, 0x00AB}, // <, <, «
+    {0x003E, 0x003E, 0x00BB}, // >, >, »
+    {0x003F, 0x2018, 0x00BF}, // ?, ‘, ¿
+    {0x0021, 0x2018, 0x00A1}, // !, ‘, ¡
+    {0x2018, 0x2018, 0x201C}, // ‘, ‘, “
+    {0x2019, 0x2019, 0x201D}, // ’, ’, ”
+    {0x002C, 0x002C, 0x201E}, // , , „
+    {0x2013, 0x002D, 0x2014}, // –, -, —
+    {0x002D, 0x002D, 0x2013}, // -, -, –
+};
+
 // These are the corresponding Unicode value for each of the 174 characters that
-// are part of an IBMF Font;
-const CharCodes fontFormat0CharacterCodes = {
+// are part of an IBMF FontFormat 0 (LATIN).
+
+const CharCodes fontFormat0CodePoints = {
     char16_t(0x0060), // `
     char16_t(0x00B4), // ´
     char16_t(0x02C6), // ˆ

@@ -12,6 +12,9 @@ struct CodePointBlock {
 typedef std::vector<CodePointBlock *> CodePointBlocks;
 typedef CodePointBlocks              *CodePointBlocksPtr;
 
+typedef QSet<int>             SelectedBlockIndexes;
+typedef SelectedBlockIndexes *SelectedBlockIndexesPtr;
+
 //----
 
 struct UBlockDef {
@@ -358,7 +361,7 @@ class UnicodeBlocs {
 public:
   static const int findUBloc(char32_t ch) {
     for (int idx = 0; idx < uBlocks.size(); idx++) {
-      if ((uBlocks[idx].first_ <= ch) && (uBlocks[idx].last_ >= ch)) return idx;
+      if ((uBlocks[idx].first_ <= ch) && (ch <= uBlocks[idx].last_)) return idx;
     }
     return -1;
   }

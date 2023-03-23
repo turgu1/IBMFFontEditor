@@ -23,7 +23,6 @@ FreeType::~FreeType() {
 
 bool FreeType::openFace(QString filename) {
   if (isInitialized()) {
-    closeFace();
     FT_Error error = FT_New_Face(ftLib_, filename.toStdString().c_str(), 0, &ftFace_);
     if (error) {
       QMessageBox::warning(nullptr, "Unable to open font",

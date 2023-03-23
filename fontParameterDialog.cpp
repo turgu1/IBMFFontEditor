@@ -6,6 +6,7 @@
 #include <QHBoxLayout>
 #include <QSettings>
 
+#include "Unicode/UBlocks.hpp"
 #include "blocksDialog.h"
 #include "freeType.h"
 #include "ui_fontParameterDialog.h"
@@ -21,8 +22,8 @@ FontParameterDialog::FontParameterDialog(FreeType &ft, QString title, QWidget *p
 
   ui->nextButton->setEnabled(false);
 
-  charSelections_  = new IBMFDefs::CharSelections;
-  codePointBlocks_ = nullptr;
+  charSelections_              = new IBMFDefs::CharSelections;
+  codePointBlocks_             = nullptr;
 
   QHBoxLayout *ttfFontFilename = new QHBoxLayout();
   ttfFontFilename_             = new QLineEdit();
@@ -82,7 +83,9 @@ void FontParameterDialog::checkForNext() {
   ui->nextButton->setEnabled(
       !(ttfFontFilename_->text().isEmpty() || ibmfFontFilename_->text().isEmpty()) &&
       (pt12_->isChecked() || pt14_->isChecked() || pt17_->isChecked()));
-  if (ui->nextButton->isEnabled()) { ui->nextButton->setFocus(Qt::OtherFocusReason); }
+  if (ui->nextButton->isEnabled()) {
+    ui->nextButton->setFocus(Qt::OtherFocusReason);
+  }
 }
 
 void FontParameterDialog::browseIBMFFontFilename() {
@@ -91,7 +94,9 @@ void FontParameterDialog::browseIBMFFontFilename() {
   if (filename.isEmpty()) filename = settings.value("ibmfFolder").toString();
   QString newFilePath =
       QFileDialog::getSaveFileName(this, "New IBMF Font File", filename, "*.ibmf");
-  if (!newFilePath.isEmpty()) { ibmfFontFilename_->setText(newFilePath); }
+  if (!newFilePath.isEmpty()) {
+    ibmfFontFilename_->setText(newFilePath);
+  }
   checkForNext();
 }
 
@@ -101,7 +106,9 @@ void FontParameterDialog::browseTTFFontFilename() {
   if (filename.isEmpty()) filename = settings.value("ttfFolder").toString();
   QString newFilePath =
       QFileDialog::getOpenFileName(this, "Open TTF/OTF Font File", filename, "Font (*.ttf *.otf)");
-  if (!newFilePath.isEmpty()) { ttfFontFilename_->setText(newFilePath); }
+  if (!newFilePath.isEmpty()) {
+    ttfFontFilename_->setText(newFilePath);
+  }
   checkForNext();
 }
 
@@ -115,29 +122,25 @@ void FontParameterDialog::on_nextButton_clicked() {
 
   BlocksDialog *blocksDialog = new BlocksDialog(ft_, ttfFontFilename_->text(), fileInfo.fileName());
   if (blocksDialog->exec() == QDialog::Accepted) {
-    auto blockIndexes = blocksDialog->getSelectedBlockIndexes();
-    codePointBlocks_  = blocksDialog->getCodePointBlocks();
+    SelectedBlockIndexesPtr blockIndexes = blocksDialog->getSelectedBlockIndexes();
+    // codePointBlocks_  = blocksDialog->getCodePointBlocks();
 
     charSelections_->push_back(IBMFDefs::CharSelection(
-        {.filename = ttfFontFilename_->text(), .codePointBlocks = codePointBlocks_}));
+        {.filename = ttfFontFilename_->text(), .selectedBlockIndexes = blockIndexes}));
 
-    fontParameters_  = new IBMFDefs::FontParameters;
-    *fontParameters_ = {.dpi            = dpi75_->isChecked()    ? 75
-                                          : dpi100_->isChecked() ? 100
-                                                                 : 120,
-                        .pt12           = pt12_->isChecked(),
-                        .pt14           = pt14_->isChecked(),
-                        .pt17           = pt17_->isChecked(),
-                        .filename       = ibmfFontFilename_->text(),
-                        .charSelections = charSelections_};
+    fontParameters_ =
+        new IBMFDefs::FontParameters(IBMFDefs::FontParameters{.dpi      = dpi75_->isChecked() ? 75
+                                                                          : dpi100_->isChecked() ? 100
+                                                                                                 : 120,
+                                                              .pt12     = pt12_->isChecked(),
+                                                              .pt14     = pt14_->isChecked(),
+                                                              .pt17     = pt17_->isChecked(),
+                                                              .filename = ibmfFontFilename_->text(),
+                                                              .charSelections = charSelections_});
     accept();
   }
 }
 
-void FontParameterDialog::on_cancelButton_clicked() {
-  reject();
-}
+void FontParameterDialog::on_cancelButton_clicked() { reject(); }
 
-void FontParameterDialog::onCheckBoxClicked() {
-  checkForNext();
-}
+void FontParameterDialog::onCheckBoxClicked() { checkForNext(); }
