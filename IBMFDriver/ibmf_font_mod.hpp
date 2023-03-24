@@ -20,8 +20,8 @@ using namespace IBMFDefs;
 #define DEBUG 0
 
 #if DEBUG
-#include <iomanip>
-#include <iostream>
+  #include <iomanip>
+  #include <iostream>
 #endif
 
 /**
@@ -157,8 +157,8 @@ private:
 
         LigKernStep *lks = nullptr;
 
-        auto lSteps = face->glyphsLigKern[glyphIdx]->ligSteps;
-        auto kSteps = face->glyphsLigKern[glyphIdx]->kernSteps;
+        auto lSteps      = face->glyphsLigKern[glyphIdx]->ligSteps;
+        auto kSteps      = face->glyphsLigKern[glyphIdx]->kernSteps;
 
         glyphPgm.clear();
         glyphPgm.reserve(lSteps.size() + kSteps.size());
@@ -192,13 +192,19 @@ private:
           if ((sameIdx = findList(glyphPgm, lkSteps)) > 1) {
             // We found a duplicated list. Remove the duplicate one and make it
             // point to the first found to be similar.
-            for (auto entry : glyphPgm) { delete entry; }
+            for (auto entry : glyphPgm) {
+              delete entry;
+            }
             glyphPgm.clear();
             glyphsPgmIndexes[glyphIdx] = -sameIdx; // negative to signify a duplicate list
-            if (sameIdx >= 255) { overflowList.insert(sameIdx); }
+            if (sameIdx >= 255) {
+              overflowList.insert(sameIdx);
+            }
           } else {
             int index = lkSteps.size();
-            if (index >= 255) { overflowList.insert(index); }
+            if (index >= 255) {
+              overflowList.insert(index);
+            }
             uniquePgmIndexes.push_back(index);
             glyphsPgmIndexes[glyphIdx] = index;
             std::move(glyphPgm.begin(), glyphPgm.end(), std::back_inserter(lkSteps));
@@ -228,7 +234,8 @@ private:
             spaceRequired += 1;
             overflowList.insert(uniquePgmIndexes[i]);
             i -= 1;
-          } else break;
+          } else
+            break;
         }
 
         overflowList.insert(uniquePgmIndexes[i]);
@@ -291,7 +298,7 @@ private:
 
     // Faces offset retrieval
     for (int i = 0; i < preamble_.faceCount; i++) {
-      uint32_t offset = *((uint32_t *) &memory_[idx]);
+      uint32_t offset = *((uint32_t *)&memory_[idx]);
       faceOffsets_.push_back(offset);
       idx += 4;
     }
@@ -307,7 +314,9 @@ private:
       idx += sizeof(Planes);
 
       CodePointBundlesPtr codePointBundles = reinterpret_cast<CodePointBundlesPtr>(&memory_[idx]);
-      for (int i = 0; i < bundleCount; i++) { codePointBundles_.push_back((*codePointBundles)[i]); }
+      for (int i = 0; i < bundleCount; i++) {
+        codePointBundles_.push_back((*codePointBundles)[i]);
+      }
       idx += (((*planes)[3].codePointBundlesIdx + (*planes)[3].entriesCount) *
               sizeof(CodePointBundle));
     } else {
@@ -343,10 +352,10 @@ private:
         memcpy(glyph_info.get(), &memory_[idx], sizeof(GlyphInfo));
         idx += sizeof(GlyphInfo);
 
-        int     bitmap_size = glyph_info->bitmapHeight * glyph_info->bitmapWidth;
-        Bitmap *bitmap      = new Bitmap;
-        bitmap->pixels      = Pixels(bitmap_size, 0);
-        bitmap->dim         = Dim(glyph_info->bitmapWidth, glyph_info->bitmapHeight);
+        int     bitmap_size         = glyph_info->bitmapHeight * glyph_info->bitmapWidth;
+        Bitmap *bitmap              = new Bitmap;
+        bitmap->pixels              = Pixels(bitmap_size, 0);
+        bitmap->dim                 = Dim(glyph_info->bitmapWidth, glyph_info->bitmapHeight);
 
         RLEBitmap *compressedBitmap = new RLEBitmap;
         compressedBitmap->dim       = bitmap->dim;
@@ -368,7 +377,9 @@ private:
         // idx += glyph_info->packetLength;
       }
 
-      if (&memory_[idx] != (uint8_t *) pixelsPool) { return false; }
+      if (&memory_[idx] != (uint8_t *)pixelsPool) {
+        return false;
+      }
 
       idx += header->pixelsPoolSize;
 
@@ -444,10 +455,14 @@ public:
         bitmap->clear();
         delete bitmap;
       }
-      for (auto ligKern : face->ligKernSteps) { delete ligKern; }
+      for (auto ligKern : face->ligKernSteps) {
+        delete ligKern;
+      }
       for (auto ligKern : face->glyphsLigKern) {
-        for (auto lig : ligKern->ligSteps) delete lig;
-        for (auto kern : ligKern->kernSteps) delete kern;
+        for (auto lig : ligKern->ligSteps)
+          delete lig;
+        for (auto kern : ligKern->kernSteps)
+          delete kern;
         delete ligKern;
       }
       face->glyphs.clear();
@@ -468,8 +483,12 @@ public:
   inline const FaceHeaderPtr getFaceHeader(int faceIdx) { return faces_[faceIdx]->header; }
 
   bool getGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKern **glyphLigKern) {
-    if (faceIndex >= preamble_.faceCount) { return false; }
-    if (glyphCode >= faces_[faceIndex]->header->glyphCount) { return false; }
+    if (faceIndex >= preamble_.faceCount) {
+      return false;
+    }
+    if (glyphCode >= faces_[faceIndex]->header->glyphCount) {
+      return false;
+    }
 
     *glyphLigKern = faces_[faceIndex]->glyphsLigKern[glyphCode];
 
@@ -478,12 +497,14 @@ public:
 
   bool getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyph_info, Bitmap **bitmap) {
     if (faceIndex >= preamble_.faceCount) return false;
-    if (glyphCode > faces_[faceIndex]->header->glyphCount) { return false; }
+    if (glyphCode > faces_[faceIndex]->header->glyphCount) {
+      return false;
+    }
 
     int glyphIndex = glyphCode;
 
-    glyph_info = faces_[faceIndex]->glyphs[glyphIndex];
-    *bitmap    = faces_[faceIndex]->bitmaps[glyphIndex];
+    glyph_info     = faces_[faceIndex]->glyphs[glyphIndex];
+    *bitmap        = faces_[faceIndex]->bitmaps[glyphIndex];
 
     return true;
   }
@@ -499,7 +520,7 @@ public:
   bool saveGlyph(int faceIndex, int glyphCode, GlyphInfo *newGlyphInfo, Bitmap *new_bitmap) {
     if ((faceIndex < preamble_.faceCount) && (glyphCode < faces_[faceIndex]->header->glyphCount)) {
 
-      int glyphIndex = glyphCode;
+      int glyphIndex                         = glyphCode;
 
       *faces_[faceIndex]->glyphs[glyphIndex] = *newGlyphInfo;
       delete faces_[faceIndex]->bitmaps[glyphIndex];
@@ -531,7 +552,7 @@ public:
   }
 
 #define WRITE(v, size)                                                                             \
-  if (out.writeRawData((char *) v, size) == -1) {                                                  \
+  if (out.writeRawData((char *)v, size) == -1) {                                                   \
     lastError_ = 1;                                                                                \
     return false;                                                                                  \
   }
@@ -546,15 +567,23 @@ public:
 
     int  fill   = 4 - ((sizeof(Preamble) + preamble_.faceCount) & 3);
     char filler = 0;
-    for (auto &face : faces_) { WRITE(&face->header->pointSize, 1); }
-    while (fill--) { WRITE(&filler, 1); }
+    for (auto &face : faces_) {
+      WRITE(&face->header->pointSize, 1);
+    }
+    while (fill--) {
+      WRITE(&filler, 1);
+    }
 
     uint32_t offset    = 0;
     auto     offsetPos = out.device()->pos();
-    for (int i = 0; i < preamble_.faceCount; i++) { WRITE(&offset, 4); }
+    for (int i = 0; i < preamble_.faceCount; i++) {
+      WRITE(&offset, 4);
+    }
 
     if (preamble_.bits.fontFormat == FontFormat::UTF32) {
-      for (auto &plane : planes_) { WRITE(&plane, sizeof(Plane)); }
+      for (auto &plane : planes_) {
+        WRITE(&plane, sizeof(Plane));
+      }
       for (auto &codePointBundle : codePointBundles_) {
         WRITE(&codePointBundle, sizeof(CodePointBundle));
       }
@@ -604,7 +633,9 @@ public:
 
       WRITE(face->header.get(), sizeof(FaceHeader));
 
-      for (auto idx : *poolIndexes) { WRITE(&idx, sizeof(uint32_t)); }
+      for (auto idx : *poolIndexes) {
+        WRITE(&idx, sizeof(uint32_t));
+      }
 
       for (auto &glyph : face->glyphs) {
         WRITE(glyph.get(), sizeof(GlyphInfo));
@@ -617,7 +648,9 @@ public:
       }
 
       WRITE(poolData->data(), poolData->size());
-      while (fill--) { WRITE(&filler, 1); }
+      while (fill--) {
+        WRITE(&filler, 1);
+      }
 
       poolIndexes->clear();
       poolData->clear();
@@ -694,7 +727,9 @@ public:
 
     if (charSelections.size() == 1) {
 
-      for (int i = 0; i < 4; i++) { planes_.push_back(Plane({0, 0, 0})); }
+      for (int i = 0; i < 4; i++) {
+        planes_.push_back(Plane({0, 0, 0}));
+      }
 
       SelectedBlockIndexesPtr selectedBlockIndexes = charSelections[0].selectedBlockIndexes;
 
@@ -770,17 +805,19 @@ public:
 
     GlyphCode glyphCode = NO_GLYPH_CODE;
 
-    uint16_t planeIdx = static_cast<uint16_t>(codePoint >> 16);
+    uint16_t planeIdx   = static_cast<uint16_t>(codePoint >> 16);
 
     if (planeIdx <= 3) {
-      char16_t u16 = static_cast<char16_t>(codePoint);
+      char16_t u16                = static_cast<char16_t>(codePoint);
 
       uint16_t codePointBundleIdx = planes_[planeIdx].codePointBundlesIdx;
       uint16_t entriesCount       = planes_[planeIdx].entriesCount;
       int      gCode              = planes_[planeIdx].firstGlyphCode;
       int      i                  = 0;
       while (i < entriesCount) {
-        if (u16 <= codePointBundles_[codePointBundleIdx].lastCodePoint) { break; }
+        if (u16 <= codePointBundles_[codePointBundleIdx].lastCodePoint) {
+          break;
+        }
         gCode += (codePointBundles_[codePointBundleIdx].lastCodePoint -
                   codePointBundles_[codePointBundleIdx].firstCodePoint + 1);
         i++;
@@ -823,21 +860,6 @@ public:
       FT_Face ftFace;
       if ((ftFace = ft.openFace(filename)) != nullptr) {
 
-        // Testing
-
-        //        FT_Set_Char_Size(ftFace,              // handle to face object
-        //                         0,                   // char_width in 1/64th of points
-        //                         14 * 64,             // char_height in 1/64th of points
-        //                         fontParameters->dpi, // horizontal device resolution
-        //                         fontParameters->dpi);
-        //        FT_UInt index  = FT_Get_Char_Index(ftFace, '!');
-        //        index          = FT_Get_Char_Index(ftFace, 'a');
-        //        index          = FT_Get_Char_Index(ftFace, 'B');
-        //        FT_Error error = FT_Load_Char(ftFace, index, FT_LOAD_DEFAULT);
-        //        error          = FT_Render_Glyph(ftFace->glyph, FT_RENDER_MODE_MONO);
-
-        // End of testing
-
         uint16_t glyphCount = prepareCodePlanes(ftFace, *sel);
         // This is a test that could be removed in the future
         for (GlyphCode i = 0; i < glyphCount; i++) {
@@ -861,7 +883,7 @@ public:
 
           for (int glyphCode = 0; glyphCode < glyphCount; glyphCode++) {
 
-            FT_ULong ch    = getUTF32(glyphCode);
+            char32_t ch    = getUTF32(glyphCode);
             FT_UInt  index = FT_Get_Char_Index(ftFace, ch);
             if (index != 0) {
               error = FT_Load_Char(ftFace, ch, FT_LOAD_DEFAULT);
@@ -907,8 +929,8 @@ public:
               GlyphInfoPtr glyphInfo = GlyphInfoPtr(new GlyphInfo({
                   .bitmapWidth      = static_cast<uint8_t>(ftFace->glyph->bitmap.width),
                   .bitmapHeight     = static_cast<uint8_t>(ftFace->glyph->bitmap.rows),
-                  .horizontalOffset = static_cast<int8_t>(ftFace->glyph->bitmap_left),
-                  .verticalOffset   = static_cast<int8_t>(-ftFace->glyph->bitmap_top),
+                  .horizontalOffset = static_cast<int8_t>(-ftFace->glyph->bitmap_left),
+                  .verticalOffset   = static_cast<int8_t>(ftFace->glyph->bitmap_top),
                   .packetLength     = static_cast<uint16_t>(ftFace->glyph->bitmap.width *
                                                         ftFace->glyph->bitmap.rows),
                   .advance          = static_cast<FIX16>(ftFace->glyph->advance.x),
@@ -936,7 +958,7 @@ public:
                                  "There is no 'x' character in this font");
           }
 
-          FIX16 emSize = static_cast<FIX16>(ftFace->size->metrics.x_ppem << 6);
+          FIX16 emSize      = static_cast<FIX16>(ftFace->size->metrics.x_ppem << 6);
 
           index             = FT_Get_Char_Index(ftFace, ' ');
           uint8_t spaceSize = emSize / 2;
