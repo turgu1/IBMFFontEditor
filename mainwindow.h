@@ -57,15 +57,12 @@ private slots:
   void on_actionSave_triggered();
   void on_actionSaveBackup_triggered();
   void on_clearRecentList_triggered();
-
   void bitmapChanged(Bitmap &bitmap);
   void setScrollBarSizes(int value);
   void centerScrollBarPos();
   void updateBitmapOffsetPos();
   void openRecent();
-
   void on_actionTest_Dialog_triggered();
-
   void on_actionImportTrueTypeFont_triggered();
 
 private:

@@ -24,12 +24,10 @@ BlocksDialog::BlocksDialog(FreeType &ft, QString fontFile, QString fontName, QWi
   this->setWindowTitle("Font Content");
   ui->titleLabel->setText("CodePoint Selection from " + fontName);
 
-  if (!ft.openFace(fontFile)) {
+  if ((face_ = ft.openFace(fontFile)) == nullptr) {
     reject();
     return;
   }
-
-  face_ = ft.getFace();
 
   if (face_->charmap == nullptr) {
     QMessageBox::warning(this, "Not Unicode", "There is no Unicode charmap in this font!");
@@ -129,7 +127,9 @@ BlocksDialog::BlocksDialog(FreeType &ft, QString fontFile, QString fontName, QWi
   updateQtyLabel();
 }
 
-BlocksDialog::~BlocksDialog() { delete ui; }
+BlocksDialog::~BlocksDialog() {
+  delete ui;
+}
 
 void BlocksDialog::checkCreateReady() {
   ui->createButton->setEnabled(codePointQty_ > 0);
@@ -140,8 +140,8 @@ void BlocksDialog::tableSectionClicked(int idx) {
   if (idx == 4) {
     allChecked_ = !allChecked_;
     for (int i = 0; i < ui->blocksTable->rowCount(); i++) {
-      QFrame    *frame = (QFrame *)(ui->blocksTable->cellWidget(i, 4));
-      QCheckBox *cb    = (QCheckBox *)(frame->layout()->itemAt(0)->widget());
+      QFrame    *frame = (QFrame *) (ui->blocksTable->cellWidget(i, 4));
+      QCheckBox *cb    = (QCheckBox *) (frame->layout()->itemAt(0)->widget());
       cb->setChecked(allChecked_);
     }
     codePointQty_ = allChecked_ ? face_->num_glyphs : 0;
@@ -151,7 +151,7 @@ void BlocksDialog::tableSectionClicked(int idx) {
 }
 
 void BlocksDialog::cbClicked(bool checked) {
-  QCheckBox *sender = (QCheckBox *)QObject::sender();
+  QCheckBox *sender = (QCheckBox *) QObject::sender();
   int        row    = sender->objectName().toInt();
   int        qty    = ui->blocksTable->item(row, 3)->data(Qt::DisplayRole).toInt();
   codePointQty_ += checked ? qty : -qty;
@@ -166,11 +166,9 @@ void BlocksDialog::updateQtyLabel() {
 void BlocksDialog::saveData() {
   selectedBlockIndexes_->clear();
   for (int row = 0; row < ui->blocksTable->rowCount(); row++) {
-    QFrame    *frame = (QFrame *)(ui->blocksTable->cellWidget(row, 4));
-    QCheckBox *cb    = (QCheckBox *)(frame->layout()->itemAt(0)->widget());
-    if (cb->isChecked()) {
-      selectedBlockIndexes_->insert((*codePointBlocks_)[row]->blockIdx_);
-    }
+    QFrame    *frame = (QFrame *) (ui->blocksTable->cellWidget(row, 4));
+    QCheckBox *cb    = (QCheckBox *) (frame->layout()->itemAt(0)->widget());
+    if (cb->isChecked()) { selectedBlockIndexes_->insert((*codePointBlocks_)[row]->blockIdx_); }
   }
 }
 
