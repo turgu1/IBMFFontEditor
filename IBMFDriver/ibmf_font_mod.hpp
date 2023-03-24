@@ -33,24 +33,6 @@ using namespace IBMFDefs;
  */
 class IBMFFontMod {
 public:
-  struct GlyphKernStep {
-    uint16_t nextGlyphCode;
-    FIX16    kern;
-  };
-  typedef GlyphKernStep *GlyphKernStepPtr;
-
-  struct GlyphLigStep {
-    uint16_t nextGlyphCode;
-    uint16_t replacementGlyphCode;
-  };
-  typedef GlyphLigStep *GlyphLigStepPtr;
-
-  struct GlyphLigKern {
-    std::vector<GlyphLigStepPtr>  ligSteps;
-    std::vector<GlyphKernStepPtr> kernSteps;
-  };
-  typedef GlyphLigKern *GlyphLigKernPtr;
-
   struct Face {
     FaceHeaderPtr                header;
     std::vector<GlyphInfoPtr>    glyphs;
@@ -482,6 +464,15 @@ public:
 
   inline const FaceHeaderPtr getFaceHeader(int faceIdx) { return faces_[faceIdx]->header; }
 
+  inline const CharCodes *characterCodes() {
+    CharCodes *chCodes = new CharCodes;
+    for (GlyphCode i = 0; i < faces_[0]->header->glyphCount; i++) {
+      char32_t ch = getUTF32(i);
+      chCodes->push_back(ch);
+    }
+    return chCodes;
+  }
+
   bool getGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKern **glyphLigKern) {
     if (faceIndex >= preamble_.faceCount) {
       return false;
@@ -711,7 +702,8 @@ public:
 
   bool charSelected(char32_t ch, SelectedBlockIndexesPtr &selectedBlockIndexes) {
     // Don't populate with space and non-break-space characters
-    if ((ch != ' ') && (ch != char32_t(160))) {
+    if ((ch >= 0x0021) && (ch != 0x00A0) &&
+        ((ch < 0x02000) || (ch >= 0x2010))) { // No control char and no space/nbsp
       for (auto selectedBlock : *selectedBlockIndexes) {
         if ((ch >= uBlocks[selectedBlock].first_) && (ch <= uBlocks[selectedBlock].last_)) {
           return true;
@@ -916,9 +908,9 @@ public:
                   GlyphCode nextGlyphCode        = toGlyphCode(ligature.nextChar);
                   GlyphCode replacementGlyphCode = toGlyphCode(ligature.replacement);
                   if ((nextGlyphCode != NO_GLYPH_CODE) && (replacementGlyphCode != NO_GLYPH_CODE)) {
-                    GlyphLigStepPtr glyphLigStep =
-                        new GlyphLigStep({.nextGlyphCode        = nextGlyphCode,
-                                          .replacementGlyphCode = replacementGlyphCode});
+                    GlyphLigStepPtr glyphLigStep = new GlyphLigStep(
+                        GlyphLigStep{.nextGlyphCode        = nextGlyphCode,
+                                     .replacementGlyphCode = replacementGlyphCode});
                     glyphLigKern->ligSteps.push_back(glyphLigStep);
                   }
                 }
@@ -996,3 +988,5 @@ public:
     return true;
   }
 };
+
+typedef IBMFFontMod *IBMFFontModPtr;

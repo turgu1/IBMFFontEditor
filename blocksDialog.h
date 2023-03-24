@@ -28,10 +28,13 @@ private slots:
   void on_createButton_clicked();
   void on_backButton_clicked();
 
+  void on_blocksTable_cellDoubleClicked(int row, int column);
+
 private:
   Ui::BlocksDialog *ui;
   FreeType          ft_;
 
+  QString                 fontName_;
   FT_Face                 face_;
   bool                    allChecked_;
   int                     codePointQty_;

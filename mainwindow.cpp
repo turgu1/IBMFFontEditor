@@ -7,8 +7,11 @@
 #include <QSettings>
 
 #include "./ui_mainwindow.h"
+#include "Kerning/kerningDialog.h"
 #include "blocksDialog.h"
 #include "fontParameterDialog.h"
+
+#define TRACE(str) std::cout << str << std::endl;
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) {
   initialized_ = false;
@@ -17,6 +20,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
   setWindowTitle("IBMF Font Editor");
 
   // --> Undo / Redo Stack <--
+
+  TRACE("Point 1");
 
   undoStack_  = new QUndoStack(this);
 
@@ -34,6 +39,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
   // --> Bitmap Renderers <--
 
+  TRACE("Point 2");
+
   bitmapRenderer_ = new BitmapRenderer(ui->bitmapFrame, 20, false, undoStack_);
   ui->bitmapFrame->layout()->addWidget(bitmapRenderer_);
 
@@ -50,7 +57,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
   // ---
 
+  TRACE("Point 3");
+
   centerScrollBarPos();
+
+  TRACE("Point 3.5");
 
   // --> Captions in the tables are not editable <--
 
@@ -58,15 +69,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     this->clearEditable(ui->fontHeader, row, 0);
   }
 
-  for (int row = 0; row < ui->faceHeader->rowCount(); row++) {
-    this->clearEditable(ui->faceHeader, row, 0);
-  }
+  //  for (int row = 0; row < ui->faceHeader->rowCount(); row++) {
+  //    this->clearEditable(ui->faceHeader, row, 0);
+  //  }
 
-  for (int row = 0; row < ui->characterMetrics->rowCount(); row++) {
-    this->clearEditable(ui->characterMetrics, row, 0);
-  }
+  //  for (int row = 0; row < ui->characterMetrics->rowCount(); row++) {
+  //    this->clearEditable(ui->characterMetrics, row, 0);
+  //  }
 
   // --> Tables' Last Column Stretch <--
+
+  TRACE("Point 4");
 
   QHeaderView *header = ui->fontHeader->horizontalHeader();
   header->setStretchLastSection(true);
@@ -88,6 +101,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
   // --> Tables columns width <--
 
+  TRACE("Point 5");
+
   ui->fontHeader->setColumnWidth(0, 120);
   ui->faceHeader->setColumnWidth(0, 120);
   ui->characterMetrics->setColumnWidth(0, 120);
@@ -96,6 +111,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
   ui->characterMetrics->setColumnWidth(1, 100);
 
   // --> Splitters <--
+
+  TRACE("Point 6");
 
   auto setHPolicy = [](auto widget1, auto widget2, int value1, int value2) {
     QSizePolicy sp;
@@ -128,6 +145,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
   // --> Config settings <--
 
+  TRACE("Point 7");
+
   createRecentFileActionsAndConnections();
   readSettings();
 
@@ -142,9 +161,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
   glyphReloading_  = false;
   faceReloading_   = false;
 
+  TRACE("Point 8");
+
   this->clearAll();
 
   initialized_ = true;
+
+  TRACE("Show...");
 
   show();
 }
@@ -597,9 +620,9 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
         ui->ligTable->setRowCount(ibmfLigKerns_->ligSteps.size());
         for (int i = 0; i < ibmfLigKerns_->ligSteps.size(); i++) {
           putValue(ui->ligTable, i, 0,
-                   QChar(fontFormat0CodePoints[ibmfLigKerns_->ligSteps[i]->nextGlyphCode]));
+                   QChar(ibmfFont_->getUTF32(ibmfLigKerns_->ligSteps[i]->nextGlyphCode)));
           putValue(ui->ligTable, i, 1,
-                   QChar(fontFormat0CodePoints[ibmfLigKerns_->ligSteps[i]->replacementGlyphCode]));
+                   QChar(ibmfFont_->getUTF32(ibmfLigKerns_->ligSteps[i]->replacementGlyphCode)));
           int      code      = ibmfLigKerns_->ligSteps[i]->nextGlyphCode;
           char32_t codePoint = ibmfFont_->getUTF32(code);
           ui->ligTable->item(i, 0)->setToolTip(
@@ -614,7 +637,7 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
         ui->kernTable->setRowCount(ibmfLigKerns_->kernSteps.size());
         for (int i = 0; i < ibmfLigKerns_->kernSteps.size(); i++) {
           putValue(ui->kernTable, i, 0,
-                   QChar(fontFormat0CodePoints[ibmfLigKerns_->kernSteps[i]->nextGlyphCode]));
+                   QChar(ibmfFont_->getUTF32(ibmfLigKerns_->kernSteps[i]->nextGlyphCode)));
           putFix16Value(ui->kernTable, i, 1, (float)ibmfLigKerns_->kernSteps[i]->kern / 64.0);
           int      code      = ibmfLigKerns_->kernSteps[i]->nextGlyphCode;
           char32_t codePoint = ibmfFont_->getUTF32(code);
@@ -755,7 +778,7 @@ void MainWindow::onfaceHeader__cellChanged(int row, int column) {
 }
 
 void MainWindow::on_glyphForgetButton_clicked() {
-  if (glyphChanged_) {
+  if (glyphChanged_ && (ibmfFont_ != nullptr)) {
     QMessageBox::StandardButton button =
         QMessageBox::question(this, "Character has been Modified",
                               "You will loose all changes to the bitmap and metrics. Are-you sure?",
@@ -961,4 +984,11 @@ void MainWindow::on_actionImportTrueTypeFont_triggered() {
       }
     }
   }
+}
+
+void MainWindow::on_editKerningButton_clicked() {
+  KerningModel  *model         = new KerningModel(ibmfGlyphCode_, &ibmfLigKerns_->kernSteps, this);
+  KerningDialog *kerningDialog = new KerningDialog(ibmfFont_, ibmfFaceIdx_, model);
+
+  kerningDialog->exec();
 }

@@ -111,7 +111,7 @@ typedef uint8_t              *MemoryPtr;
 typedef std::vector<uint8_t>  Pixels;
 typedef Pixels               *PixelsPtr;
 typedef uint16_t              GlyphCode;
-typedef std::vector<char16_t> CharCodes;
+typedef std::vector<char32_t> CharCodes;
 
 const constexpr GlyphCode NO_GLYPH_CODE = 0x7FFF;
 
@@ -439,6 +439,26 @@ struct Glyph {
             pointSize = 0;
   }
 };
+
+struct GlyphKernStep {
+  uint16_t nextGlyphCode;
+  FIX16    kern;
+};
+typedef GlyphKernStep                *GlyphKernStepPtr;
+typedef std::vector<GlyphKernStepPtr> GlyphKernSteps;
+
+struct GlyphLigStep {
+  uint16_t nextGlyphCode;
+  uint16_t replacementGlyphCode;
+};
+typedef GlyphLigStep                *GlyphLigStepPtr;
+typedef std::vector<GlyphLigStepPtr> GlyphLigSteps;
+
+struct GlyphLigKern {
+  GlyphLigSteps  ligSteps;
+  GlyphKernSteps kernSteps;
+};
+typedef GlyphLigKern *GlyphLigKernPtr;
 
 // These are the structure required to create a new font
 // from some parameters. For now, it is used to create UTF32

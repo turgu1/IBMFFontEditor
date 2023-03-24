@@ -65,6 +65,8 @@ private slots:
   void on_actionTest_Dialog_triggered();
   void on_actionImportTrueTypeFont_triggered();
 
+  void on_editKerningButton_clicked();
+
 private:
   const int MAX_RECENT_FILES = 10;
 
@@ -88,16 +90,12 @@ private:
   BitmapRenderer *smallGlyph_;
   BitmapRenderer *largeGlyph_;
 
-  typedef std::unique_ptr<IBMFFontMod> IBMFFontModPtr;
-
   IBMFFontModPtr          ibmfFont_;
   IBMFDefs::Preamble      ibmfPreamble_;
   IBMFDefs::FaceHeaderPtr ibmfFaceHeader_;
   IBMFDefs::GlyphInfoPtr  ibmfGlyphInfo_;
-
-  IBMFDefs::Bitmap *ibmfGlyphBitmap_;
-
-  IBMFFontMod::GlyphLigKern *ibmfLigKerns_;
+  IBMFDefs::Bitmap       *ibmfGlyphBitmap_;
+  IBMFDefs::GlyphLigKern *ibmfLigKerns_;
 
   int              ibmfFaceIdx_;
   int              ibmfGlyphCode_;

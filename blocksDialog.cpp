@@ -9,11 +9,13 @@
 #include <QMessageBox>
 #include <QTableWidget>
 
+#include "IBMFDriver/ibmf_defs.hpp"
 #include "Unicode/UBlocks.hpp"
+#include "characterViewer.h"
 #include "ui_blocksDialog.h"
 
 BlocksDialog::BlocksDialog(FreeType &ft, QString fontFile, QString fontName, QWidget *parent)
-    : QDialog(parent), ft_(ft), ui(new Ui::BlocksDialog) {
+    : QDialog(parent), ft_(ft), fontName_(fontName), ui(new Ui::BlocksDialog) {
   ui->setupUi(this);
 
   ui->createButton->setEnabled(false);
@@ -40,9 +42,6 @@ BlocksDialog::BlocksDialog(FreeType &ft, QString fontFile, QString fontName, QWi
               << " EncodingId: " << face_->charmap[n].encoding_id << std::endl;
   }
 
-  FT_UInt  index;
-  char32_t ch = FT_Get_First_Char(face_, &index);
-
   struct CustomCmp {
     bool operator()(const CodePointBlock *a, const CodePointBlock *b) const {
       return a->blockIdx_ < b->blockIdx_;
@@ -51,17 +50,22 @@ BlocksDialog::BlocksDialog(FreeType &ft, QString fontFile, QString fontName, QWi
 
   std::set<CodePointBlock *, CustomCmp> blocksSet;
 
+  FT_UInt  index;
+  char32_t ch = FT_Get_First_Char(face_, &index);
+
   while (index != 0) {
     int idx;
     //    std::cout << "CodePoint: " << +ch << "(" << ch << ")" << std::endl;
-    if ((idx = UnicodeBlocs::findUBloc(ch)) != -1) {
-      // std::cout << "block: " << uBlocks[idx].caption_ << std::endl;
-      CodePointBlock blk(idx, 1);
-      auto           it = blocksSet.find(&blk);
-      if (it != blocksSet.end()) {
-        (*it)->codePointCount_++;
-      } else {
-        blocksSet.insert(new CodePointBlock(idx, 1));
+    if ((ch >= 0x00021) && (ch != 0x000A0) && ((ch < 0x02000) || (ch >= 0x2010))) {
+      if ((idx = UnicodeBlocs::findUBloc(ch)) != -1) {
+        // std::cout << "block: " << uBlocks[idx].caption_ << std::endl;
+        CodePointBlock blk(idx, 1);
+        auto           it = blocksSet.find(&blk);
+        if (it != blocksSet.end()) {
+          (*it)->codePointCount_++;
+        } else {
+          blocksSet.insert(new CodePointBlock(idx, 1));
+        }
       }
     }
     ch = FT_Get_Next_Char(face_, ch, &index);
@@ -127,9 +131,7 @@ BlocksDialog::BlocksDialog(FreeType &ft, QString fontFile, QString fontName, QWi
   updateQtyLabel();
 }
 
-BlocksDialog::~BlocksDialog() {
-  delete ui;
-}
+BlocksDialog::~BlocksDialog() { delete ui; }
 
 void BlocksDialog::checkCreateReady() {
   ui->createButton->setEnabled(codePointQty_ > 0);
@@ -140,8 +142,8 @@ void BlocksDialog::tableSectionClicked(int idx) {
   if (idx == 4) {
     allChecked_ = !allChecked_;
     for (int i = 0; i < ui->blocksTable->rowCount(); i++) {
-      QFrame    *frame = (QFrame *) (ui->blocksTable->cellWidget(i, 4));
-      QCheckBox *cb    = (QCheckBox *) (frame->layout()->itemAt(0)->widget());
+      QFrame    *frame = (QFrame *)(ui->blocksTable->cellWidget(i, 4));
+      QCheckBox *cb    = (QCheckBox *)(frame->layout()->itemAt(0)->widget());
       cb->setChecked(allChecked_);
     }
     codePointQty_ = allChecked_ ? face_->num_glyphs : 0;
@@ -151,7 +153,7 @@ void BlocksDialog::tableSectionClicked(int idx) {
 }
 
 void BlocksDialog::cbClicked(bool checked) {
-  QCheckBox *sender = (QCheckBox *) QObject::sender();
+  QCheckBox *sender = (QCheckBox *)QObject::sender();
   int        row    = sender->objectName().toInt();
   int        qty    = ui->blocksTable->item(row, 3)->data(Qt::DisplayRole).toInt();
   codePointQty_ += checked ? qty : -qty;
@@ -166,9 +168,11 @@ void BlocksDialog::updateQtyLabel() {
 void BlocksDialog::saveData() {
   selectedBlockIndexes_->clear();
   for (int row = 0; row < ui->blocksTable->rowCount(); row++) {
-    QFrame    *frame = (QFrame *) (ui->blocksTable->cellWidget(row, 4));
-    QCheckBox *cb    = (QCheckBox *) (frame->layout()->itemAt(0)->widget());
-    if (cb->isChecked()) { selectedBlockIndexes_->insert((*codePointBlocks_)[row]->blockIdx_); }
+    QFrame    *frame = (QFrame *)(ui->blocksTable->cellWidget(row, 4));
+    QCheckBox *cb    = (QCheckBox *)(frame->layout()->itemAt(0)->widget());
+    if (cb->isChecked()) {
+      selectedBlockIndexes_->insert((*codePointBlocks_)[row]->blockIdx_);
+    }
   }
 }
 
@@ -182,4 +186,27 @@ void BlocksDialog::on_backButton_clicked() {
   saveData();
   FT_Done_Face(face_);
   reject();
+}
+
+void BlocksDialog::on_blocksTable_cellDoubleClicked(int row, int column) {
+  if (column == 0) {
+    auto                 block     = (*codePointBlocks_)[row];
+    char32_t             first     = uBlocks[block->blockIdx_].first_;
+    char32_t             last      = uBlocks[block->blockIdx_].last_;
+    IBMFDefs::CharCodes *charCodes = new IBMFDefs::CharCodes;
+
+    for (char32_t ch = first; ch <= last; ch++) {
+      if ((ch >= 0x0021) && (ch != 0x00A0) && ((ch < 0x02000) || (ch >= 0x2010))) {
+        FT_UInt index = FT_Get_Char_Index(face_, ch);
+        if (index != 0) {
+          charCodes->push_back(ch);
+        }
+      }
+    }
+    CharacterViewer *viewer = new CharacterViewer(
+        charCodes, fontName_,
+        QString("Available characters in the block %1").arg(uBlocks[block->blockIdx_].caption_),
+        this);
+    viewer->exec();
+  }
 }

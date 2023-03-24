@@ -40,6 +40,23 @@ set(PROJECT_SOURCES
         fontParameterDialog.ui
         freeType.h
         freeType.cpp
+        characterViewer.cpp
+        characterViewer.h
+        characterSelector.cpp
+        characterSelector.h
+        Kerning/kerningDialog.cpp
+        Kerning/kerningDialog.h
+        Kerning/kerningModel.cpp
+        Kerning/kerningModel.h
+        Kerning/kerningDelegate.cpp
+        Kerning/kerningDelegate.h
+        Kerning/kerningEditor.cpp
+        Kerning/kerningEditor.h
+        Kerning/kerningItem.cpp
+        Kerning/kerningItem.h
+        Kerning/kerningRenderer.cpp
+        Kerning/kerningRenderer.h
+        Kerning/kernEntry.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
