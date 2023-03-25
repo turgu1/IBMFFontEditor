@@ -64,9 +64,7 @@ private slots:
   void openRecent();
   void on_actionTest_Dialog_triggered();
   void on_actionImportTrueTypeFont_triggered();
-
   void on_editKerningButton_clicked();
-
   void on_actionTest_Auto_Kerning_triggered();
 
 private:
@@ -75,7 +73,7 @@ private:
   Ui::MainWindow *ui;
   QString         currentFilePath_;
 
-  FreeType    ft_;
+  FreeType   *ft_;
   QUndoStack *undoStack_;
   QUndoView  *undoView_;
   QAction    *undoAction_;
@@ -92,12 +90,12 @@ private:
   BitmapRenderer *smallGlyph_;
   BitmapRenderer *largeGlyph_;
 
-  IBMFFontModPtr          ibmfFont_;
-  IBMFDefs::Preamble      ibmfPreamble_;
-  IBMFDefs::FaceHeaderPtr ibmfFaceHeader_;
-  IBMFDefs::GlyphInfoPtr  ibmfGlyphInfo_;
-  IBMFDefs::Bitmap       *ibmfGlyphBitmap_;
-  IBMFDefs::GlyphLigKern *ibmfLigKerns_;
+  IBMFFontModPtr            ibmfFont_;
+  IBMFDefs::Preamble        ibmfPreamble_;
+  IBMFDefs::FaceHeaderPtr   ibmfFaceHeader_;
+  IBMFDefs::GlyphInfoPtr    ibmfGlyphInfo_;
+  IBMFDefs::BitmapPtr       ibmfGlyphBitmap_;
+  IBMFDefs::GlyphLigKernPtr ibmfLigKerns_;
 
   int              ibmfFaceIdx_;
   int              ibmfGlyphCode_;
