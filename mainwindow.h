@@ -67,6 +67,8 @@ private slots:
 
   void on_editKerningButton_clicked();
 
+  void on_actionTest_Auto_Kerning_triggered();
+
 private:
   const int MAX_RECENT_FILES = 10;
 

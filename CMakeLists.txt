@@ -57,6 +57,11 @@ set(PROJECT_SOURCES
         Kerning/kerningRenderer.cpp
         Kerning/kerningRenderer.h
         Kerning/kernEntry.h
+        kerningTestDialog.h
+        kerningTestDialog.cpp
+        kerningTestDialog.ui
+        drawingSpace.h
+        drawingSpace.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

@@ -20,8 +20,8 @@ using namespace IBMFDefs;
 #define DEBUG 0
 
 #if DEBUG
-  #include <iomanip>
-  #include <iostream>
+#include <iomanip>
+#include <iostream>
 #endif
 
 /**
@@ -139,8 +139,8 @@ private:
 
         LigKernStep *lks = nullptr;
 
-        auto lSteps      = face->glyphsLigKern[glyphIdx]->ligSteps;
-        auto kSteps      = face->glyphsLigKern[glyphIdx]->kernSteps;
+        auto lSteps = face->glyphsLigKern[glyphIdx]->ligSteps;
+        auto kSteps = face->glyphsLigKern[glyphIdx]->kernSteps;
 
         glyphPgm.clear();
         glyphPgm.reserve(lSteps.size() + kSteps.size());
@@ -174,19 +174,13 @@ private:
           if ((sameIdx = findList(glyphPgm, lkSteps)) > 1) {
             // We found a duplicated list. Remove the duplicate one and make it
             // point to the first found to be similar.
-            for (auto entry : glyphPgm) {
-              delete entry;
-            }
+            for (auto entry : glyphPgm) { delete entry; }
             glyphPgm.clear();
             glyphsPgmIndexes[glyphIdx] = -sameIdx; // negative to signify a duplicate list
-            if (sameIdx >= 255) {
-              overflowList.insert(sameIdx);
-            }
+            if (sameIdx >= 255) { overflowList.insert(sameIdx); }
           } else {
             int index = lkSteps.size();
-            if (index >= 255) {
-              overflowList.insert(index);
-            }
+            if (index >= 255) { overflowList.insert(index); }
             uniquePgmIndexes.push_back(index);
             glyphsPgmIndexes[glyphIdx] = index;
             std::move(glyphPgm.begin(), glyphPgm.end(), std::back_inserter(lkSteps));
@@ -216,8 +210,7 @@ private:
             spaceRequired += 1;
             overflowList.insert(uniquePgmIndexes[i]);
             i -= 1;
-          } else
-            break;
+          } else break;
         }
 
         overflowList.insert(uniquePgmIndexes[i]);
@@ -280,7 +273,7 @@ private:
 
     // Faces offset retrieval
     for (int i = 0; i < preamble_.faceCount; i++) {
-      uint32_t offset = *((uint32_t *)&memory_[idx]);
+      uint32_t offset = *((uint32_t *) &memory_[idx]);
       faceOffsets_.push_back(offset);
       idx += 4;
     }
@@ -296,9 +289,7 @@ private:
       idx += sizeof(Planes);
 
       CodePointBundlesPtr codePointBundles = reinterpret_cast<CodePointBundlesPtr>(&memory_[idx]);
-      for (int i = 0; i < bundleCount; i++) {
-        codePointBundles_.push_back((*codePointBundles)[i]);
-      }
+      for (int i = 0; i < bundleCount; i++) { codePointBundles_.push_back((*codePointBundles)[i]); }
       idx += (((*planes)[3].codePointBundlesIdx + (*planes)[3].entriesCount) *
               sizeof(CodePointBundle));
     } else {
@@ -334,10 +325,10 @@ private:
         memcpy(glyph_info.get(), &memory_[idx], sizeof(GlyphInfo));
         idx += sizeof(GlyphInfo);
 
-        int     bitmap_size         = glyph_info->bitmapHeight * glyph_info->bitmapWidth;
-        Bitmap *bitmap              = new Bitmap;
-        bitmap->pixels              = Pixels(bitmap_size, 0);
-        bitmap->dim                 = Dim(glyph_info->bitmapWidth, glyph_info->bitmapHeight);
+        int     bitmap_size = glyph_info->bitmapHeight * glyph_info->bitmapWidth;
+        Bitmap *bitmap      = new Bitmap;
+        bitmap->pixels      = Pixels(bitmap_size, 0);
+        bitmap->dim         = Dim(glyph_info->bitmapWidth, glyph_info->bitmapHeight);
 
         RLEBitmap *compressedBitmap = new RLEBitmap;
         compressedBitmap->dim       = bitmap->dim;
@@ -359,9 +350,7 @@ private:
         // idx += glyph_info->packetLength;
       }
 
-      if (&memory_[idx] != (uint8_t *)pixelsPool) {
-        return false;
-      }
+      if (&memory_[idx] != (uint8_t *) pixelsPool) { return false; }
 
       idx += header->pixelsPoolSize;
 
@@ -437,14 +426,10 @@ public:
         bitmap->clear();
         delete bitmap;
       }
-      for (auto ligKern : face->ligKernSteps) {
-        delete ligKern;
-      }
+      for (auto ligKern : face->ligKernSteps) { delete ligKern; }
       for (auto ligKern : face->glyphsLigKern) {
-        for (auto lig : ligKern->ligSteps)
-          delete lig;
-        for (auto kern : ligKern->kernSteps)
-          delete kern;
+        for (auto lig : ligKern->ligSteps) delete lig;
+        for (auto kern : ligKern->kernSteps) delete kern;
         delete ligKern;
       }
       face->glyphs.clear();
@@ -461,6 +446,9 @@ public:
   inline Preamble getPreample() { return preamble_; }
   inline bool     isInitialized() { return initialized_; }
   inline int      getLastError() { return lastError_; }
+  inline int      getLineHeight(int faceIdx) {
+         return faceIdx < preamble_.faceCount ? faces_[faceIdx]->header->lineHeight : 0;
+  }
 
   inline const FaceHeaderPtr getFaceHeader(int faceIdx) { return faces_[faceIdx]->header; }
 
@@ -474,12 +462,8 @@ public:
   }
 
   bool getGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKern **glyphLigKern) {
-    if (faceIndex >= preamble_.faceCount) {
-      return false;
-    }
-    if (glyphCode >= faces_[faceIndex]->header->glyphCount) {
-      return false;
-    }
+    if (faceIndex >= preamble_.faceCount) { return false; }
+    if (glyphCode >= faces_[faceIndex]->header->glyphCount) { return false; }
 
     *glyphLigKern = faces_[faceIndex]->glyphsLigKern[glyphCode];
 
@@ -488,14 +472,12 @@ public:
 
   bool getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyph_info, Bitmap **bitmap) {
     if (faceIndex >= preamble_.faceCount) return false;
-    if (glyphCode > faces_[faceIndex]->header->glyphCount) {
-      return false;
-    }
+    if (glyphCode > faces_[faceIndex]->header->glyphCount) { return false; }
 
     int glyphIndex = glyphCode;
 
-    glyph_info     = faces_[faceIndex]->glyphs[glyphIndex];
-    *bitmap        = faces_[faceIndex]->bitmaps[glyphIndex];
+    glyph_info = faces_[faceIndex]->glyphs[glyphIndex];
+    *bitmap    = faces_[faceIndex]->bitmaps[glyphIndex];
 
     return true;
   }
@@ -511,7 +493,7 @@ public:
   bool saveGlyph(int faceIndex, int glyphCode, GlyphInfo *newGlyphInfo, Bitmap *new_bitmap) {
     if ((faceIndex < preamble_.faceCount) && (glyphCode < faces_[faceIndex]->header->glyphCount)) {
 
-      int glyphIndex                         = glyphCode;
+      int glyphIndex = glyphCode;
 
       *faces_[faceIndex]->glyphs[glyphIndex] = *newGlyphInfo;
       delete faces_[faceIndex]->bitmaps[glyphIndex];
@@ -543,7 +525,7 @@ public:
   }
 
 #define WRITE(v, size)                                                                             \
-  if (out.writeRawData((char *)v, size) == -1) {                                                   \
+  if (out.writeRawData((char *) v, size) == -1) {                                                  \
     lastError_ = 1;                                                                                \
     return false;                                                                                  \
   }
@@ -558,23 +540,15 @@ public:
 
     int  fill   = 4 - ((sizeof(Preamble) + preamble_.faceCount) & 3);
     char filler = 0;
-    for (auto &face : faces_) {
-      WRITE(&face->header->pointSize, 1);
-    }
-    while (fill--) {
-      WRITE(&filler, 1);
-    }
+    for (auto &face : faces_) { WRITE(&face->header->pointSize, 1); }
+    while (fill--) { WRITE(&filler, 1); }
 
     uint32_t offset    = 0;
     auto     offsetPos = out.device()->pos();
-    for (int i = 0; i < preamble_.faceCount; i++) {
-      WRITE(&offset, 4);
-    }
+    for (int i = 0; i < preamble_.faceCount; i++) { WRITE(&offset, 4); }
 
     if (preamble_.bits.fontFormat == FontFormat::UTF32) {
-      for (auto &plane : planes_) {
-        WRITE(&plane, sizeof(Plane));
-      }
+      for (auto &plane : planes_) { WRITE(&plane, sizeof(Plane)); }
       for (auto &codePointBundle : codePointBundles_) {
         WRITE(&codePointBundle, sizeof(CodePointBundle));
       }
@@ -624,9 +598,7 @@ public:
 
       WRITE(face->header.get(), sizeof(FaceHeader));
 
-      for (auto idx : *poolIndexes) {
-        WRITE(&idx, sizeof(uint32_t));
-      }
+      for (auto idx : *poolIndexes) { WRITE(&idx, sizeof(uint32_t)); }
 
       for (auto &glyph : face->glyphs) {
         WRITE(glyph.get(), sizeof(GlyphInfo));
@@ -639,9 +611,7 @@ public:
       }
 
       WRITE(poolData->data(), poolData->size());
-      while (fill--) {
-        WRITE(&filler, 1);
-      }
+      while (fill--) { WRITE(&filler, 1); }
 
       poolIndexes->clear();
       poolData->clear();
@@ -660,6 +630,141 @@ public:
       }
     }
     return true;
+  }
+
+  /**
+   * @brief Translate UTF32 codePoint to it's internal representation
+   *
+   * All supported character sets must use this method to get the internal
+   * glyph code correponding to the CodePoint. For the LATIN font format,
+   * the glyph code contains both the glyph index and accented information. For
+   * UTF32 font format, it contains the index of the glyph in all faces that are
+   * part of the font.
+   *
+   * FontFormat 0 - Latin Char Set Translation
+   * -----------------------------------------
+   *
+   * The class allow for latin1+ CodePoints to be plotted into a bitmap. As the
+   * font doesn't contains all accented glyphs, a combination of glyphs must be
+   * used to draw a single bitmap. This method translate some of the supported
+   * CodePoint values to that combination. The least significant byte will contains
+   * the main glyph code index and the next byte will contain the accent code.
+   *
+   * The supported UTF16 CodePoints are the following:
+   *
+   *      U+0020 to U+007F
+   *      U+00A1 to U+017f
+   *
+   *   and the following:
+   *
+   * |  UTF16  | Description          |
+   * |:-------:|----------------------|
+   * | U+02BB  | reverse apostrophe
+   * | U+02BC  | apostrophe
+   * | U+02C6  | circumflex
+   * | U+02DA  | ring
+   * | U+02DC  | tilde ~
+   * | U+2013  | endash (Not available with CM Typewriter)
+   * | U+2014  | emdash (Not available with CM Typewriter)
+   * | U+2018  | quote left
+   * | U+2019  | quote right
+   * | U+201A  | comma like ,
+   * | U+201C  | quoted left "
+   * | U+201D  | quoted right
+   * | U+2032  | minute '
+   * | U+2033  | second "
+   * | U+2044  | fraction /
+   * | U+20AC  | euro
+   *
+   * Font Format 1 - UTF32 translation
+   * ---------------------------------
+   *
+   * Using the Planes and CodePointBundles structure, retrieves the
+   * glyph code corresponding to the CodePoint.
+   *
+   * @param codePoint The UTF32 character code
+   * @return The internal representation of CodePoint
+   */
+  auto translate(char32_t codePoint) const -> GlyphCode {
+    GlyphCode glyphCode = SPACE_CODE;
+
+    if (preamble_.bits.fontFormat == FontFormat::LATIN) {
+      if ((codePoint > 0x20) && (codePoint < 0x7F)) {
+        glyphCode = codePoint; // ASCII codes No accent
+      } else if ((codePoint >= 0xA1) && (codePoint <= 0x1FF)) {
+        glyphCode = latinTranslationSet[codePoint - 0xA1];
+      } else {
+        switch (codePoint) {
+        case 0x2013: // endash
+          glyphCode = 0x0015;
+          break;
+        case 0x2014: // emdash
+          glyphCode = 0x0016;
+          break;
+        case 0x2018: // quote left
+        case 0x02BB: // reverse apostrophe
+          glyphCode = 0x0060;
+          break;
+        case 0x2019: // quote right
+        case 0x02BC: // apostrophe
+          glyphCode = 0x0027;
+          break;
+        case 0x201C: // quoted left "
+          glyphCode = 0x0010;
+          break;
+        case 0x201D: // quoted right
+          glyphCode = 0x0011;
+          break;
+        case 0x02C6: // circumflex
+          glyphCode = 0x005E;
+          break;
+        case 0x02DA: // ring
+          glyphCode = 0x0006;
+          break;
+        case 0x02DC: // tilde ~
+          glyphCode = 0x007E;
+          break;
+        case 0x201A: // comma like ,
+          glyphCode = 0x000D;
+          break;
+        case 0x2032: // minute '
+          glyphCode = 0x0027;
+          break;
+        case 0x2033: // second "
+          glyphCode = 0x0022;
+          break;
+        case 0x2044: // fraction /
+          glyphCode = 0x002F;
+          break;
+        case 0x20AC: // euro
+          glyphCode = 0x00AD;
+          break;
+        }
+      }
+    } else if (preamble_.bits.fontFormat == FontFormat::UTF32) {
+      uint16_t planeIdx = static_cast<uint16_t>(codePoint >> 16);
+
+      if (planeIdx <= 3) {
+        char16_t u16 = static_cast<char16_t>(codePoint);
+
+        uint16_t codePointBundleIdx = planes_[planeIdx].codePointBundlesIdx;
+        uint16_t entriesCount       = planes_[planeIdx].entriesCount;
+        int      gCode              = planes_[planeIdx].firstGlyphCode;
+        int      i                  = 0;
+        while (i < entriesCount) {
+          if (u16 <= codePointBundles_[codePointBundleIdx].lastCodePoint) { break; }
+          gCode += (codePointBundles_[codePointBundleIdx].lastCodePoint -
+                    codePointBundles_[codePointBundleIdx].firstCodePoint + 1);
+          i++;
+          codePointBundleIdx++;
+        }
+        if ((i < entriesCount) && (u16 >= codePointBundles_[codePointBundleIdx].firstCodePoint)) {
+          glyphCode = gCode + u16 - codePointBundles_[codePointBundleIdx].firstCodePoint;
+        }
+      }
+    }
+
+    return glyphCode;
   }
 
   // Returns the corresponding UTF32 character for the glyphCode.
@@ -719,9 +824,7 @@ public:
 
     if (charSelections.size() == 1) {
 
-      for (int i = 0; i < 4; i++) {
-        planes_.push_back(Plane({0, 0, 0}));
-      }
+      for (int i = 0; i < 4; i++) { planes_.push_back(Plane({0, 0, 0})); }
 
       SelectedBlockIndexesPtr selectedBlockIndexes = charSelections[0].selectedBlockIndexes;
 
@@ -797,19 +900,17 @@ public:
 
     GlyphCode glyphCode = NO_GLYPH_CODE;
 
-    uint16_t planeIdx   = static_cast<uint16_t>(codePoint >> 16);
+    uint16_t planeIdx = static_cast<uint16_t>(codePoint >> 16);
 
     if (planeIdx <= 3) {
-      char16_t u16                = static_cast<char16_t>(codePoint);
+      char16_t u16 = static_cast<char16_t>(codePoint);
 
       uint16_t codePointBundleIdx = planes_[planeIdx].codePointBundlesIdx;
       uint16_t entriesCount       = planes_[planeIdx].entriesCount;
       int      gCode              = planes_[planeIdx].firstGlyphCode;
       int      i                  = 0;
       while (i < entriesCount) {
-        if (u16 <= codePointBundles_[codePointBundleIdx].lastCodePoint) {
-          break;
-        }
+        if (u16 <= codePointBundles_[codePointBundleIdx].lastCodePoint) { break; }
         gCode += (codePointBundles_[codePointBundleIdx].lastCodePoint -
                   codePointBundles_[codePointBundleIdx].firstCodePoint + 1);
         i++;
@@ -950,7 +1051,7 @@ public:
                                  "There is no 'x' character in this font");
           }
 
-          FIX16 emSize      = static_cast<FIX16>(ftFace->size->metrics.x_ppem << 6);
+          FIX16 emSize = static_cast<FIX16>(ftFace->size->metrics.x_ppem << 6);
 
           index             = FT_Get_Char_Index(ftFace, ' ');
           uint8_t spaceSize = emSize / 2;

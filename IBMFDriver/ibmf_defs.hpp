@@ -82,8 +82,8 @@ const constexpr uint8_t MAX_GLYPH_COUNT = 254; // Index Value 0xFE and 0xFF are 
 // const constexpr uint8_t BLACK_EIGHT_BITS = 0;
 // const constexpr uint8_t WHITE_EIGHT_BITS = 0xFF;
 
-const constexpr uint8_t BLACK_ONE_BIT    = 1;
-const constexpr uint8_t WHITE_ONE_BIT    = 0;
+const constexpr uint8_t BLACK_ONE_BIT = 1;
+const constexpr uint8_t WHITE_ONE_BIT = 0;
 
 const constexpr uint8_t BLACK_EIGHT_BITS = 0xFF;
 const constexpr uint8_t WHITE_EIGHT_BITS = 0x00;
@@ -114,6 +114,7 @@ typedef uint16_t              GlyphCode;
 typedef std::vector<char32_t> CharCodes;
 
 const constexpr GlyphCode NO_GLYPH_CODE = 0x7FFF;
+const constexpr GlyphCode SPACE_CODE    = 0x7FFE;
 
 // RLE (Run Length Encoded) Bitmap. To get something to show, they have
 // to be processed through the RLEExtractor class.
@@ -698,7 +699,6 @@ const CharCodes fontFormat0CodePoints = {
     char16_t(0x20AC)  // €
 };
 
-#if 0
 // This table is used in support of the latin character set to identify which CodePoint
 // correspond to which glyph code. A glyph code is an index into the IBMF list of glyphs,
 // with diacritical information when required. The table allows glyphCodes between 0 and 2045
@@ -712,7 +712,7 @@ const CharCodes fontFormat0CodePoints = {
 //
 // The index in the table corresponds to UTF16 U+00A1 to U+017F CodePoints.
 
-const constexpr uint16_t latinTranslationSet[] = {
+const constexpr GlyphCode latinTranslationSet[] = {
     /* 0x0A1 */ 0x0020, // ¡
     /* 0x0A2 */ 0x0098, // ¢
     /* 0x0A3 */ 0x008B, // £
@@ -945,6 +945,5 @@ const constexpr uint16_t latinTranslationSet[] = {
     /* 0x17E */ 0x707A, // ž
     /* 0x17F */ 0x00FF  // ſ   ???
 };
-#endif
 
 } // namespace IBMFDefs

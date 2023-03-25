@@ -1234,7 +1234,7 @@
      <x>0</x>
      <y>0</y>
      <width>1641</width>
-     <height>30</height>
+     <height>19</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -1270,6 +1270,7 @@
     <addaction name="actionFont_load_save"/>
     <addaction name="actionRLE_Encoder"/>
     <addaction name="actionTest_Dialog"/>
+    <addaction name="actionTest_Auto_Kerning"/>
    </widget>
    <widget class="QMenu" name="editMenu">
     <property name="title">
@@ -1326,6 +1327,11 @@
   <action name="actionImportTrueTypeFont">
    <property name="text">
     <string>TrueType Font ...</string>
+   </property>
+  </action>
+  <action name="actionTest_Auto_Kerning">
+   <property name="text">
+    <string>Test Auto Kerning</string>
    </property>
   </action>
  </widget>
