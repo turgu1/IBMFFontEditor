@@ -33,23 +33,16 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QRadioButton" name="autoKernRadio">
+      <widget class="QCheckBox" name="autoKernCheckBox">
        <property name="text">
         <string>Auto Kern</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QRadioButton" name="normalKernRadio">
+      <widget class="QCheckBox" name="normalKernCheckBox">
        <property name="text">
-        <string>Normal Kern</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QRadioButton" name="noKernRadio">
-       <property name="text">
-        <string>No Kern</string>
+        <string>Normal Kern/Lig</string>
        </property>
       </widget>
      </item>
@@ -107,6 +100,60 @@
      </item>
      <item>
       <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Pattern</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboBox">
+       <item>
+        <property name="text">
+         <string>ASCII Letters Combinations</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Lowercase</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Uppercase</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>English Pangrams</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>European Pangrams</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Ligatures</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_3">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>

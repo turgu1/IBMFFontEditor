@@ -13,4 +13,5 @@ struct KernEntry {
   KernEntry() : glyphCode(0), nextGlyphCode(0), kern(0.0) {}
   ~KernEntry() {}
 };
+
 Q_DECLARE_METATYPE(KernEntry)

@@ -7,25 +7,27 @@ KerningModel::KerningModel(GlyphCode glyphCode, IBMFDefs::GlyphKernSteps *glyphK
     : QAbstractTableModel(parent), _glyphCode(glyphCode), _glyphKernSteps(glyphKernSteps) {
 
   for (auto entry : *_glyphKernSteps) {
-    addKernEntry(KernEntry(_glyphCode, entry->nextGlyphCode, (float) (entry->kern / 64.0)));
+    addKernEntry(KernEntry(_glyphCode, entry->nextGlyphCode, (float)(entry->kern / 64.0)));
   }
 }
 
-int KerningModel::rowCount(const QModelIndex & /*parent*/) const {
-  return _kernEntries.length();
-}
+int KerningModel::rowCount(const QModelIndex & /*parent*/) const { return _kernEntries.length(); }
 
-int KerningModel::columnCount(const QModelIndex & /*parent*/) const {
-  return 1;
+int KerningModel::columnCount(const QModelIndex & /*parent*/) const { return 1; }
+
+void KerningModel::addKernEntry(KernEntry entry) {
+  beginInsertRows(QModelIndex(), _kernEntries.length(), _kernEntries.length());
+  _kernEntries.push_back(entry);
+  endInsertRows();
 }
 
 QVariant KerningModel::data(const QModelIndex &index, int role) const {
   QVariant val;
   if (role == Qt::DisplayRole) {
     switch (index.column()) {
-    case 0:
-      val.setValue(_kernEntries[index.row()]);
-      return val;
+      case 0:
+        val.setValue(_kernEntries[index.row()]);
+        return val;
     }
   }
   return QVariant();
@@ -34,8 +36,8 @@ QVariant KerningModel::data(const QModelIndex &index, int role) const {
 QVariant KerningModel::headerData(int section, Qt::Orientation orientation, int role) const {
   if (role == Qt::DisplayRole && orientation == Qt::Horizontal) {
     switch (section) {
-    case 0:
-      return QString("Kerning");
+      case 0:
+        return QString("Kerning");
     }
   }
   return QVariant();
@@ -45,9 +47,9 @@ bool KerningModel::setData(const QModelIndex &index, const QVariant &value, int 
   if (role == Qt::EditRole) {
     if (!checkIndex(index)) return false;
     switch (index.column()) {
-    case 0:
-      _kernEntries[index.row()] = value.value<KernEntry>();
-      break;
+      case 0:
+        _kernEntries[index.row()] = value.value<KernEntry>();
+        break;
     }
     emit editCompleted();
 

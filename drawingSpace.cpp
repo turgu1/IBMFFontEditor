@@ -1,4 +1,5 @@
 #include "drawingSpace.h"
+
 #include <QPainter>
 
 DrawingSpace::DrawingSpace(IBMFFontModPtr font, int faceIdx, QWidget *parent)
@@ -13,7 +14,7 @@ void DrawingSpace::setText(QString text) {
 int DrawingSpace::computeAutoKerning(IBMFDefs::Bitmap &b1, IBMFDefs::Bitmap &b2,
                                      IBMFDefs::GlyphInfo &i1, IBMFDefs::GlyphInfo &i2) {
 
-  int kerning = 0;
+  int kerning     = 0;
 
   int buffWidth   = (i1.bitmapWidth + i2.bitmapWidth + i1.advance) * 2;
   int buffHeight  = ((i1.bitmapHeight > i2.bitmapHeight) ? i1.bitmapHeight : i2.bitmapHeight) * 3;
@@ -23,10 +24,10 @@ int DrawingSpace::computeAutoKerning(IBMFDefs::Bitmap &b1, IBMFDefs::Bitmap &b2,
 
   QPoint pos = QPoint(10, buffHeight / 2);
 
-  int voff = i1.verticalOffset;
-  int hoff = i1.horizontalOffset;
+  int voff   = i1.verticalOffset;
+  int hoff   = i1.horizontalOffset;
 
-  int idx = 0;
+  int idx    = 0;
   for (int row = 0; row < b1.dim.height; row++) {
     for (int col = 0; col < b1.dim.width; col++, idx++) {
       if (b1.pixels[idx] != 0) {
@@ -41,10 +42,9 @@ int DrawingSpace::computeAutoKerning(IBMFDefs::Bitmap &b1, IBMFDefs::Bitmap &b2,
     int voff = i2.verticalOffset;
     int hoff = i2.horizontalOffset;
 
-    int idx = 0;
-    for (int row = 0; row < b2.dim.height; row++) {
-      for (int col = 0; col < b2.dim.width; col++, idx++) {
-        if (b2.pixels[idx] != 0) {
+    for (int col = 0; col < b2.dim.width; col++) {
+      for (int row = 0; row < b2.dim.height; row++) {
+        if (b2.pixels[row * b2.dim.width + col] != 0) {
           int buffIdx = ((pos.y() - voff + row) * buffWidth) + (pos.x() - hoff + col);
           if (buffer[buffIdx] == 1) goto end;
         }
@@ -63,13 +63,11 @@ end:
 
 void DrawingSpace::setAutoKerning(bool value) {
   autoKerning_ = value;
-  if (autoKerning_) { normalKerning_ = false; }
   repaint();
 }
 
 void DrawingSpace::setNormalKerning(bool value) {
   normalKerning_ = value;
-  if (normalKerning_) { autoKerning_ = false; }
   repaint();
 }
 
@@ -78,8 +76,36 @@ void DrawingSpace::setPixelSize(int value) {
   repaint();
 }
 
+void DrawingSpace::paintWord(QPainter &painter, QPoint &pos) {
+  for (auto &ch : word_) {
+
+    pos.setX(pos.x() + ch.kern);
+
+    int voff = ch.glyphInfo->verticalOffset;
+    int hoff = ch.glyphInfo->horizontalOffset;
+
+    int idx  = 0;
+    for (int row = 0; row < ch.bitmap->dim.height; row++) {
+      for (int col = 0; col < ch.bitmap->dim.width; col++, idx++) {
+        if (ch.bitmap->pixels[idx] != 0) {
+          rect = QRect(10 + (pos.x() - hoff + col) * pixelSize_,
+                       (pos.y() - voff + row) * pixelSize_, pixelSize_, pixelSize_);
+
+          ch.painter.drawRect(rect);
+        }
+      }
+    }
+    pos.setX(pos.x() + (ch.glyphInfo->advance >> 6));
+  }
+  word_.clear();
+  wordLength_ = 0;
+}
+
 void DrawingSpace::paintEvent(QPaintEvent *event) {
   QPainter painter(this);
+
+  word_.clear();
+  wordLength_ = 0;
 
   painter.setPen(QPen(QBrush(QColorConstants::Black), 1));
   painter.setBrush(QBrush(QColorConstants::Black));
@@ -87,7 +113,8 @@ void DrawingSpace::paintEvent(QPaintEvent *event) {
   int    lineHeight = font_->getLineHeight(faceIdx_);
   QPoint pos        = QPoint(0, lineHeight);
 
-  bool first = true;
+  bool first        = true;
+  bool startOfLine  = true;
 
   IBMFDefs::BitmapPtr    b1, b2;
   IBMFDefs::GlyphInfoPtr i1, i2;
@@ -98,14 +125,35 @@ void DrawingSpace::paintEvent(QPaintEvent *event) {
     IBMFDefs::BitmapPtr    bitmap;
     IBMFDefs::GlyphInfoPtr glyphInfo;
 
-    font_->getGlyph(faceIdx_, font_->translate(ch.unicode()), glyphInfo, &bitmap);
-    if (((pos.x() + (glyphInfo->advance >> 6)) * pixelSize_) + 20 > this->width()) {
+    if (ch == '\n') {
+      if (wordLength_ > 0) {
+        paintWord(painter, &pos);
+        first = true;
+      }
       pos.setY(pos.y() + lineHeight);
       pos.setX(0);
+      startOfLine = true;
+      continue;
+    } else if (ch == ' ') {
+      if (word_.size() > 0) {
+        if (((pos.x() + (glyphInfo->advance >> 6)) * pixelSize_) + 20 > this->width()) {
+          pos.setY(pos.y() + lineHeight);
+          pos.setX(0);
+        }
+        paintWord(painter, &pos);
+        first = true;
+      }
+      if (!startOfLine) pos.setX(pos.x() + font_->getFaceHeader(faceIdx_)->spaceSize);
+      continue;
+    } else if (!font_->getGlyph(faceIdx_, font_->translate(ch.unicode()), glyphInfo, &bitmap)) {
+      continue;
     }
 
-    if (autoKerning_) {
-      int kerning;
+    if ((pos.y() * pixelSize_) > (height() - 5)) break;
+
+    int kerning = 0;
+
+    if (autoKerning_ && (kerning == 0)) {
       if (!first) {
         b1      = b2;
         i1      = i2;
@@ -119,28 +167,30 @@ void DrawingSpace::paintEvent(QPaintEvent *event) {
         b2      = bitmap;
         i2      = glyphInfo;
       }
-      pos.setX(pos.x() + kerning);
+      // pos.setX(pos.x() + kerning);
     }
 
-    if ((pos.y() * pixelSize_) > (height() - 5)) break;
-    int voff = glyphInfo->verticalOffset;
-    int hoff = glyphInfo->horizontalOffset;
+    word_.push_back(OneGlyph({.bitmap = bitmap, .glyphInfo = glyphInfo, .kern = kerning}));
+    wordLength_ += (glyphInfo->advance >> 6) + kerning;
 
-    int idx = 0;
-    for (int row = 0; row < bitmap->dim.height; row++) {
-      for (int col = 0; col < bitmap->dim.width; col++, idx++) {
-        if (bitmap->pixels[idx] != 0) {
-          rect = QRect(10 + (pos.x() - hoff + col) * pixelSize_,
-                       (pos.y() - voff + row) * pixelSize_, pixelSize_, pixelSize_);
+    //    int voff = glyphInfo->verticalOffset;
+    //    int hoff = glyphInfo->horizontalOffset;
 
-          painter.drawRect(rect);
-        }
-      }
-    }
-    pos.setX(pos.x() + (glyphInfo->advance >> 6));
+    //    int idx  = 0;
+    //    for (int row = 0; row < bitmap->dim.height; row++) {
+    //      for (int col = 0; col < bitmap->dim.width; col++, idx++) {
+    //        if (bitmap->pixels[idx] != 0) {
+    //          rect = QRect(10 + (pos.x() - hoff + col) * pixelSize_,
+    //                       (pos.y() - voff + row) * pixelSize_, pixelSize_, pixelSize_);
+
+    //          painter.drawRect(rect);
+    //        }
+    //      }
+    //    }
+    //    pos.setX(pos.x() + (glyphInfo->advance >> 6));
   }
+
+  if (word_.size() != 0) paintWord(painter, pos);
 }
 
-void DrawingSpace::resizeEvent(QResizeEvent *event) {
-  repaint();
-}
+void DrawingSpace::resizeEvent(QResizeEvent *event) { repaint(); }

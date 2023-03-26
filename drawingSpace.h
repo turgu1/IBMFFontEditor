@@ -31,6 +31,14 @@ private:
   bool           normalKerning_;
   int            pixelSize_;
 
+  struct OneGlyph {
+    IBMFDefs::BitmapPtr    bitmap;
+    IBMFDefs::GlyphInfoPtr glyphInfo;
+    int                    kern;
+  };
+  std::vector<OneGlyph> word_;
+  int                   wordLength_;
+
   int computeAutoKerning(IBMFDefs::Bitmap &b1, IBMFDefs::Bitmap &b2, IBMFDefs::GlyphInfo &i1,
                          IBMFDefs::GlyphInfo &i2);
 };

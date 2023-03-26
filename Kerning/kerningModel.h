@@ -19,17 +19,13 @@ public:
   QVariant      headerData(int section, Qt::Orientation orientation, int role) const override;
   Qt::ItemFlags flags(const QModelIndex &index) const override;
 
-  void addKernEntry(KernEntry entry) {
-    beginInsertRows(QModelIndex(), _kernEntries.length(), _kernEntries.length());
-    _kernEntries.push_back(entry);
-    endInsertRows();
-  }
+  void addKernEntry(KernEntry entry);
 
 signals:
   void editCompleted();
 
 private:
-  QVector<KernEntry>           _kernEntries;
-  IBMFDefs::GlyphCode          _glyphCode;
+  QVector<KernEntry>        _kernEntries;
+  IBMFDefs::GlyphCode       _glyphCode;
   IBMFDefs::GlyphKernSteps *_glyphKernSteps;
 };
