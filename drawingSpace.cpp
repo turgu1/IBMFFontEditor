@@ -2,16 +2,16 @@
 #include <QPainter>
 
 DrawingSpace::DrawingSpace(IBMFFontModPtr font, int faceIdx, QWidget *parent)
-    : QWidget{parent}, font_(font), faceIdx_(faceIdx) {}
+    : QWidget{parent}, font_(font), faceIdx_(faceIdx), autoKerning_(false), normalKerning_(true),
+      pixelSize_(1) {}
 
 void DrawingSpace::setText(QString text) {
   textToDraw_ = text;
   repaint();
 }
 
-#if AUTO_KERNING
-int DrawingSpace::computeKerning(IBMFDefs::Bitmap &b1, IBMFDefs::Bitmap &b2,
-                                 IBMFDefs::GlyphInfo &i1, IBMFDefs::GlyphInfo &i2) {
+int DrawingSpace::computeAutoKerning(IBMFDefs::Bitmap &b1, IBMFDefs::Bitmap &b2,
+                                     IBMFDefs::GlyphInfo &i1, IBMFDefs::GlyphInfo &i2) {
 
   int kerning = 0;
 
@@ -60,7 +60,23 @@ end:
   delete[] buffer;
   return kerning;
 }
-#endif
+
+void DrawingSpace::setAutoKerning(bool value) {
+  autoKerning_ = value;
+  if (autoKerning_) { normalKerning_ = false; }
+  repaint();
+}
+
+void DrawingSpace::setNormalKerning(bool value) {
+  normalKerning_ = value;
+  if (normalKerning_) { autoKerning_ = false; }
+  repaint();
+}
+
+void DrawingSpace::setPixelSize(int value) {
+  pixelSize_ = value;
+  repaint();
+}
 
 void DrawingSpace::paintEvent(QPaintEvent *event) {
   QPainter painter(this);
@@ -69,44 +85,44 @@ void DrawingSpace::paintEvent(QPaintEvent *event) {
   painter.setBrush(QBrush(QColorConstants::Black));
 
   int    lineHeight = font_->getLineHeight(faceIdx_);
-  QPoint pos        = QPoint(10, lineHeight);
+  QPoint pos        = QPoint(0, lineHeight);
 
-#if AUTO_KERNING
   bool first = true;
-#endif
 
   IBMFDefs::BitmapPtr    b1, b2;
   IBMFDefs::GlyphInfoPtr i1, i2;
+
+  QRect rect;
 
   for (auto &ch : textToDraw_) {
     IBMFDefs::BitmapPtr    bitmap;
     IBMFDefs::GlyphInfoPtr glyphInfo;
 
     font_->getGlyph(faceIdx_, font_->translate(ch.unicode()), glyphInfo, &bitmap);
-    if ((pos.x() + (glyphInfo->advance >> 6) + 10) > this->width()) {
+    if (((pos.x() + (glyphInfo->advance >> 6)) * pixelSize_) + 20 > this->width()) {
       pos.setY(pos.y() + lineHeight);
-      pos.setX(10);
+      pos.setX(0);
     }
 
-#if AUTO_KERNING
-    int kerning;
-    if (!first) {
-      b1      = b2;
-      i1      = i2;
-      b2      = bitmap;
-      i2      = glyphInfo;
-      kerning = computeKerning(*b1, *b2, *i1, *i2);
-      std::cout << kerning << " " << std::endl;
-    } else {
-      first   = false;
-      kerning = 0;
-      b2      = bitmap;
-      i2      = glyphInfo;
+    if (autoKerning_) {
+      int kerning;
+      if (!first) {
+        b1      = b2;
+        i1      = i2;
+        b2      = bitmap;
+        i2      = glyphInfo;
+        kerning = computeAutoKerning(*b1, *b2, *i1, *i2);
+        // std::cout << kerning << " " << std::endl;
+      } else {
+        first   = false;
+        kerning = 0;
+        b2      = bitmap;
+        i2      = glyphInfo;
+      }
+      pos.setX(pos.x() + kerning);
     }
-    pos.setX(pos.x() + kerning);
-#endif
 
-    if (pos.y() > (height() - 5)) break;
+    if ((pos.y() * pixelSize_) > (height() - 5)) break;
     int voff = glyphInfo->verticalOffset;
     int hoff = glyphInfo->horizontalOffset;
 
@@ -114,7 +130,10 @@ void DrawingSpace::paintEvent(QPaintEvent *event) {
     for (int row = 0; row < bitmap->dim.height; row++) {
       for (int col = 0; col < bitmap->dim.width; col++, idx++) {
         if (bitmap->pixels[idx] != 0) {
-          painter.drawPoint(QPoint(pos.x() - hoff + col, pos.y() - voff + row));
+          rect = QRect(10 + (pos.x() - hoff + col) * pixelSize_,
+                       (pos.y() - voff + row) * pixelSize_, pixelSize_, pixelSize_);
+
+          painter.drawRect(rect);
         }
       }
     }

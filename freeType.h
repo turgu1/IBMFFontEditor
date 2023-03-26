@@ -5,6 +5,7 @@
 #include FT_GLYPH_H
 #include FT_TRUETYPE_TABLES_H
 #include FT_TRUETYPE_TAGS_H
+#include FT_SYSTEM_H
 
 #include <QMessageBox>
 

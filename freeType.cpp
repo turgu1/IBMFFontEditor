@@ -13,7 +13,7 @@ FreeType::FreeType() : initialized_(false), ftLib_(nullptr) {
 
   FT_Library_Version(ftLib_, &amajor, &aminor, &apatch);
 
-  std::cout << "FreeType Version " << amajor << "." << aminor << "." << apatch << std::endl;
+  //  std::cout << "FreeType Version " << amajor << "." << aminor << "." << apatch << std::endl;
 }
 
 FreeType::~FreeType() {

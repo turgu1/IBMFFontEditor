@@ -62,6 +62,7 @@ set(PROJECT_SOURCES
         kerningTestDialog.ui
         drawingSpace.h
         drawingSpace.cpp
+        fix16Delegate.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

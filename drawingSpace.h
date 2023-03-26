@@ -13,6 +13,9 @@ public:
   explicit DrawingSpace(IBMFFontModPtr font, int faceIdx, QWidget *parent = nullptr);
 
   void setText(QString text);
+  void setAutoKerning(bool value);
+  void setNormalKerning(bool value);
+  void setPixelSize(int value);
 
 signals:
 
@@ -24,9 +27,10 @@ private:
   QString        textToDraw_;
   IBMFFontModPtr font_;
   int            faceIdx_;
+  bool           autoKerning_;
+  bool           normalKerning_;
+  int            pixelSize_;
 
-#if AUTO_KERNING
-  int computeKerning(IBMFDefs::Bitmap &b1, IBMFDefs::Bitmap &b2, IBMFDefs::GlyphInfo &i1,
-                     IBMFDefs::GlyphInfo &i2);
-#endif
+  int computeAutoKerning(IBMFDefs::Bitmap &b1, IBMFDefs::Bitmap &b2, IBMFDefs::GlyphInfo &i1,
+                         IBMFDefs::GlyphInfo &i2);
 };

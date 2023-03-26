@@ -25,7 +25,9 @@ void BitmapRenderer::resizeEvent(QResizeEvent *event) {
   }
 }
 
-int BitmapRenderer::getPixelSize() { return pixelSize_; }
+int BitmapRenderer::getPixelSize() {
+  return pixelSize_;
+}
 
 void BitmapRenderer::connectTo(BitmapRenderer *main_renderer) {
   QObject::connect(main_renderer, &BitmapRenderer::bitmapHasChanged, this,
@@ -71,6 +73,8 @@ void BitmapRenderer::setBitmapOffsetPos(QPoint pos) {
   }
 }
 
+// Put a pixel on screen. The pixel will be sized according to *pixelSize_* value
+// and if the renderer is the main editable or not
 void BitmapRenderer::setScreenPixel(QPoint pos) {
   QPainter painter(this);
   QRect    rect;
@@ -89,6 +93,8 @@ void BitmapRenderer::setScreenPixel(QPoint pos) {
   painter.drawRect(rect);
 }
 
+// The event will paint the grid lines, the limiting lines and the pixels that are part
+// of the glyph
 void BitmapRenderer::paintEvent(QPaintEvent * /* event */) {
   QPainter painter(this);
 
@@ -105,12 +111,12 @@ void BitmapRenderer::paintEvent(QPaintEvent * /* event */) {
     }
 
     if (glyphPresent_) {
-      int originRow    = (glyphOriginPos_.y() - bitmapOffsetPos_.y()) * pixelSize_;
+      int originRow    = (glyphOriginPos_.y() - bitmapOffsetPos_.y() - 1) * pixelSize_;
       int originCol    = (glyphOriginPos_.x() - bitmapOffsetPos_.x()) * pixelSize_;
       int descenderRow = originRow + (faceHeader_.descenderHeight * pixelSize_);
       int topRow       = descenderRow - (faceHeader_.lineHeight * pixelSize_);
-      int xRow         = originRow - (((float)faceHeader_.xHeight / 64.0) * pixelSize_);
-      int advCol       = originCol + (((float)glyphInfo_.advance / 64.0) * pixelSize_);
+      int xRow         = originRow - (((float) faceHeader_.xHeight / 64.0) * pixelSize_);
+      int advCol       = originCol + (((float) glyphInfo_.advance / 64.0) * pixelSize_);
       // int emCol        = originCol + (floor(((float) faceHeader_.emSize
       // / 64.0)) * pixelSize_);
 
@@ -134,9 +140,7 @@ void BitmapRenderer::paintEvent(QPaintEvent * /* event */) {
   for (int row = bitmapOffsetPos_.y(), rowp = row * bitmapWidth; row < bitmapHeight;
        row++, rowp += bitmapWidth) {
     for (int col = bitmapOffsetPos_.x(); col < bitmapWidth; col++) {
-      if (displayBitmap_[rowp + col] == PixelType::BLACK) {
-        setScreenPixel(QPoint(col, row));
-      }
+      if (displayBitmap_[rowp + col] == PixelType::BLACK) { setScreenPixel(QPoint(col, row)); }
     }
   }
 }
@@ -294,7 +298,7 @@ bool BitmapRenderer::retrieveBitmap(IBMFDefs::Bitmap **bitmap) {
   int size          = theBitmap->dim.width * theBitmap->dim.height;
   theBitmap->pixels = IBMFDefs::Pixels(size, 0);
 
-  idx               = 0;
+  idx = 0;
   for (row = topLeft.y(), rowp = row * bitmapWidth; row <= bottomRight.y();
        row++, rowp += bitmapWidth) {
     for (col = topLeft.x(); col <= bottomRight.x(); col++) {

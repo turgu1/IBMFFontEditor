@@ -9,7 +9,6 @@
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QString>
-#include <QStyledItemDelegate>
 #include <QTableWidgetItem>
 #include <QUndoStack>
 #include <QUndoView>
@@ -121,21 +120,4 @@ private:
   void     putFix16Value(QTableWidget *w, int row, int col, QVariant value, bool editable = true);
   QVariant getValue(QTableWidget *w, int row, int col);
   void     clearEditable(QTableWidget *w, int row, int col);
-};
-
-// The following is to support Fix16 fields editing in QTableWidgets
-class Fix16Delegate : public QStyledItemDelegate {
-  QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &style,
-                        const QModelIndex &index) const {
-    QDoubleSpinBox *box = new QDoubleSpinBox(parent);
-
-    box->setDecimals(4);
-
-    // you can also set these
-    box->setSingleStep(0.01);
-    box->setMinimum(0);
-    box->setMaximum(1000);
-
-    return box;
-  }
 };
