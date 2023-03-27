@@ -25,14 +25,7 @@ private slots:
   void on_autoKernCheckBox_toggled(bool checked);
   void on_normalKernCheckBox_toggled(bool checked);
   void on_comboBox_currentIndexChanged(int index);
-
-  void on_scrollBar_valueChanged(int value);
-
   void on_faceIdxCombo_currentIndexChanged(int index);
-
-protected:
-  void resizeEvent(QResizeEvent *event);
-  void paintEvent(QPaintEvent *event);
 
 private:
   Ui::KerningTestDialog *ui;
@@ -43,6 +36,7 @@ private:
   IBMFFontModPtr font_;
   int            faceIdx_;
   QString        combinedLetters();
+  QString        allCodePoints();
 };
 
 const constexpr char *proofingTexts[] = {
@@ -218,6 +212,21 @@ const constexpr char *proofingTexts[] = {
     "Pijamalı hasta yağız şoföre çabucak güvendi. (\"The sick person in pyjamas quickly trusted "
     "the "
     "swarthy driver.\")\n",
+
+    "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Cras sit amet dui.  Nam sapien. "
+    "Fusce vestibulum ornare metus. Maecenas ligula orci, consequat vitae, dictum nec, lacinia "
+    "non, elit. Aliquam iaculis molestie neque. Maecenas suscipit felis ut pede convallis "
+    "malesuada. Aliquam erat volutpat. Nunc pulvinar condimentum nunc. Donec ac sem vel leo "
+    "bibendum aliquam. Pellentesque habitant morbi tristique senectus et netus et malesuada fames "
+    "ac turpis egestas.\n\nSed commodo. Nulla ut libero sit amet justo varius blandit. Mauris "
+    "vitae "
+    "nulla eget lorem pretium ornare. Proin vulputate erat porta risus. Vestibulum malesuada, odio "
+    "at vehicula lobortis, nisi metus hendrerit est, vitae feugiat quam massa a ligula. Aenean in "
+    "tellus. Praesent convallis. Nullam vel lacus.  Aliquam congue erat non urna mollis faucibus. "
+    "Morbi vitae mauris faucibus quam condimentum ornare. Quisque sit amet augue. Morbi "
+    "ullamcorper mattis enim. Aliquam erat volutpat. Morbi nec felis non enim pulvinar lobortis.  "
+    "Ut libero. Nullam id orci quis nisl dapibus rutrum. Suspendisse consequat vulputate leo. "
+    "Aenean non orci non tellus iaculis vestibulum. Sed neque.",
 
     "Ligatures:\n\n"
     "f, and f: affa\n"

@@ -17,6 +17,10 @@ CharacterViewer::CharacterViewer(const IBMFDefs::CharCodes *chars, QString title
   setMinimumHeight(600);
   setMinimumWidth(500);
 
+  QFont charsTableFont("Tahoma");
+  charsTableFont.setPointSize(16);
+  charsTableFont.setBold(true);
+
   QFont fnt;
   fnt.setPointSize(14);
   fnt.setFamily("Arial");
@@ -42,6 +46,7 @@ CharacterViewer::CharacterViewer(const IBMFDefs::CharCodes *chars, QString title
 
   this->setLayout(mainLayout);
 
+  _charsTable->setFont(charsTableFont);
   _charsTable->verticalHeader()->setDefaultSectionSize(50);
   _charsTable->horizontalHeader()->setDefaultSectionSize(50);
   _charsTable->horizontalHeader()->hide();

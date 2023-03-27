@@ -6,6 +6,8 @@
 #include FT_TRUETYPE_TABLES_H
 #include FT_TRUETYPE_TAGS_H
 #include FT_SYSTEM_H
+#include FT_DRIVER_H
+#include FT_MODULE_H
 
 #include <QMessageBox>
 

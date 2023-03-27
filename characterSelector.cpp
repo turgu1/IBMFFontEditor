@@ -45,6 +45,11 @@ CharacterSelector::CharacterSelector(const IBMFDefs::CharCodes *chars, QString t
 
   this->setLayout(mainLayout);
 
+  QFont charsTableFont("Tahoma");
+  charsTableFont.setPointSize(16);
+  charsTableFont.setBold(true);
+
+  _charsTable->setFont(charsTableFont);
   _charsTable->verticalHeader()->setDefaultSectionSize(50);
   _charsTable->horizontalHeader()->setDefaultSectionSize(50);
   _charsTable->horizontalHeader()->hide();
@@ -106,9 +111,7 @@ void CharacterSelector::onOk(bool checked) {
   }
 }
 
-void CharacterSelector::onCancel(bool checked) {
-  reject();
-}
+void CharacterSelector::onCancel(bool checked) { reject(); }
 
 void CharacterSelector::onSelected() {
   _okButton->setEnabled(!_charsTable->selectedItems().isEmpty());

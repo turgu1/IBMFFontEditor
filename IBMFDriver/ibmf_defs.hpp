@@ -82,8 +82,8 @@ const constexpr uint8_t MAX_GLYPH_COUNT = 254; // Index Value 0xFE and 0xFF are 
 // const constexpr uint8_t BLACK_EIGHT_BITS = 0;
 // const constexpr uint8_t WHITE_EIGHT_BITS = 0xFF;
 
-const constexpr uint8_t BLACK_ONE_BIT = 1;
-const constexpr uint8_t WHITE_ONE_BIT = 0;
+const constexpr uint8_t BLACK_ONE_BIT    = 1;
+const constexpr uint8_t WHITE_ONE_BIT    = 0;
 
 const constexpr uint8_t BLACK_EIGHT_BITS = 0xFF;
 const constexpr uint8_t WHITE_EIGHT_BITS = 0x00;
@@ -176,6 +176,7 @@ struct FaceHeader {
   uint8_t  maxHeight;        // The maximum hight in pixels of every glyph in the face
   uint8_t  filler[3];        // To keep the struct to be at a frontier of 32 bits
 };
+
 // typedef FaceHeader *FaceHeaderPtr;
 typedef std::shared_ptr<FaceHeader> FaceHeaderPtr;
 typedef uint8_t (*PixelsPoolPtr)[];
@@ -474,11 +475,14 @@ typedef CharSelections            *CharSelectionsPtr;
 
 struct FontParameters {
   int               dpi;
+  bool              pt8;
+  bool              pt9;
   bool              pt10;
   bool              pt12;
   bool              pt14;
   bool              pt17;
   bool              pt24;
+  bool              pt48;
   QString           filename;
   CharSelectionsPtr charSelections;
 };
@@ -499,7 +503,7 @@ const struct Ligature {
     {0xFB00, 0x0069, 0xFB03}, // ﬀ ,i, ﬃ
     {0xFB00, 0x006C, 0xFB04}, // ﬀ ,l, ﬄ
     {0x0069, 0x006A, 0x0133}, // i, j, ĳ
-    {0x0049, 0x004F, 0x0132}, // I, J, Ĳ
+    {0x0049, 0x004A, 0x0132}, // I, J, Ĳ
     {0x003C, 0x003C, 0x00AB}, // <, <, «
     {0x003E, 0x003E, 0x00BB}, // >, >, »
     {0x003F, 0x2018, 0x00BF}, // ?, ‘, ¿
@@ -714,7 +718,7 @@ const CharCodes fontFormat0CodePoints = {
 //
 // The index in the table corresponds to UTF16 U+00A1 to U+017F CodePoints.
 
-const constexpr uint16_t LATIN_GLYPH_CODE_MASK = 0x7FF;
+const constexpr uint16_t LATIN_GLYPH_CODE_MASK  = 0x7FF;
 
 const constexpr GlyphCode latinTranslationSet[] = {
     /* 0x0A1 */ 0x0020, // ¡

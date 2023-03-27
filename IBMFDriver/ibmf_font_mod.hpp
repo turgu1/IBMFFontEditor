@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <set>
 #include <vector>
 
@@ -20,8 +21,8 @@ using namespace IBMFDefs;
 #define DEBUG 0
 
 #if DEBUG
-#include <iomanip>
-#include <iostream>
+  #include <iomanip>
+  #include <iostream>
 #endif
 
 /**
@@ -67,6 +68,10 @@ private:
 
   int lastError_;
 
+  // In the process of optimizing the size of the ligKern table, this method
+  // search to find if a part of the already prepared list contains the same
+  // steps as per the pgm received as a parameter. If so, the index of the
+  // similar list of steps is returned, else -1
   int findList(std::vector<LigKernStep *> &pgm, std::vector<LigKernStep *> &list) {
     int idx = 0;
     for (auto entry = list.begin(); entry != list.end(); entry++) {
@@ -139,8 +144,8 @@ private:
 
         LigKernStep *lks = nullptr;
 
-        auto lSteps = face->glyphsLigKern[glyphIdx]->ligSteps;
-        auto kSteps = face->glyphsLigKern[glyphIdx]->kernSteps;
+        auto lSteps      = face->glyphsLigKern[glyphIdx]->ligSteps;
+        auto kSteps      = face->glyphsLigKern[glyphIdx]->kernSteps;
 
         glyphPgm.clear();
         glyphPgm.reserve(lSteps.size() + kSteps.size());
@@ -174,13 +179,19 @@ private:
           if ((sameIdx = findList(glyphPgm, lkSteps)) > 1) {
             // We found a duplicated list. Remove the duplicate one and make it
             // point to the first found to be similar.
-            for (auto entry : glyphPgm) { delete entry; }
+            for (auto entry : glyphPgm) {
+              delete entry;
+            }
             glyphPgm.clear();
             glyphsPgmIndexes[glyphIdx] = -sameIdx; // negative to signify a duplicate list
-            if (sameIdx >= 255) { overflowList.insert(sameIdx); }
+            if (sameIdx >= 255) {
+              overflowList.insert(sameIdx);
+            }
           } else {
             int index = lkSteps.size();
-            if (index >= 255) { overflowList.insert(index); }
+            if (index >= 255) {
+              overflowList.insert(index);
+            }
             uniquePgmIndexes.push_back(index);
             glyphsPgmIndexes[glyphIdx] = index;
             std::move(glyphPgm.begin(), glyphPgm.end(), std::back_inserter(lkSteps));
@@ -203,17 +214,19 @@ private:
       int spaceRequired = overflowList.size();
 
       if (spaceRequired > 0) {
-        int i = uniquePgmIndexes.size() - (spaceRequired + 1);
+        int i = uniquePgmIndexes.size() - spaceRequired + 1;
 
         while (true) {
           if ((uniquePgmIndexes[i] + spaceRequired) >= 255) {
             spaceRequired += 1;
             overflowList.insert(uniquePgmIndexes[i]);
             i -= 1;
-          } else break;
+          } else
+            break;
         }
 
         overflowList.insert(uniquePgmIndexes[i]);
+        spaceRequired += 1;
 
         // Starting at index uniquePgmIndexes[i], all items must go down for an
         // amount of spaceRequired The corresponding indices in the glyphs table
@@ -221,22 +234,27 @@ private:
 
         int newLigKernIdx = uniquePgmIndexes[i];
 
-        // Doing it in reverse order will avoid potential collision between old
-        // vs new indexes.
         for (auto idx = overflowList.rbegin(); idx != overflowList.rend(); idx++) {
           // std::cout << *idx << " treatment: " << std::endl;
-          LigKernStep *lks = new LigKernStep;
-          memset(lks, 0, sizeof(LigKernStep));
-          lks->b.goTo.isAKern      = true;
-          lks->b.goTo.isAGoTo      = true;
-          lks->b.goTo.displacement = (*idx + spaceRequired + 1);
+          LigKernStep *ligKernStep = new LigKernStep;
+          memset(ligKernStep, 0, sizeof(LigKernStep));
+          ligKernStep->b.goTo.isAKern      = true;
+          ligKernStep->b.goTo.isAGoTo      = true;
+          ligKernStep->b.goTo.displacement = (*idx + spaceRequired);
 
-          lkSteps.insert(lkSteps.begin() + newLigKernIdx, lks);
+          std::cout << "Added goto at location " << *idx << " to point at location "
+                    << (*idx + spaceRequired) << std::endl;
+
+          lkSteps.insert(lkSteps.begin() + newLigKernIdx, ligKernStep);
+          int gCode = 0;
           for (auto pgmIdx = glyphsPgmIndexes.begin(); pgmIdx != glyphsPgmIndexes.end(); pgmIdx++) {
             if (abs(*pgmIdx) == *idx) { // Must look at both duplicated and
                                         // non-duplicated indexes
-              *pgmIdx = -newLigKernIdx;
+              std::cout << "Entry " << gCode << " pointing at " << *pgmIdx << " redirected to "
+                        << (-5000 - newLigKernIdx) << std::endl;
+              *pgmIdx = -5000 - newLigKernIdx;
             }
+            gCode++;
           }
           newLigKernIdx++;
         } // for
@@ -247,14 +265,19 @@ private:
         if (glyphsPgmIndexes[glyphIdx] == -1) {
           glyph->ligKernPgmIndex = 255;
         } else {
-          if (abs(glyphsPgmIndexes[glyphIdx]) >= 255) {
+          if ((abs(glyphsPgmIndexes[glyphIdx]) >= 255) &&
+              (abs(glyphsPgmIndexes[glyphIdx]) < 5000)) {
             QMessageBox::warning(nullptr, "Logic Error",
                                  "A logic error was encoutered in method "
                                  "prepareLigKernVectors() "
                                  "-> computed LigKern PGM index >= 255!!");
             return false;
           }
-          glyph->ligKernPgmIndex = abs(glyphsPgmIndexes[glyphIdx]);
+          if (abs(glyphsPgmIndexes[glyphIdx]) >= 5000) {
+            glyph->ligKernPgmIndex = abs(glyphsPgmIndexes[glyphIdx]) - 5000;
+          } else {
+            glyph->ligKernPgmIndex = abs(glyphsPgmIndexes[glyphIdx]);
+          }
         }
         glyphIdx += 1;
       }
@@ -273,7 +296,7 @@ private:
 
     // Faces offset retrieval
     for (int i = 0; i < preamble_.faceCount; i++) {
-      uint32_t offset = *((uint32_t *) &memory_[idx]);
+      uint32_t offset = *((uint32_t *)&memory_[idx]);
       faceOffsets_.push_back(offset);
       idx += 4;
     }
@@ -289,7 +312,9 @@ private:
       idx += sizeof(Planes);
 
       CodePointBundlesPtr codePointBundles = reinterpret_cast<CodePointBundlesPtr>(&memory_[idx]);
-      for (int i = 0; i < bundleCount; i++) { codePointBundles_.push_back((*codePointBundles)[i]); }
+      for (int i = 0; i < bundleCount; i++) {
+        codePointBundles_.push_back((*codePointBundles)[i]);
+      }
       idx += (((*planes)[3].codePointBundlesIdx + (*planes)[3].entriesCount) *
               sizeof(CodePointBundle));
     } else {
@@ -325,10 +350,10 @@ private:
         memcpy(glyph_info.get(), &memory_[idx], sizeof(GlyphInfo));
         idx += sizeof(GlyphInfo);
 
-        int     bitmap_size = glyph_info->bitmapHeight * glyph_info->bitmapWidth;
-        Bitmap *bitmap      = new Bitmap;
-        bitmap->pixels      = Pixels(bitmap_size, 0);
-        bitmap->dim         = Dim(glyph_info->bitmapWidth, glyph_info->bitmapHeight);
+        int     bitmap_size         = glyph_info->bitmapHeight * glyph_info->bitmapWidth;
+        Bitmap *bitmap              = new Bitmap;
+        bitmap->pixels              = Pixels(bitmap_size, 0);
+        bitmap->dim                 = Dim(glyph_info->bitmapWidth, glyph_info->bitmapHeight);
 
         RLEBitmap *compressedBitmap = new RLEBitmap;
         compressedBitmap->dim       = bitmap->dim;
@@ -350,7 +375,9 @@ private:
         // idx += glyph_info->packetLength;
       }
 
-      if (&memory_[idx] != (uint8_t *) pixelsPool) { return false; }
+      if (&memory_[idx] != (uint8_t *)pixelsPool) {
+        return false;
+      }
 
       idx += header->pixelsPoolSize;
 
@@ -426,10 +453,14 @@ public:
         bitmap->clear();
         delete bitmap;
       }
-      for (auto ligKern : face->ligKernSteps) { delete ligKern; }
+      for (auto ligKern : face->ligKernSteps) {
+        delete ligKern;
+      }
       for (auto ligKern : face->glyphsLigKern) {
-        for (auto lig : ligKern->ligSteps) delete lig;
-        for (auto kern : ligKern->kernSteps) delete kern;
+        for (auto lig : ligKern->ligSteps)
+          delete lig;
+        for (auto kern : ligKern->kernSteps)
+          delete kern;
         delete ligKern;
       }
       face->glyphs.clear();
@@ -482,15 +513,19 @@ public:
   ///
   bool ligKern(int faceIndex, const GlyphCode glyphCode1, GlyphCode *glyphCode2, FIX16 *kern) {
 
-    *kern = 0;
+    *kern                           = 0;
 
     const GlyphLigSteps  &ligSteps  = faces_[faceIndex]->glyphsLigKern[glyphCode1]->ligSteps;
     const GlyphKernSteps &kernSteps = faces_[faceIndex]->glyphsLigKern[glyphCode1]->kernSteps;
 
-    if ((ligSteps.size() == 0) && (kernSteps.size() == 0)) { return false; }
+    if ((ligSteps.size() == 0) && (kernSteps.size() == 0)) {
+      return false;
+    }
 
     GlyphCode code = *glyphCode2;
-    if (preamble_.bits.fontFormat == FontFormat::LATIN) { code &= LATIN_GLYPH_CODE_MASK; }
+    if (preamble_.bits.fontFormat == FontFormat::LATIN) {
+      code &= LATIN_GLYPH_CODE_MASK;
+    }
     bool first = true;
 
     for (auto &ligStep : ligSteps) {
@@ -510,8 +545,12 @@ public:
   }
 
   bool getGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKern **glyphLigKern) {
-    if (faceIndex >= preamble_.faceCount) { return false; }
-    if (glyphCode >= faces_[faceIndex]->header->glyphCount) { return false; }
+    if (faceIndex >= preamble_.faceCount) {
+      return false;
+    }
+    if (glyphCode >= faces_[faceIndex]->header->glyphCount) {
+      return false;
+    }
 
     *glyphLigKern = faces_[faceIndex]->glyphsLigKern[glyphCode];
 
@@ -520,12 +559,14 @@ public:
 
   bool getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyph_info, Bitmap **bitmap) {
     if (faceIndex >= preamble_.faceCount) return false;
-    if (glyphCode > faces_[faceIndex]->header->glyphCount) { return false; }
+    if (glyphCode > faces_[faceIndex]->header->glyphCount) {
+      return false;
+    }
 
     int glyphIndex = glyphCode;
 
-    glyph_info = faces_[faceIndex]->glyphs[glyphIndex];
-    *bitmap    = faces_[faceIndex]->bitmaps[glyphIndex];
+    glyph_info     = faces_[faceIndex]->glyphs[glyphIndex];
+    *bitmap        = faces_[faceIndex]->bitmaps[glyphIndex];
 
     return true;
   }
@@ -541,7 +582,7 @@ public:
   bool saveGlyph(int faceIndex, int glyphCode, GlyphInfo *newGlyphInfo, Bitmap *new_bitmap) {
     if ((faceIndex < preamble_.faceCount) && (glyphCode < faces_[faceIndex]->header->glyphCount)) {
 
-      int glyphIndex = glyphCode;
+      int glyphIndex                         = glyphCode;
 
       *faces_[faceIndex]->glyphs[glyphIndex] = *newGlyphInfo;
       delete faces_[faceIndex]->bitmaps[glyphIndex];
@@ -573,7 +614,7 @@ public:
   }
 
 #define WRITE(v, size)                                                                             \
-  if (out.writeRawData((char *) v, size) == -1) {                                                  \
+  if (out.writeRawData((char *)v, size) == -1) {                                                   \
     lastError_ = 1;                                                                                \
     return false;                                                                                  \
   }
@@ -588,15 +629,23 @@ public:
 
     int  fill   = 4 - ((sizeof(Preamble) + preamble_.faceCount) & 3);
     char filler = 0;
-    for (auto &face : faces_) { WRITE(&face->header->pointSize, 1); }
-    while (fill--) { WRITE(&filler, 1); }
+    for (auto &face : faces_) {
+      WRITE(&face->header->pointSize, 1);
+    }
+    while (fill--) {
+      WRITE(&filler, 1);
+    }
 
     uint32_t offset    = 0;
     auto     offsetPos = out.device()->pos();
-    for (int i = 0; i < preamble_.faceCount; i++) { WRITE(&offset, 4); }
+    for (int i = 0; i < preamble_.faceCount; i++) {
+      WRITE(&offset, 4);
+    }
 
     if (preamble_.bits.fontFormat == FontFormat::UTF32) {
-      for (auto &plane : planes_) { WRITE(&plane, sizeof(Plane)); }
+      for (auto &plane : planes_) {
+        WRITE(&plane, sizeof(Plane));
+      }
       for (auto &codePointBundle : codePointBundles_) {
         WRITE(&codePointBundle, sizeof(CodePointBundle));
       }
@@ -646,7 +695,9 @@ public:
 
       WRITE(face->header.get(), sizeof(FaceHeader));
 
-      for (auto idx : *poolIndexes) { WRITE(&idx, sizeof(uint32_t)); }
+      for (auto idx : *poolIndexes) {
+        WRITE(&idx, sizeof(uint32_t));
+      }
 
       for (auto &glyph : face->glyphs) {
         WRITE(glyph.get(), sizeof(GlyphInfo));
@@ -659,7 +710,9 @@ public:
       }
 
       WRITE(poolData->data(), poolData->size());
-      while (fill--) { WRITE(&filler, 1); }
+      while (fill--) {
+        WRITE(&filler, 1);
+      }
 
       poolIndexes->clear();
       poolData->clear();
@@ -743,64 +796,66 @@ public:
         glyphCode = latinTranslationSet[codePoint - 0xA1];
       } else {
         switch (codePoint) {
-        case 0x2013: // endash
-          glyphCode = 0x0015;
-          break;
-        case 0x2014: // emdash
-          glyphCode = 0x0016;
-          break;
-        case 0x2018: // quote left
-        case 0x02BB: // reverse apostrophe
-          glyphCode = 0x0060;
-          break;
-        case 0x2019: // quote right
-        case 0x02BC: // apostrophe
-          glyphCode = 0x0027;
-          break;
-        case 0x201C: // quoted left "
-          glyphCode = 0x0010;
-          break;
-        case 0x201D: // quoted right
-          glyphCode = 0x0011;
-          break;
-        case 0x02C6: // circumflex
-          glyphCode = 0x005E;
-          break;
-        case 0x02DA: // ring
-          glyphCode = 0x0006;
-          break;
-        case 0x02DC: // tilde ~
-          glyphCode = 0x007E;
-          break;
-        case 0x201A: // comma like ,
-          glyphCode = 0x000D;
-          break;
-        case 0x2032: // minute '
-          glyphCode = 0x0027;
-          break;
-        case 0x2033: // second "
-          glyphCode = 0x0022;
-          break;
-        case 0x2044: // fraction /
-          glyphCode = 0x002F;
-          break;
-        case 0x20AC: // euro
-          glyphCode = 0x00AD;
-          break;
+          case 0x2013: // endash
+            glyphCode = 0x0015;
+            break;
+          case 0x2014: // emdash
+            glyphCode = 0x0016;
+            break;
+          case 0x2018: // quote left
+          case 0x02BB: // reverse apostrophe
+            glyphCode = 0x0060;
+            break;
+          case 0x2019: // quote right
+          case 0x02BC: // apostrophe
+            glyphCode = 0x0027;
+            break;
+          case 0x201C: // quoted left "
+            glyphCode = 0x0010;
+            break;
+          case 0x201D: // quoted right
+            glyphCode = 0x0011;
+            break;
+          case 0x02C6: // circumflex
+            glyphCode = 0x005E;
+            break;
+          case 0x02DA: // ring
+            glyphCode = 0x0006;
+            break;
+          case 0x02DC: // tilde ~
+            glyphCode = 0x007E;
+            break;
+          case 0x201A: // comma like ,
+            glyphCode = 0x000D;
+            break;
+          case 0x2032: // minute '
+            glyphCode = 0x0027;
+            break;
+          case 0x2033: // second "
+            glyphCode = 0x0022;
+            break;
+          case 0x2044: // fraction /
+            glyphCode = 0x002F;
+            break;
+          case 0x20AC: // euro
+            glyphCode = 0x00AD;
+            break;
         }
       }
     } else if (preamble_.bits.fontFormat == FontFormat::UTF32) {
       uint16_t planeIdx = static_cast<uint16_t>(codePoint >> 16);
 
       if (planeIdx <= 3) {
-        char16_t u16 = static_cast<char16_t>(codePoint);
+        char16_t u16                = static_cast<char16_t>(codePoint);
 
         uint16_t codePointBundleIdx = planes_[planeIdx].codePointBundlesIdx;
         uint16_t entriesCount       = planes_[planeIdx].entriesCount;
         int      gCode              = planes_[planeIdx].firstGlyphCode;
         int      i                  = 0;
         while (i < entriesCount) {
-          if (u16 <= codePointBundles_[codePointBundleIdx].lastCodePoint) { break; }
+          if (u16 <= codePointBundles_[codePointBundleIdx].lastCodePoint) {
+            break;
+          }
           gCode += (codePointBundles_[codePointBundleIdx].lastCodePoint -
                     codePointBundles_[codePointBundleIdx].firstCodePoint + 1);
           i++;
@@ -853,10 +908,12 @@ public:
     return codePoint;
   }
 
+  // Return true if the received character is not part of the control characters nor one of the
+  // space characters as defined in Unicode.
   bool charSelected(char32_t ch, SelectedBlockIndexesPtr &selectedBlockIndexes) {
     // Don't populate with space and non-break-space characters
-    if ((ch >= 0x0021) && (ch != 0x00A0) &&
-        ((ch < 0x02000) || (ch >= 0x2010))) { // No control char and no space/nbsp
+    if ((ch >= 0x0021) && (ch != 0x00A0) && ((ch < 0x02000) || (ch > 0x200F)) &&
+        ((ch < 0x02028) || (ch > 0x202F)) && ((ch < 0x0205F) || (ch > 0x206F))) {
       for (auto selectedBlock : *selectedBlockIndexes) {
         if ((ch >= uBlocks[selectedBlock].first_) && (ch <= uBlocks[selectedBlock].last_)) {
           return true;
@@ -872,7 +929,9 @@ public:
 
     if (charSelections.size() == 1) {
 
-      for (int i = 0; i < 4; i++) { planes_.push_back(Plane({0, 0, 0})); }
+      for (int i = 0; i < 4; i++) {
+        planes_.push_back(Plane({0, 0, 0}));
+      }
 
       SelectedBlockIndexesPtr selectedBlockIndexes = charSelections[0].selectedBlockIndexes;
 
@@ -948,17 +1007,19 @@ public:
 
     GlyphCode glyphCode = NO_GLYPH_CODE;
 
-    uint16_t planeIdx = static_cast<uint16_t>(codePoint >> 16);
+    uint16_t planeIdx   = static_cast<uint16_t>(codePoint >> 16);
 
     if (planeIdx <= 3) {
-      char16_t u16 = static_cast<char16_t>(codePoint);
+      char16_t u16                = static_cast<char16_t>(codePoint);
 
       uint16_t codePointBundleIdx = planes_[planeIdx].codePointBundlesIdx;
       uint16_t entriesCount       = planes_[planeIdx].entriesCount;
       int      gCode              = planes_[planeIdx].firstGlyphCode;
       int      i                  = 0;
       while (i < entriesCount) {
-        if (u16 <= codePointBundles_[codePointBundleIdx].lastCodePoint) { break; }
+        if (u16 <= codePointBundles_[codePointBundleIdx].lastCodePoint) {
+          break;
+        }
         gCode += (codePointBundles_[codePointBundleIdx].lastCodePoint -
                   codePointBundles_[codePointBundleIdx].firstCodePoint + 1);
         i++;
@@ -1017,25 +1078,25 @@ public:
 
 #pragma pack(pop)
 
-#define FT_TYPEOF(type) (__typeof__(type))
-#define FT_PIX_FLOOR(x) ((x) & ~FT_TYPEOF(x) 63)
-#define FT_PIX_ROUND(x) FT_PIX_FLOOR((x) + 32)
+#define FT_TYPEOF(type)       (__typeof__(type))
+#define FT_PIX_FLOOR(x)       ((x) & ~FT_TYPEOF(x) 63)
+#define FT_PIX_ROUND(x)       FT_PIX_FLOOR((x) + 32)
 
 #define LITTLE_ENDIEN_16(val) val = (val << 8) | (val >> 8);
 
   void retrieveKernPairsTable(FT_Face ftFace) {
-    kernPairs      = nullptr;
-    kernPairsCount = 0;
+    kernPairs       = nullptr;
+    kernPairsCount  = 0;
 
     FT_ULong length = sizeof(KernTableHeader);
     FT_Error error =
-        FT_Load_Sfnt_Table(ftFace, TTAG_kern, 0, (FT_Byte *) (&kernTableHeader), &length);
+        FT_Load_Sfnt_Table(ftFace, TTAG_kern, 0, (FT_Byte *)(&kernTableHeader), &length);
     if (error == 0) {
       LITTLE_ENDIEN_16(kernTableHeader.nTables);
       int offset = sizeof(KernTableHeader);
       for (uint16_t i = 0; i < kernTableHeader.nTables; i++) {
         length = sizeof(KernSubTableHeader);
-        error  = FT_Load_Sfnt_Table(ftFace, TTAG_kern, offset, (FT_Byte *) (&kernSubTableHeader),
+        error  = FT_Load_Sfnt_Table(ftFace, TTAG_kern, offset, (FT_Byte *)(&kernSubTableHeader),
                                     &length);
         if (error == 0) {
           if (kernSubTableHeader.coverage.data.format == 0) {
@@ -1045,7 +1106,7 @@ public:
                      (sizeof(KernSubTableHeader) + sizeof(KernFormat0Header));
             offset += sizeof(KernSubTableHeader) + sizeof(KernFormat0Header);
             kernPairs = (KernPairsPtr) new uint8_t[length];
-            error = FT_Load_Sfnt_Table(ftFace, TTAG_kern, offset, (FT_Byte *) (kernPairs), &length);
+            error = FT_Load_Sfnt_Table(ftFace, TTAG_kern, offset, (FT_Byte *)(kernPairs), &length);
             if (error == 0) {
               kernPairsCount = length / sizeof(KernPair);
               for (int i = 0; i < kernPairsCount; i++) {
@@ -1074,11 +1135,14 @@ public:
 
     std::vector<uint8_t> pointSizes;
 
+    if (fontParameters->pt8) pointSizes.push_back(8);
+    if (fontParameters->pt9) pointSizes.push_back(9);
     if (fontParameters->pt10) pointSizes.push_back(10);
     if (fontParameters->pt12) pointSizes.push_back(12);
     if (fontParameters->pt14) pointSizes.push_back(14);
     if (fontParameters->pt17) pointSizes.push_back(17);
     if (fontParameters->pt24) pointSizes.push_back(24);
+    if (fontParameters->pt48) pointSizes.push_back(48);
 
     // ----- Preamble -----
 
@@ -1259,7 +1323,7 @@ public:
 
           TT_PCLT_ pclt;
           FIX16    xHeight = 0;
-          error            = FT_Load_Sfnt_Table(ftFace, TTAG_PCLT, 0, (FT_Byte *) (&pclt), nullptr);
+          error            = FT_Load_Sfnt_Table(ftFace, TTAG_PCLT, 0, (FT_Byte *)(&pclt), nullptr);
           if (error == 0) {
             xHeight = static_cast<FIX16>(pclt.xHeight * (ftFace->size->metrics.x_scale / 1024.0));
           } else {

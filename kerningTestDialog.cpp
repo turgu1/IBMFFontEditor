@@ -1,7 +1,8 @@
 #include "kerningTestDialog.h"
 
-#include <QVBoxLayout>
 #include <iostream>
+
+#include <QVBoxLayout>
 
 #include "IBMFDriver/ibmf_font_mod.hpp"
 #include "drawingSpace.h"
@@ -13,14 +14,15 @@ KerningTestDialog::KerningTestDialog(IBMFFontModPtr font, int faceIdx, QWidget *
 
   ui->setupUi(this);
 
-  drawingSpace_ = new DrawingSpace(font, faceIdx, this);
+  drawingSpace_            = new DrawingSpace(font, faceIdx, this);
 
   QVBoxLayout *frameLayout = new QVBoxLayout();
   frameLayout->addWidget(drawingSpace_);
 
-  ui->frame->setLayout(frameLayout);
+  ui->scrollArea->setLayout(frameLayout);
+  ui->scrollArea->setWidget(drawingSpace_);
 
-  ui->comboBox->setCurrentIndex(1);
+  ui->comboBox->setCurrentIndex(2);
   drawingSpace_->setText(proofingTexts[0]);
 
   for (int i = 0; i < font_->getPreamble().faceCount; i++) {
@@ -29,24 +31,9 @@ KerningTestDialog::KerningTestDialog(IBMFFontModPtr font, int faceIdx, QWidget *
   }
 }
 
-void KerningTestDialog::resizeEvent(QResizeEvent *event) {}
+void KerningTestDialog::setText(QString text) { drawingSpace_->setText(text); }
 
-void KerningTestDialog::paintEvent(QPaintEvent *event) {
-  // std::cout << "Line Count: " << drawingSpace_->getLineCount() << std::endl;
-  int linesPerPage = drawingSpace_->getLinesPerPage();
-  int max          = drawingSpace_->getLineCount() - linesPerPage;
-  if (max < 0) { max = drawingSpace_->getLineCount(); }
-  ui->scrollBar->setMaximum(max);
-  ui->scrollBar->setPageStep(linesPerPage);
-}
-
-void KerningTestDialog::setText(QString text) {
-  drawingSpace_->setText(text);
-}
-
-KerningTestDialog::~KerningTestDialog() {
-  delete ui;
-}
+KerningTestDialog::~KerningTestDialog() { delete ui; }
 
 void KerningTestDialog::on_pixelSizeCombo_currentIndexChanged(int index) {
   drawingSpace_->setPixelSize(index + 1);
@@ -83,16 +70,24 @@ QString KerningTestDialog::combinedLetters() {
   return test;
 }
 
+QString KerningTestDialog::allCodePoints() {
+  QString test = "";
+
+  for (IBMFDefs::GlyphCode glyphCode = 0; glyphCode < font_->getFaceHeader(faceIdx_)->glyphCount;
+       glyphCode++) {
+    test += QChar(font_->getUTF32(glyphCode));
+  }
+  return test;
+}
+
 void KerningTestDialog::on_comboBox_currentIndexChanged(int index) {
   if (index == 0) {
     drawingSpace_->setText(combinedLetters());
+  } else if (index == 1) {
+    drawingSpace_->setText(allCodePoints());
   } else {
-    drawingSpace_->setText(proofingTexts[index - 1]);
+    drawingSpace_->setText(proofingTexts[index - 2]);
   }
-}
-
-void KerningTestDialog::on_scrollBar_valueChanged(int value) {
-  drawingSpace_->setFirstLineToDraw(value);
 }
 
 void KerningTestDialog::on_faceIdxCombo_currentIndexChanged(int index) {

@@ -948,7 +948,7 @@
         </widget>
         <widget class="QTabWidget" name="tabs">
          <property name="currentIndex">
-          <number>2</number>
+          <number>1</number>
          </property>
          <widget class="QWidget" name="preview">
           <attribute name="title">
@@ -1165,6 +1165,11 @@
               <property name="text">
                <string>Kerning</string>
               </property>
+              <property name="font">
+               <font>
+                <pointsize>9</pointsize>
+               </font>
+              </property>
              </column>
             </widget>
            </item>
@@ -1317,7 +1322,7 @@
      <x>0</x>
      <y>0</y>
      <width>1585</width>
-     <height>19</height>
+     <height>30</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

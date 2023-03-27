@@ -9,11 +9,16 @@ FreeType::FreeType() : initialized_(false), ftLib_(nullptr) {
   } else {
     initialized_ = true;
   }
+
+  FT_UInt interpreter_version = TT_INTERPRETER_VERSION_35;
+
+  FT_Property_Set(ftLib_, "truetype", "interpreter-version", &interpreter_version);
+
   FT_Int amajor, aminor, apatch;
 
   FT_Library_Version(ftLib_, &amajor, &aminor, &apatch);
 
-  //  std::cout << "FreeType Version " << amajor << "." << aminor << "." << apatch << std::endl;
+  std::cout << "FreeType Version " << amajor << "." << aminor << "." << apatch << std::endl;
 }
 
 FreeType::~FreeType() {

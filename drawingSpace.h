@@ -18,9 +18,6 @@ public:
   void setAutoKerning(bool value);
   void setNormalKerning(bool value);
   void setPixelSize(int value);
-  void setFirstLineToDraw(int value);
-  int  getLineCount();
-  int  getLinesPerPage();
   void setFont(IBMFFontModPtr font);
   void setFaceIdx(int faceIdx);
 
@@ -46,11 +43,6 @@ private:
   bool           normalKerning_;
   int            pixelSize_;
   int            wordLength_;
-  int            firstLineToDraw_;
-  int            currentLineNbr_;
-  int            lineCount_;
-  int            linesPerPage_;
-  bool           drawingStarted_;
   bool           resizing_;
 
   int  computeAutoKerning(IBMFDefs::Bitmap &b1, IBMFDefs::Bitmap &b2, IBMFDefs::GlyphInfo &i1,
