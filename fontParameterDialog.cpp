@@ -22,8 +22,8 @@ FontParameterDialog::FontParameterDialog(FreeType &ft, QString title, QWidget *p
 
   ui->nextButton->setEnabled(false);
 
-  charSelections_              = new IBMFDefs::CharSelections;
-  codePointBlocks_             = nullptr;
+  charSelections_  = new IBMFDefs::CharSelections;
+  codePointBlocks_ = nullptr;
 
   QHBoxLayout *ttfFontFilename = new QHBoxLayout();
   ttfFontFilename_             = new QLineEdit();
@@ -43,19 +43,27 @@ FontParameterDialog::FontParameterDialog(FreeType &ft, QString title, QWidget *p
   dpi75_           = new QRadioButton("75 dpi");
   dpi100_          = new QRadioButton("100 dpi");
   dpi120_          = new QRadioButton("120 dpi");
+  dpi200_          = new QRadioButton("200 dpi");
+  dpi300_          = new QRadioButton("300 dpi");
   dpi75_->setChecked(true);
   dpi->addWidget(dpi75_);
   dpi->addWidget(dpi100_);
   dpi->addWidget(dpi120_);
+  dpi->addWidget(dpi200_);
+  dpi->addWidget(dpi300_);
 
   QHBoxLayout *pointSizes = new QHBoxLayout();
+  pt10_                   = new QCheckBox("10pt");
   pt12_                   = new QCheckBox("12pt");
   pt14_                   = new QCheckBox("14pt");
   pt17_                   = new QCheckBox("17pt");
+  pt24_                   = new QCheckBox("24pt");
   pt14_->setChecked(true);
+  pointSizes->addWidget(pt10_);
   pointSizes->addWidget(pt12_);
   pointSizes->addWidget(pt14_);
   pointSizes->addWidget(pt17_);
+  pointSizes->addWidget(pt24_);
 
   QFormLayout *formLayout = new QFormLayout;
   formLayout->addRow(tr("TTF Font File Name:"), ttfFontFilename);
@@ -69,9 +77,11 @@ FontParameterDialog::FontParameterDialog(FreeType &ft, QString title, QWidget *p
                    &FontParameterDialog::browseIBMFFontFilename);
   QObject::connect(ttfBrowse, &QPushButton::clicked, this,
                    &FontParameterDialog::browseTTFFontFilename);
+  QObject::connect(pt10_, &QCheckBox::clicked, this, &FontParameterDialog::onCheckBoxClicked);
   QObject::connect(pt12_, &QCheckBox::clicked, this, &FontParameterDialog::onCheckBoxClicked);
   QObject::connect(pt14_, &QCheckBox::clicked, this, &FontParameterDialog::onCheckBoxClicked);
   QObject::connect(pt17_, &QCheckBox::clicked, this, &FontParameterDialog::onCheckBoxClicked);
+  QObject::connect(pt24_, &QCheckBox::clicked, this, &FontParameterDialog::onCheckBoxClicked);
 }
 
 FontParameterDialog::~FontParameterDialog() {
@@ -82,10 +92,9 @@ FontParameterDialog::~FontParameterDialog() {
 void FontParameterDialog::checkForNext() {
   ui->nextButton->setEnabled(
       !(ttfFontFilename_->text().isEmpty() || ibmfFontFilename_->text().isEmpty()) &&
-      (pt12_->isChecked() || pt14_->isChecked() || pt17_->isChecked()));
-  if (ui->nextButton->isEnabled()) {
-    ui->nextButton->setFocus(Qt::OtherFocusReason);
-  }
+      (pt10_->isChecked() || pt12_->isChecked() || pt14_->isChecked() || pt17_->isChecked() ||
+       pt24_->isChecked()));
+  if (ui->nextButton->isEnabled()) { ui->nextButton->setFocus(Qt::OtherFocusReason); }
 }
 
 void FontParameterDialog::browseIBMFFontFilename() {
@@ -94,9 +103,7 @@ void FontParameterDialog::browseIBMFFontFilename() {
   if (filename.isEmpty()) filename = settings.value("ibmfFolder").toString();
   QString newFilePath =
       QFileDialog::getSaveFileName(this, "New IBMF Font File", filename, "*.ibmf");
-  if (!newFilePath.isEmpty()) {
-    ibmfFontFilename_->setText(newFilePath);
-  }
+  if (!newFilePath.isEmpty()) { ibmfFontFilename_->setText(newFilePath); }
   checkForNext();
 }
 
@@ -106,9 +113,7 @@ void FontParameterDialog::browseTTFFontFilename() {
   if (filename.isEmpty()) filename = settings.value("ttfFolder").toString();
   QString newFilePath =
       QFileDialog::getOpenFileName(this, "Open TTF/OTF Font File", filename, "Font (*.ttf *.otf)");
-  if (!newFilePath.isEmpty()) {
-    ttfFontFilename_->setText(newFilePath);
-  }
+  if (!newFilePath.isEmpty()) { ttfFontFilename_->setText(newFilePath); }
   checkForNext();
 }
 
@@ -131,16 +136,24 @@ void FontParameterDialog::on_nextButton_clicked() {
     fontParameters_ =
         new IBMFDefs::FontParameters(IBMFDefs::FontParameters{.dpi      = dpi75_->isChecked() ? 75
                                                                           : dpi100_->isChecked() ? 100
-                                                                                                 : 120,
+                                                                          : dpi120_->isChecked() ? 120
+                                                                          : dpi200_->isChecked() ? 200
+                                                                                                 : 300,
+                                                              .pt10     = pt10_->isChecked(),
                                                               .pt12     = pt12_->isChecked(),
                                                               .pt14     = pt14_->isChecked(),
                                                               .pt17     = pt17_->isChecked(),
+                                                              .pt24     = pt24_->isChecked(),
                                                               .filename = ibmfFontFilename_->text(),
                                                               .charSelections = charSelections_});
     accept();
   }
 }
 
-void FontParameterDialog::on_cancelButton_clicked() { reject(); }
+void FontParameterDialog::on_cancelButton_clicked() {
+  reject();
+}
 
-void FontParameterDialog::onCheckBoxClicked() { checkForNext(); }
+void FontParameterDialog::onCheckBoxClicked() {
+  checkForNext();
+}

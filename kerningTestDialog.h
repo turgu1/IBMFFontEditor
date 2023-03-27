@@ -24,15 +24,25 @@ private slots:
   void on_pixelSizeCombo_currentIndexChanged(int index);
   void on_autoKernCheckBox_toggled(bool checked);
   void on_normalKernCheckBox_toggled(bool checked);
-
   void on_comboBox_currentIndexChanged(int index);
+
+  void on_scrollBar_valueChanged(int value);
+
+  void on_faceIdxCombo_currentIndexChanged(int index);
+
+protected:
+  void resizeEvent(QResizeEvent *event);
+  void paintEvent(QPaintEvent *event);
 
 private:
   Ui::KerningTestDialog *ui;
 
   DrawingSpace *drawingSpace_;
+  bool          resizing_;
 
-  QString combinedLetters();
+  IBMFFontModPtr font_;
+  int            faceIdx_;
+  QString        combinedLetters();
 };
 
 const constexpr char *proofingTexts[] = {
@@ -219,8 +229,8 @@ const constexpr char *proofingTexts[] = {
     "I, and J: AIJA\n"
     "<, and <: a<<a\n"
     ">, and >: a>>a\n"
-    "?, and ': aa?'a\n"
-    "!, and ': aa!'a\n"
+    "?, and ‘: aa?‘a\n"
+    "!, and ‘: aa!‘a\n"
     "‘, and ‘: a‘‘a\n"
     "’, and ’: a’’a\n"
     ", and ,: a,,a\n"

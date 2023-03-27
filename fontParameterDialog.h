@@ -42,9 +42,13 @@ private:
   QRadioButton               *dpi75_;
   QRadioButton               *dpi100_;
   QRadioButton               *dpi120_;
+  QRadioButton               *dpi200_;
+  QRadioButton               *dpi300_;
+  QCheckBox                  *pt10_;
   QCheckBox                  *pt12_;
   QCheckBox                  *pt14_;
   QCheckBox                  *pt17_;
+  QCheckBox                  *pt24_;
 
   void checkForNext();
 };

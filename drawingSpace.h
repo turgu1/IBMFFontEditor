@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QPainter>
 #include <QWidget>
 
 #include "IBMFDriver/ibmf_font_mod.hpp"
@@ -10,12 +11,18 @@
 class DrawingSpace : public QWidget {
   Q_OBJECT
 public:
-  explicit DrawingSpace(IBMFFontModPtr font, int faceIdx, QWidget *parent = nullptr);
+  explicit DrawingSpace(IBMFFontModPtr font = nullptr, int faceIdx = 0, QWidget *parent = nullptr);
+  void drawScreen(QPainter *painter);
 
   void setText(QString text);
   void setAutoKerning(bool value);
   void setNormalKerning(bool value);
   void setPixelSize(int value);
+  void setFirstLineToDraw(int value);
+  int  getLineCount();
+  int  getLinesPerPage();
+  void setFont(IBMFFontModPtr font);
+  void setFaceIdx(int faceIdx);
 
 signals:
 
@@ -24,21 +31,30 @@ protected:
   void resizeEvent(QResizeEvent *event);
 
 private:
+  struct OneGlyph {
+    IBMFDefs::BitmapPtr    bitmap;
+    IBMFDefs::GlyphInfoPtr glyphInfo;
+    int                    kern;
+  };
+
+  std::vector<OneGlyph> word_;
+
   QString        textToDraw_;
   IBMFFontModPtr font_;
   int            faceIdx_;
   bool           autoKerning_;
   bool           normalKerning_;
   int            pixelSize_;
+  int            wordLength_;
+  int            firstLineToDraw_;
+  int            currentLineNbr_;
+  int            lineCount_;
+  int            linesPerPage_;
+  bool           drawingStarted_;
+  bool           resizing_;
 
-  struct OneGlyph {
-    IBMFDefs::BitmapPtr    bitmap;
-    IBMFDefs::GlyphInfoPtr glyphInfo;
-    int                    kern;
-  };
-  std::vector<OneGlyph> word_;
-  int                   wordLength_;
-
-  int computeAutoKerning(IBMFDefs::Bitmap &b1, IBMFDefs::Bitmap &b2, IBMFDefs::GlyphInfo &i1,
-                         IBMFDefs::GlyphInfo &i2);
+  int  computeAutoKerning(IBMFDefs::Bitmap &b1, IBMFDefs::Bitmap &b2, IBMFDefs::GlyphInfo &i1,
+                          IBMFDefs::GlyphInfo &i2);
+  void paintWord(QPainter *painter, QPoint &pos, int lineHeight);
+  void incrementLineNbr();
 };

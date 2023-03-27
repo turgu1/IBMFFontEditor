@@ -82,8 +82,8 @@ const constexpr uint8_t MAX_GLYPH_COUNT = 254; // Index Value 0xFE and 0xFF are 
 // const constexpr uint8_t BLACK_EIGHT_BITS = 0;
 // const constexpr uint8_t WHITE_EIGHT_BITS = 0xFF;
 
-const constexpr uint8_t BLACK_ONE_BIT    = 1;
-const constexpr uint8_t WHITE_ONE_BIT    = 0;
+const constexpr uint8_t BLACK_ONE_BIT = 1;
+const constexpr uint8_t WHITE_ONE_BIT = 0;
 
 const constexpr uint8_t BLACK_EIGHT_BITS = 0xFF;
 const constexpr uint8_t WHITE_EIGHT_BITS = 0x00;
@@ -474,9 +474,11 @@ typedef CharSelections            *CharSelectionsPtr;
 
 struct FontParameters {
   int               dpi;
+  bool              pt10;
   bool              pt12;
   bool              pt14;
   bool              pt17;
+  bool              pt24;
   QString           filename;
   CharSelectionsPtr charSelections;
 };
@@ -712,7 +714,7 @@ const CharCodes fontFormat0CodePoints = {
 //
 // The index in the table corresponds to UTF16 U+00A1 to U+017F CodePoints.
 
-const constexpr uint16_t LATIN_GLYPH_CODE_MASK  = 0x7FF;
+const constexpr uint16_t LATIN_GLYPH_CODE_MASK = 0x7FF;
 
 const constexpr GlyphCode latinTranslationSet[] = {
     /* 0x0A1 */ 0x0020, // ¡

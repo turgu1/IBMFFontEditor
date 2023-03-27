@@ -15,6 +15,7 @@
 
 #include "IBMFDriver/ibmf_font_mod.hpp"
 #include "bitmapRenderer.h"
+#include "drawingSpace.h"
 #include "freeType.h"
 
 QT_BEGIN_NAMESPACE
@@ -65,6 +66,12 @@ private slots:
   void on_actionImportTrueTypeFont_triggered();
   void on_editKerningButton_clicked();
   void on_actionTest_Auto_Kerning_triggered();
+  void on_plainTextEdit_textChanged();
+  void on_pixelSizeCombo_currentIndexChanged(int index);
+
+  void on_normalKernCheckBox_toggled(bool checked);
+
+  void on_autoKernCheckBox_toggled(bool checked);
 
 private:
   const int MAX_RECENT_FILES = 10;
@@ -88,6 +95,8 @@ private:
   BitmapRenderer *bitmapRenderer_;
   BitmapRenderer *smallGlyph_;
   BitmapRenderer *largeGlyph_;
+
+  DrawingSpace *drawingSpace_;
 
   IBMFFontModPtr            ibmfFont_;
   IBMFDefs::Preamble        ibmfPreamble_;
