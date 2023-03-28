@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QPainter>
+#include <QSize>
 #include <QWidget>
 
 #include "IBMFDriver/ibmf_font_mod.hpp"
@@ -24,8 +25,8 @@ public:
 signals:
 
 protected:
-  void paintEvent(QPaintEvent *event);
-  void resizeEvent(QResizeEvent *event);
+  void  paintEvent(QPaintEvent *event) override;
+  QSize sizeHint() const override;
 
 private:
   struct OneGlyph {
@@ -43,10 +44,11 @@ private:
   bool           normalKerning_;
   int            pixelSize_;
   int            wordLength_;
-  bool           resizing_;
+  QSize          requiredSize_;
+  QPoint         pos_;
 
   int  computeAutoKerning(IBMFDefs::Bitmap &b1, IBMFDefs::Bitmap &b2, IBMFDefs::GlyphInfo &i1,
                           IBMFDefs::GlyphInfo &i2);
-  void paintWord(QPainter *painter, QPoint &pos, int lineHeight);
-  void incrementLineNbr();
+  void paintWord(QPainter *painter, int lineHeight);
+  void computeSize();
 };

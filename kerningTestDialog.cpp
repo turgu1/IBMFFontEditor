@@ -14,13 +14,16 @@ KerningTestDialog::KerningTestDialog(IBMFFontModPtr font, int faceIdx, QWidget *
 
   ui->setupUi(this);
 
-  drawingSpace_            = new DrawingSpace(font, faceIdx, this);
+  drawingSpace_ = new DrawingSpace(font, faceIdx);
 
-  QVBoxLayout *frameLayout = new QVBoxLayout();
-  frameLayout->addWidget(drawingSpace_);
+  // QVBoxLayout *frameLayout = new QVBoxLayout();
+  // frameLayout->addWidget(drawingSpace_);
 
-  ui->scrollArea->setLayout(frameLayout);
+  // ui->scrollArea->setLayout(frameLayout);
   ui->scrollArea->setWidget(drawingSpace_);
+
+  // ui->scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+  // ui->scrollArea->setWidgetResizable(true);
 
   ui->comboBox->setCurrentIndex(2);
   drawingSpace_->setText(proofingTexts[0]);
@@ -31,9 +34,13 @@ KerningTestDialog::KerningTestDialog(IBMFFontModPtr font, int faceIdx, QWidget *
   }
 }
 
-void KerningTestDialog::setText(QString text) { drawingSpace_->setText(text); }
+void KerningTestDialog::setText(QString text) {
+  drawingSpace_->setText(text);
+}
 
-KerningTestDialog::~KerningTestDialog() { delete ui; }
+KerningTestDialog::~KerningTestDialog() {
+  delete ui;
+}
 
 void KerningTestDialog::on_pixelSizeCombo_currentIndexChanged(int index) {
   drawingSpace_->setPixelSize(index + 1);
