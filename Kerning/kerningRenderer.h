@@ -2,7 +2,7 @@
 
 #include <QWidget>
 
-#include "../IBMFDriver/ibmf_font_mod.hpp"
+#include "../IBMFDriver/IBMFFontMod.hpp"
 #include "kernEntry.h"
 
 const constexpr int PIXEL_SIZE = 4;

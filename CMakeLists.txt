@@ -25,11 +25,11 @@ set(PROJECT_SOURCES
         setPixelCommand.cpp
         actionButton.cpp
         actionButton.h
-        IBMFDriver/ibmf_font_mod.cpp
-        IBMFDriver/ibmf_font_mod.hpp
-        IBMFDriver/rle_generator.hpp
-        IBMFDriver/rle_extractor.hpp
-        IBMFDriver/ibmf_defs.hpp
+        IBMFDriver/IBMFFontMod.cpp
+        IBMFDriver/IBMFFontMod.hpp
+        IBMFDriver/RLEGenerator.hpp
+        IBMFDriver/RLEExtractor.hpp
+        IBMFDriver/IBMFDefs.hpp
         Unicode/UBlocks.hpp
         Unicode/uBlockSelectionDialog.hpp
         blocksDialog.cpp

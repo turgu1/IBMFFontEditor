@@ -13,7 +13,7 @@
 #include <QUndoStack>
 #include <QUndoView>
 
-#include "IBMFDriver/ibmf_font_mod.hpp"
+#include "IBMFDriver/IBMFFontMod.hpp"
 #include "bitmapRenderer.h"
 #include "drawingSpace.h"
 #include "freeType.h"
@@ -57,7 +57,7 @@ private slots:
   void on_actionSave_triggered();
   void on_actionSaveBackup_triggered();
   void on_clearRecentList_triggered();
-  void bitmapChanged(Bitmap &bitmap);
+  void bitmapChanged(const Bitmap &bitmap, const QPoint &originOffsets);
   void setScrollBarSizes(int value);
   void centerScrollBarPos();
   void updateBitmapOffsetPos();
@@ -68,9 +68,7 @@ private slots:
   void on_actionTest_Auto_Kerning_triggered();
   void on_plainTextEdit_textChanged();
   void on_pixelSizeCombo_currentIndexChanged(int index);
-
   void on_normalKernCheckBox_toggled(bool checked);
-
   void on_autoKernCheckBox_toggled(bool checked);
 
 private:
@@ -126,7 +124,11 @@ private:
   bool     loadGlyph(uint16_t glyphCode);
   void     clearAll();
   void     putValue(QTableWidget *w, int row, int col, QVariant value, bool editable = true);
+  void     putColoredValue(QTableWidget *w, int row, int col, QVariant value, bool editable = true);
   void     putFix16Value(QTableWidget *w, int row, int col, QVariant value, bool editable = true);
+  void     putColoredFix16Value(QTableWidget *w, int row, int col, QVariant value,
+                                bool editable = true);
   QVariant getValue(QTableWidget *w, int row, int col);
   void     clearEditable(QTableWidget *w, int row, int col);
+  void     glyphWasChanged(bool initialLoad = false);
 };

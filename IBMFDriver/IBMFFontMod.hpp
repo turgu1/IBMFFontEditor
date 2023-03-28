@@ -6,8 +6,8 @@
 #include <set>
 #include <vector>
 
+#include "IBMFDefs.hpp"
 #include "freeType.h"
-#include "ibmf_defs.hpp"
 
 using namespace IBMFDefs;
 
@@ -15,14 +15,14 @@ using namespace IBMFDefs;
 #include <QIODevice>
 #include <QMessageBox>
 
-#include "rle_extractor.hpp"
-#include "rle_generator.hpp"
+#include "RLEExtractor.hpp"
+#include "RLEGenerator.hpp"
 
 #define DEBUG 0
 
 #if DEBUG
-#include <iomanip>
-#include <iostream>
+  #include <iomanip>
+  #include <iostream>
 #endif
 
 /**
@@ -86,7 +86,7 @@ public:
   auto ligKern(int faceIndex, const GlyphCode glyphCode1, GlyphCode *glyphCode2, FIX16 *kern) const
       -> bool;
   auto getGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKern **glyphLigKern) const -> bool;
-  auto getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyph_info, Bitmap **bitmap) const
+  auto getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyph_info, BitmapPtr *bitmap) const
       -> bool;
   auto saveFaceHeader(int faceIndex, FaceHeader &face_header) -> bool;
   auto saveGlyph(int faceIndex, int glyphCode, GlyphInfo *newGlyphInfo, Bitmap *new_bitmap) -> bool;

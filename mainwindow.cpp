@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include <QColor>
 #include <QDateTime>
 #include <QRegularExpression>
 #include <QSettings>
@@ -353,12 +354,47 @@ void MainWindow::paintEvent(QPaintEvent *event) {
   updateBitmapOffsetPos();
 }
 
-void MainWindow::bitmapChanged(Bitmap &bitmap) {
+void MainWindow::glyphWasChanged(bool initialLoad) {
+  IBMFDefs::GlyphInfoPtr glyphInfo = IBMFDefs::GlyphInfoPtr(new IBMFDefs::GlyphInfo);
+  IBMFDefs::BitmapPtr    bitmap;
+
+  bitmapRenderer_->retrieveBitmap(&bitmap);
+
+  glyphInfo->bitmapWidth             = bitmap->dim.width;
+  glyphInfo->bitmapHeight            = bitmap->dim.height;
+  glyphInfo->horizontalOffset        = getValue(ui->characterMetrics, 2, 1).toInt();
+  glyphInfo->verticalOffset          = getValue(ui->characterMetrics, 3, 1).toInt();
+  glyphInfo->ligKernPgmIndex         = getValue(ui->characterMetrics, 4, 1).toUInt();
+  glyphInfo->packetLength            = getValue(ui->characterMetrics, 5, 1).toUInt();
+  glyphInfo->advance                 = getValue(ui->characterMetrics, 6, 1).toFloat() * 64.0;
+  glyphInfo->rleMetrics.dynF         = getValue(ui->characterMetrics, 7, 1).toUInt();
+  glyphInfo->rleMetrics.firstIsBlack = getValue(ui->characterMetrics, 8, 1).toUInt();
+
+  drawingSpace_->setBypassGlyph(ibmfGlyphCode_, bitmap, glyphInfo);
+
+  if (!initialLoad) glyphChanged_ = true;
+}
+
+void MainWindow::bitmapChanged(const Bitmap &bitmap, const QPoint &originOffsets) {
   if (ibmfFont_ != nullptr) {
     if (!fontChanged_) {
       fontChanged_ = true;
       this->setWindowTitle(this->windowTitle() + '*');
     }
+    float oldAdvance         = getValue(ui->characterMetrics, 6, 1).toFloat();
+    int   oldWidth           = getValue(ui->characterMetrics, 0, 1).toInt();
+    int   oldHOffset         = getValue(ui->characterMetrics, 2, 1).toInt();
+
+    int   oldNormalizedWidth = oldWidth - oldHOffset;
+    int   newNormalizedWidth = bitmap.dim.width - originOffsets.x();
+    float newAdvance         = oldAdvance + (newNormalizedWidth - oldNormalizedWidth);
+
+    putColoredValue(ui->characterMetrics, 0, 1, bitmap.dim.width, false);
+    putColoredValue(ui->characterMetrics, 1, 1, bitmap.dim.height, false);
+    putColoredValue(ui->characterMetrics, 2, 1, originOffsets.x(), false);
+    putColoredValue(ui->characterMetrics, 3, 1, originOffsets.y(), false);
+    putColoredFix16Value(ui->characterMetrics, 6, 1, newAdvance, true);
+    glyphWasChanged();
     glyphChanged_ = true;
   }
 }
@@ -505,7 +541,21 @@ void MainWindow::clearEditable(QTableWidget *w, int row, int col) {
 }
 
 void MainWindow::putValue(QTableWidget *w, int row, int col, QVariant value, bool editable) {
-  auto item = new QTableWidgetItem();
+  QTableWidgetItem *item = new QTableWidgetItem();
+  item->setData(Qt::EditRole, value);
+  if (!editable) item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+  w->setItem(row, col, item);
+}
+
+void MainWindow::putColoredValue(QTableWidget *w, int row, int col, QVariant value, bool editable) {
+  QTableWidgetItem *item     = new QTableWidgetItem();
+  QFont             font     = w->item(row, col)->font();
+  QVariant          oldValue = w->item(row, col)->data(Qt::EditRole);
+  if (oldValue != value) {
+    font.setBold(true);
+    item->setForeground(QColorConstants::Red);
+    item->setFont(font);
+  }
   item->setData(Qt::EditRole, value);
   if (!editable) item->setFlags(item->flags() & ~Qt::ItemIsEditable);
   w->setItem(row, col, item);
@@ -513,6 +563,24 @@ void MainWindow::putValue(QTableWidget *w, int row, int col, QVariant value, boo
 
 void MainWindow::putFix16Value(QTableWidget *w, int row, int col, QVariant value, bool editable) {
   auto item = new QTableWidgetItem();
+  item->setData(Qt::EditRole, value);
+  if (!editable) item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+  w->setItem(row, col, item);
+  QAbstractItemDelegate *delegate;
+  if ((delegate = w->itemDelegateForRow(row)) != nullptr) delete delegate;
+  w->setItemDelegateForRow(row, new Fix16Delegate);
+}
+
+void MainWindow::putColoredFix16Value(QTableWidget *w, int row, int col, QVariant value,
+                                      bool editable) {
+  auto     item     = new QTableWidgetItem();
+  QFont    font     = w->item(row, col)->font();
+  QVariant oldValue = w->item(row, col)->data(Qt::EditRole);
+  if (oldValue != value) {
+    font.setBold(true);
+    item->setForeground(QColorConstants::Red);
+    item->setFont(font);
+  }
   item->setData(Qt::EditRole, value);
   if (!editable) item->setFlags(item->flags() & ~Qt::ItemIsEditable);
   w->setItem(row, col, item);
@@ -535,11 +603,10 @@ void MainWindow::saveFace() {
     face_header.xHeight          = getValue(ui->faceHeader, 3, 1).toFloat() * 64.0;
     face_header.emSize           = getValue(ui->faceHeader, 4, 1).toFloat() * 64.0;
     face_header.slantCorrection  = getValue(ui->faceHeader, 5, 1).toFloat() * 64.0;
-    face_header.maxHeight        = getValue(ui->faceHeader, 6, 1).toUInt();
-    face_header.descenderHeight  = getValue(ui->faceHeader, 7, 1).toUInt();
-    face_header.spaceSize        = getValue(ui->faceHeader, 8, 1).toUInt();
-    face_header.glyphCount       = getValue(ui->faceHeader, 9, 1).toUInt();
-    face_header.ligKernStepCount = getValue(ui->faceHeader, 10, 1).toUInt();
+    face_header.descenderHeight  = getValue(ui->faceHeader, 6, 1).toUInt();
+    face_header.spaceSize        = getValue(ui->faceHeader, 7, 1).toUInt();
+    face_header.glyphCount       = getValue(ui->faceHeader, 8, 1).toUInt();
+    face_header.ligKernStepCount = getValue(ui->faceHeader, 9, 1).toUInt();
 
     ibmfFont_->saveFaceHeader(ibmfFaceIdx_, face_header);
     faceChanged_ = false;
@@ -561,11 +628,10 @@ bool MainWindow::loadFace(uint8_t faceIdx) {
     putFix16Value(ui->faceHeader, 3, 1, (float)ibmfFaceHeader_->xHeight / 64.0);
     putFix16Value(ui->faceHeader, 4, 1, (float)ibmfFaceHeader_->emSize / 64.0);
     putFix16Value(ui->faceHeader, 5, 1, (float)ibmfFaceHeader_->slantCorrection / 64.0);
-    putValue(ui->faceHeader, 6, 1, ibmfFaceHeader_->maxHeight, false);
-    putValue(ui->faceHeader, 7, 1, ibmfFaceHeader_->descenderHeight);
-    putValue(ui->faceHeader, 8, 1, ibmfFaceHeader_->spaceSize);
-    putValue(ui->faceHeader, 9, 1, ibmfFaceHeader_->glyphCount, false);
-    putValue(ui->faceHeader, 10, 1, ibmfFaceHeader_->ligKernStepCount, false);
+    putValue(ui->faceHeader, 6, 1, ibmfFaceHeader_->descenderHeight);
+    putValue(ui->faceHeader, 7, 1, ibmfFaceHeader_->spaceSize);
+    putValue(ui->faceHeader, 8, 1, ibmfFaceHeader_->glyphCount, false);
+    putValue(ui->faceHeader, 9, 1, ibmfFaceHeader_->ligKernStepCount, false);
 
     faceReloading_ = false;
 
@@ -616,8 +682,8 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
 
       putValue(ui->characterMetrics, 0, 1, ibmfGlyphInfo_->bitmapWidth, false);
       putValue(ui->characterMetrics, 1, 1, ibmfGlyphInfo_->bitmapHeight, false);
-      putValue(ui->characterMetrics, 2, 1, ibmfGlyphInfo_->horizontalOffset);
-      putValue(ui->characterMetrics, 3, 1, ibmfGlyphInfo_->verticalOffset);
+      putValue(ui->characterMetrics, 2, 1, ibmfGlyphInfo_->horizontalOffset, false);
+      putValue(ui->characterMetrics, 3, 1, ibmfGlyphInfo_->verticalOffset, false);
       putValue(ui->characterMetrics, 4, 1, ibmfGlyphInfo_->ligKernPgmIndex, false);
       putValue(ui->characterMetrics, 5, 1, ibmfGlyphInfo_->packetLength, false);
       putFix16Value(ui->characterMetrics, 6, 1, (float)ibmfGlyphInfo_->advance / 64.0);
@@ -669,6 +735,7 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
 
       ui->charactersList->setCurrentCell(glyphCode / 5, glyphCode % 5);
 
+      glyphWasChanged(true);
       glyphReloading_ = false;
     } else {
       return false;
@@ -787,7 +854,11 @@ void MainWindow::on_charactersList_cellClicked(int row, int column) {
 
 void MainWindow::on_characterMetrics_cellChanged(int row, int column) {
   if ((ibmfFont_ != nullptr) && ibmfFont_->isInitialized() && initialized_ && !glyphReloading_) {
-    glyphChanged_ = true;
+    glyphWasChanged();
+    if ((row == 6) && (column == 1)) {
+      bitmapRenderer_->setAdvance(
+          static_cast<IBMFDefs::FIX16>(getValue(ui->characterMetrics, 6, 1).toFloat() * 64.0));
+    }
   }
 }
 
@@ -827,7 +898,7 @@ void MainWindow::on_faceForgetButton_clicked() {
 void MainWindow::on_centerGridButton_clicked() {
   centerScrollBarPos();
   updateBitmapOffsetPos();
-  bitmapRenderer_->repaint();
+  bitmapRenderer_->update();
 }
 
 void MainWindow::on_leftSplitter_splitterMoved(int pos, int index) {}
@@ -835,14 +906,14 @@ void MainWindow::on_leftSplitter_splitterMoved(int pos, int index) {}
 void MainWindow::on_bitmapVerticalScrollBar_valueChanged(int value) {
   if (initialized_) {
     updateBitmapOffsetPos();
-    bitmapRenderer_->repaint();
+    bitmapRenderer_->update();
   }
 }
 
 void MainWindow::on_bitmapHorizontalScrollBar_valueChanged(int value) {
   if (initialized_) {
     updateBitmapOffsetPos();
-    bitmapRenderer_->repaint();
+    bitmapRenderer_->update();
   }
 }
 

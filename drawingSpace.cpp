@@ -6,16 +6,26 @@
 
 DrawingSpace::DrawingSpace(IBMFFontModPtr font, int faceIdx, QWidget *parent)
     : QWidget{parent}, font_(font), faceIdx_(faceIdx), autoKerning_(false), normalKerning_(false),
-      pixelSize_(1), wordLength_(0) {
+      pixelSize_(1), wordLength_(0), bypassGlyphCode_(IBMFDefs::NO_GLYPH_CODE),
+      bypassGlyphInfo_(nullptr) {
   this->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 }
 
-int DrawingSpace::computeAutoKerning(IBMFDefs::Bitmap &b1, IBMFDefs::Bitmap &b2,
-                                     IBMFDefs::GlyphInfo &i1, IBMFDefs::GlyphInfo &i2) {
-  int kerning = 0;
+void DrawingSpace::setBypassGlyph(IBMFDefs::GlyphCode glyphCode, IBMFDefs::BitmapPtr bitmap,
+                                  IBMFDefs::GlyphInfoPtr glyphInfo) {
+  bypassGlyphCode_ = glyphCode;
+  bypassBitmap_    = bitmap;
+  bypassGlyphInfo_ = glyphInfo;
+  update();
+}
 
-  int buffWidth  = (font_->getFaceHeader(faceIdx_)->emSize >> 6) * 4;
-  int buffHeight = font_->getFaceHeader(faceIdx_)->lineHeight * 2;
+auto DrawingSpace::computeAutoKerning(const IBMFDefs::BitmapPtr b1, const IBMFDefs::BitmapPtr b2,
+                                      const IBMFDefs::GlyphInfo &i1,
+                                      const IBMFDefs::GlyphInfo &i2) const -> int {
+  int kerning     = 0;
+
+  int buffWidth   = (font_->getFaceHeader(faceIdx_)->emSize >> 6) * 4;
+  int buffHeight  = font_->getFaceHeader(faceIdx_)->lineHeight * 2;
 
   uint8_t *buffer = new uint8_t[buffWidth * buffHeight];
 
@@ -23,13 +33,13 @@ int DrawingSpace::computeAutoKerning(IBMFDefs::Bitmap &b1, IBMFDefs::Bitmap &b2,
 
   QPoint pos = QPoint(10, buffHeight / 2); //  This is the origin
 
-  int voff = i1.verticalOffset;
-  int hoff = i1.horizontalOffset;
+  int voff   = i1.verticalOffset;
+  int hoff   = i1.horizontalOffset;
 
-  int idx = 0;
-  for (int row = 0; row < b1.dim.height; row++) {
-    for (int col = 0; col < b1.dim.width; col++, idx++) {
-      if (b1.pixels[idx] != 0) {
+  int idx    = 0;
+  for (int row = 0; row < b1->dim.height; row++) {
+    for (int col = 0; col < b1->dim.width; col++, idx++) {
+      if (b1->pixels[idx] != 0) {
         int buffIdx     = ((pos.y() - voff + row) * buffWidth) + (pos.x() - hoff + col);
         buffer[buffIdx] = 1;
       }
@@ -45,9 +55,9 @@ int DrawingSpace::computeAutoKerning(IBMFDefs::Bitmap &b1, IBMFDefs::Bitmap &b2,
     int voff = i2.verticalOffset;
     int hoff = i2.horizontalOffset;
 
-    for (int col = 0; col < b2.dim.width; col++) {
-      for (int row = 0; row < b2.dim.height; row++) {
-        if (b2.pixels[row * b2.dim.width + col] != 0) {
+    for (int col = 0; col < b2->dim.width; col++) {
+      for (int row = 0; row < b2->dim.height; row++) {
+        if (b2->pixels[row * b2->dim.width + col] != 0) {
           int buffIdx = ((pos.y() - voff + row) * buffWidth) + (pos.x() - hoff + col);
           if (buffer[buffIdx] == 1) goto end;
         }
@@ -63,13 +73,13 @@ end:
   return (max > 0) ? kerning + KERNING_SIZE + 1 : 0;
 }
 
-void DrawingSpace::setFont(IBMFFontModPtr font) {
-  font_ = font;
-}
+void DrawingSpace::setFont(IBMFFontModPtr font) { font_ = font; }
 
 void DrawingSpace::setFaceIdx(int faceIdx) {
   faceIdx_ = faceIdx;
-  if (font_ != nullptr) { computeSize(); }
+  if (font_ != nullptr) {
+    computeSize();
+  }
 }
 
 void DrawingSpace::setText(QString text) {
@@ -92,7 +102,7 @@ void DrawingSpace::setPixelSize(int value) {
   computeSize();
 }
 
-void DrawingSpace::computeSize() {
+auto DrawingSpace::computeSize() -> void {
   drawScreen(nullptr);
   requiredSize_ = QSize(width(), (pos_.y() + font_->getLineHeight(faceIdx_)) * pixelSize_);
   adjustSize();
@@ -100,8 +110,8 @@ void DrawingSpace::computeSize() {
 }
 
 QSize DrawingSpace::sizeHint() const {
-  std::cout << "drawingSpace size: " << requiredSize_.width() << ", " << requiredSize_.height()
-            << " -- Widget size: " << this->width() << ", " << this->height() << std::endl;
+  //  std::cout << "drawingSpace size: " << requiredSize_.width() << ", " << requiredSize_.height()
+  //            << " -- Widget size: " << this->width() << ", " << this->height() << std::endl;
   return requiredSize_;
 }
 
@@ -123,8 +133,8 @@ void DrawingSpace::paintWord(QPainter *painter, int lineHeight) {
 
     pos_.setX(pos_.x() + ch.kern);
 
-    int voff = ch.glyphInfo->verticalOffset;
-    int hoff = ch.glyphInfo->horizontalOffset;
+    int voff    = ch.glyphInfo->verticalOffset;
+    int hoff    = ch.glyphInfo->horizontalOffset;
 
     int advance = (ch.glyphInfo->advance >> 6);
     if (advance == 0) advance = ch.glyphInfo->bitmapWidth + 1;
@@ -183,9 +193,9 @@ void DrawingSpace::drawScreen(QPainter *painter) {
     painter->setBrush(QBrush(QColorConstants::DarkGray));
   }
 
-  int lineHeight = font_->getLineHeight(faceIdx_);
+  int lineHeight   = font_->getLineHeight(faceIdx_);
 
-  pos_ = QPoint(0, lineHeight);
+  pos_             = QPoint(0, lineHeight);
 
   bool first       = true;
   bool startOfLine = true;
@@ -200,7 +210,9 @@ void DrawingSpace::drawScreen(QPainter *painter) {
     IBMFDefs::GlyphCode    glyphCode;
 
     if (ch == '\n') {
-      if (wordLength_ > 0) { paintWord(painter, lineHeight); }
+      if (wordLength_ > 0) {
+        paintWord(painter, lineHeight);
+      }
       pos_.setY(pos_.y() + lineHeight);
       pos_.setX(0);
       startOfLine = true;
@@ -211,12 +223,19 @@ void DrawingSpace::drawScreen(QPainter *painter) {
         paintWord(painter, lineHeight);
         first = true;
       }
-      if (!startOfLine) { pos_.setX(pos_.x() + font_->getFaceHeader(faceIdx_)->spaceSize); }
+      if (!startOfLine) {
+        pos_.setX(pos_.x() + font_->getFaceHeader(faceIdx_)->spaceSize);
+      }
       continue;
     } else {
-      if (!font_->getGlyph(faceIdx_, glyphCode = font_->translate(ch.unicode()), glyphInfo,
-                           &bitmap)) {
-        continue;
+      glyphCode = font_->translate(ch.unicode());
+      if ((bypassGlyphCode_ != IBMFDefs::NO_GLYPH_CODE) && (glyphCode == bypassGlyphCode_)) {
+        bitmap    = bypassBitmap_;
+        glyphInfo = bypassGlyphInfo_;
+      } else {
+        if (!font_->getGlyph(faceIdx_, glyphCode, glyphInfo, &bitmap)) {
+          continue;
+        }
       }
     }
 
@@ -243,14 +262,23 @@ void DrawingSpace::drawScreen(QPainter *painter) {
           if (code != g2) {
             word_.pop_back();
             glyphCode = g2 = code;
-            if (!font_->getGlyph(faceIdx_, glyphCode, glyphInfo, &bitmap)) { continue; }
+            if ((bypassGlyphCode_ != IBMFDefs::NO_GLYPH_CODE) && (glyphCode == bypassGlyphCode_)) {
+              bitmap    = bypassBitmap_;
+              glyphInfo = bypassGlyphInfo_;
+            } else {
+              if (!font_->getGlyph(faceIdx_, glyphCode, glyphInfo, &bitmap)) {
+                continue;
+              }
+            }
             b2 = bitmap;
             i2 = glyphInfo;
           }
           kerning = (kern + 32) >> 6;
         }
 
-        if ((kerning == 0) && autoKerning_) { kerning = computeAutoKerning(*b1, *b2, *i1, *i2); }
+        if ((kerning == 0) && autoKerning_) {
+          kerning = computeAutoKerning(b1, b2, *i1, *i2);
+        }
 
         // std::cout << kerning << " " << std::endl;
       } else {
@@ -263,8 +291,9 @@ void DrawingSpace::drawScreen(QPainter *painter) {
     }
 
     int advance = (glyphInfo->advance >> 6);
-    if (advance == 0) advance = glyphInfo->bitmapWidth + 1;
-
+    if (advance == 0) {
+      advance = glyphInfo->bitmapWidth + 1; // Some codePoints have a zero advance...
+    }
     word_.push_back(OneGlyph({.bitmap = bitmap, .glyphInfo = glyphInfo, .kern = kerning}));
     wordLength_ += advance + kerning - glyphInfo->horizontalOffset;
     startOfLine = false;

@@ -3,7 +3,7 @@
 #include <QDialog>
 #include <QListView>
 
-#include "../IBMFDriver/ibmf_font_mod.hpp"
+#include "../IBMFDriver/IBMFFontMod.hpp"
 #include "kerningModel.h"
 
 class KerningDialog : public QDialog {

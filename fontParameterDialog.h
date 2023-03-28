@@ -6,7 +6,7 @@
 #include <QPushButton>
 #include <QRadioButton>
 
-#include "IBMFDriver/ibmf_defs.hpp"
+#include "IBMFDriver/IBMFDefs.hpp"
 #include "Unicode/UBlocks.hpp"
 #include "freeType.h"
 

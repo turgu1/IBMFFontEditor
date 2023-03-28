@@ -9,7 +9,7 @@
 #include <QMessageBox>
 #include <QTableWidget>
 
-#include "IBMFDriver/ibmf_defs.hpp"
+#include "IBMFDriver/IBMFDefs.hpp"
 #include "Unicode/UBlocks.hpp"
 #include "characterViewer.h"
 #include "ui_blocksDialog.h"

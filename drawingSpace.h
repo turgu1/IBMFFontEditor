@@ -4,7 +4,7 @@
 #include <QSize>
 #include <QWidget>
 
-#include "IBMFDriver/ibmf_font_mod.hpp"
+#include "IBMFDriver/IBMFFontMod.hpp"
 
 #define AUTO_KERNING 0
 #define KERNING_SIZE 2
@@ -21,6 +21,8 @@ public:
   void setPixelSize(int value);
   void setFont(IBMFFontModPtr font);
   void setFaceIdx(int faceIdx);
+  void setBypassGlyph(IBMFDefs::GlyphCode glyphCode, IBMFDefs::BitmapPtr bitmap,
+                      IBMFDefs::GlyphInfoPtr glyphInfo);
 
 signals:
 
@@ -47,8 +49,12 @@ private:
   QSize          requiredSize_;
   QPoint         pos_;
 
-  int  computeAutoKerning(IBMFDefs::Bitmap &b1, IBMFDefs::Bitmap &b2, IBMFDefs::GlyphInfo &i1,
-                          IBMFDefs::GlyphInfo &i2);
-  void paintWord(QPainter *painter, int lineHeight);
-  void computeSize();
+  IBMFDefs::GlyphCode    bypassGlyphCode_;
+  IBMFDefs::BitmapPtr    bypassBitmap_;
+  IBMFDefs::GlyphInfoPtr bypassGlyphInfo_;
+
+  auto computeAutoKerning(const BitmapPtr b1, const BitmapPtr b2, const GlyphInfo &i1,
+                          const GlyphInfo &i2) const -> int;
+  auto paintWord(QPainter *painter, int lineHeight) -> void;
+  auto computeSize() -> void;
 };

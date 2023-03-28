@@ -6,7 +6,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-#include "../IBMFDriver/ibmf_font_mod.hpp"
+#include "../IBMFDriver/IBMFFontMod.hpp"
 #include "../characterSelector.h"
 #include "kerningDelegate.h"
 #include "kerningModel.h"

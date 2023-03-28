@@ -64,17 +64,17 @@ void KerningRenderer::paintEvent(QPaintEvent *event) {
 }
 
 int KerningRenderer::putGlyph(IBMFDefs::GlyphCode code, IBMFDefs::Pos atPos) {
-  IBMFDefs::Bitmap      *glyph;
+  IBMFDefs::BitmapPtr    glyphBitmap;
   IBMFDefs::GlyphInfoPtr glyphInfo;
-  font_->getGlyph(1, code, glyphInfo, &glyph);
+  font_->getGlyph(1, code, glyphInfo, &glyphBitmap);
 
   if (glyphInfo != nullptr) {
     // std::cout << "Got something!!" << std::endl;
     int outRow = atPos.y - glyphInfo->verticalOffset;
-    for (int inRow = 0; inRow < glyph->dim.height; inRow++, outRow++) {
+    for (int inRow = 0; inRow < glyphBitmap->dim.height; inRow++, outRow++) {
       int outCol = atPos.x - glyphInfo->horizontalOffset;
-      for (int inCol = 0; inCol < glyph->dim.width; inCol++, outCol++) {
-        uint8_t pixel = glyph->pixels[inRow * glyph->dim.width + inCol];
+      for (int inCol = 0; inCol < glyphBitmap->dim.width; inCol++, outCol++) {
+        uint8_t pixel = glyphBitmap->pixels[inRow * glyphBitmap->dim.width + inCol];
         if (pixel) _glyphsBitmap.pixels[outRow * _glyphsBitmap.dim.width + outCol] = pixel;
       }
     }

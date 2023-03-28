@@ -6,7 +6,7 @@
 #include <QStyledItemDelegate>
 #include <QWidget>
 
-#include "../IBMFDriver/ibmf_font_mod.hpp"
+#include "../IBMFDriver/IBMFFontMod.hpp"
 
 class KerningDelegate : public QStyledItemDelegate {
   Q_OBJECT

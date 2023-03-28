@@ -2,7 +2,7 @@
 
 #include <QMetaType>
 
-#include "../IBMFDriver/ibmf_defs.hpp"
+#include "../IBMFDriver/IBMFDefs.hpp"
 
 struct KernEntry {
   IBMFDefs::GlyphCode glyphCode;

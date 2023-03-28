@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-#include "ibmf_defs.hpp"
+#include "IBMFDefs.hpp"
 using namespace IBMFDefs;
 
 #define DEBUG 0

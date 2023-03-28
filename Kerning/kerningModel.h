@@ -3,7 +3,7 @@
 #include <QAbstractTableModel>
 #include <QVector>
 
-#include "../IBMFDriver/ibmf_font_mod.hpp"
+#include "../IBMFDriver/IBMFFontMod.hpp"
 #include "kernEntry.h"
 
 class KerningModel : public QAbstractTableModel {

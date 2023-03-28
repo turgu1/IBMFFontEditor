@@ -5,7 +5,7 @@
 #include <QTableWidget>
 #include <QWidget>
 
-#include "IBMFDriver/ibmf_defs.hpp"
+#include "IBMFDriver/IBMFDefs.hpp"
 
 class CharacterViewer : public QDialog {
   Q_OBJECT

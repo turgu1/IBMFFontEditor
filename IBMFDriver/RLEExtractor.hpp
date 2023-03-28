@@ -4,7 +4,7 @@
 #include <cstring>
 #include <iostream>
 
-#include "ibmf_defs.hpp"
+#include "IBMFDefs.hpp"
 
 using namespace IBMFDefs;
 

@@ -4,7 +4,7 @@
 
 #include <QVBoxLayout>
 
-#include "IBMFDriver/ibmf_font_mod.hpp"
+#include "IBMFDriver/IBMFFontMod.hpp"
 #include "drawingSpace.h"
 #include "ui_kerningTestDialog.h"
 
@@ -34,13 +34,9 @@ KerningTestDialog::KerningTestDialog(IBMFFontModPtr font, int faceIdx, QWidget *
   }
 }
 
-void KerningTestDialog::setText(QString text) {
-  drawingSpace_->setText(text);
-}
+void KerningTestDialog::setText(QString text) { drawingSpace_->setText(text); }
 
-KerningTestDialog::~KerningTestDialog() {
-  delete ui;
-}
+KerningTestDialog::~KerningTestDialog() { delete ui; }
 
 void KerningTestDialog::on_pixelSizeCombo_currentIndexChanged(int index) {
   drawingSpace_->setPixelSize(index + 1);

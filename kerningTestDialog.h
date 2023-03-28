@@ -4,7 +4,7 @@
 
 #include <QDialog>
 
-#include "IBMFDriver/ibmf_font_mod.hpp"
+#include "IBMFDriver/IBMFFontMod.hpp"
 #include "drawingSpace.h"
 
 namespace Ui {

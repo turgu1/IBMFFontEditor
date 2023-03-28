@@ -5,7 +5,7 @@
 #include <QPainter>
 #include <QSize>
 
-#include "../IBMFDriver/ibmf_font_mod.hpp"
+#include "../IBMFDriver/IBMFFontMod.hpp"
 #include "kerningModel.h"
 #include "kerningRenderer.h"
 
