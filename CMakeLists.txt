@@ -25,6 +25,7 @@ set(PROJECT_SOURCES
         setPixelCommand.cpp
         actionButton.cpp
         actionButton.h
+        IBMFDriver/ibmf_font_mod.cpp
         IBMFDriver/ibmf_font_mod.hpp
         IBMFDriver/rle_generator.hpp
         IBMFDriver/rle_extractor.hpp
