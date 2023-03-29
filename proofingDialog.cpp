@@ -131,3 +131,9 @@ void ProofingDialog::readSettings() {
 void ProofingDialog::closeEvent(QCloseEvent *event) { writeSettings(); }
 
 void ProofingDialog::on_buttonBox_clicked(QAbstractButton *button) { writeSettings(); }
+
+void ProofingDialog::on_kernFactorEdit_editingFinished() {
+  float value = ui->kernFactorEdit->text().toFloat();
+  ui->kernFactorEdit->setText(QString("%1").arg(value));
+  drawingSpace_->setKernFactor(value);
+}

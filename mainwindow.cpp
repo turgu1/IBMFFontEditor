@@ -1243,20 +1243,15 @@ void MainWindow::on_actionC_h_File_triggered() {
   }
 }
 
-//};
-// const unsigned int EC_BOLD_75_IBMF_LEN PROGMEM = 36252;
+void MainWindow::on_zoomToFitButton_clicked() {
+  int height = (bitmapRenderer_->height() - 40) / (ibmfFaceHeader_->emSize >> 6);
+  int width  = (bitmapRenderer_->width() - 40) / (ibmfFaceHeader_->emSize >> 6);
+  int value  = height > width ? width : height;
+  ui->pixelSize->setValue(value);
+  //  bitmapRenderer_->setPixelSize(value);
+  //  setScrollBarSizes(value);
 
-// ----- IBMF Binary Font EC-Bold_75 ----- 8
-//
-//  Date: Tue 28 Mar 2023 10:32:45 PM EDT
-//
-// Automatically generated on linux using the following commands in a shell script:
-//
-//  $ printf "#pragma once\n" > EC-Bold_75.h
-//  $ xxd -i -C EC-Bold_75.ibmf  | sed -e 's/ = / PROGMEM = /' -e 's/unsigned char/const uint8_t/'
-//  -e 's/unsigned/const unsigned/' >> EC-Bold_75.h
-
-//#pragma once
-
-// const uint8_t EC_BOLD_75_IBMF[] PROGMEM = {
-//     0x49, 0x42, 0x4d, 0x46, 0x07, 0x04, 0x08, 0x09, 0x0a, 0x0c, 0x0e, 0x11,
+  centerScrollBarPos();
+  updateBitmapOffsetPos();
+  bitmapRenderer_->update();
+}

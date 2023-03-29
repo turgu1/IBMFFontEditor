@@ -77,6 +77,8 @@ private slots:
 
   void on_actionC_h_File_triggered();
 
+  void on_zoomToFitButton_clicked();
+
 private:
   const int MAX_RECENT_FILES = 10;
 

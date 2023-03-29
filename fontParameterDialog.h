@@ -29,6 +29,7 @@ private slots:
   void on_nextButton_clicked();
   void on_cancelButton_clicked();
   void onCheckBoxClicked();
+  void checkDpiNbr(const QString &value);
 
 private:
   Ui::FontParameterDialog    *ui;
@@ -40,10 +41,13 @@ private:
   QLineEdit                  *ttfFontFilename_;
   CodePointBlocks            *codePointBlocks_;
   QRadioButton               *dpi75_;
-  QRadioButton               *dpi100_;
-  QRadioButton               *dpi120_;
-  QRadioButton               *dpi200_;
+  QRadioButton               *dpi96_;
+  QRadioButton               *dpi150_;
+  QRadioButton               *dpi166_;
+  QRadioButton               *dpi212_;
   QRadioButton               *dpi300_;
+  QLineEdit                  *dpiNbr_;
+  QLabel                     *errorMsg_;
   QCheckBox                  *pt8_;
   QCheckBox                  *pt9_;
   QCheckBox                  *pt10_;

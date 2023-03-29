@@ -29,6 +29,8 @@ private slots:
 
   void on_buttonBox_clicked(QAbstractButton *button);
 
+  void on_kernFactorEdit_editingFinished();
+
 protected:
   void closeEvent(QCloseEvent *event);
 
@@ -251,6 +253,8 @@ const constexpr char *proofingTexts[] = {
     "’, and ’: a’’a\n"
     ", and ,: a,,a\n"
     "-, and -: a--a\n"
-    "-, -, and -: a---a\n"
+    "-, -, and -: a---a\n",
+
+    "VAVATiTATuToVuVo YeYuYoWeWuWo"
     //  clang-format on
 };

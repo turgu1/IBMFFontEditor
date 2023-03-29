@@ -6,7 +6,7 @@
 
 DrawingSpace::DrawingSpace(IBMFFontModPtr font, int faceIdx, QWidget *parent)
     : QWidget{parent}, font_(font), faceIdx_(faceIdx), autoKerning_(false), normalKerning_(false),
-      pixelSize_(1), wordLength_(0), bypassGlyphCode_(IBMFDefs::NO_GLYPH_CODE),
+      pixelSize_(1), kernFactor_(1.0), wordLength_(0), bypassGlyphCode_(IBMFDefs::NO_GLYPH_CODE),
       bypassGlyphInfo_(nullptr) {
   this->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 }
@@ -109,8 +109,15 @@ void DrawingSpace::setPixelSize(int value) {
   computeSize();
 }
 
+void DrawingSpace::setKernFactor(float value) {
+  if (value > 0.5) {
+    kernFactor_ = value;
+    computeSize();
+  }
+}
+
 auto DrawingSpace::computeSize() -> void {
-  if (font_ != nullptr) {
+  if ((font_ != nullptr) && (faceIdx_ < font_->getPreamble().faceCount) && (faceIdx_ >= 0)) {
     drawScreen(nullptr);
     requiredSize_ = QSize(width(), (pos_.y() + font_->getLineHeight(faceIdx_)) * pixelSize_);
     adjustSize();
@@ -282,7 +289,8 @@ void DrawingSpace::drawScreen(QPainter *painter) {
             b2 = bitmap;
             i2 = glyphInfo;
           }
-          kerning = (kern + 32) >> 6;
+          float fkerning = (float(kern + ((kern < 0) ? -32 : 32)) / 64.0) * kernFactor_;
+          kerning        = fkerning;
         }
 
         if ((kerning == 0) && autoKerning_) {

@@ -21,6 +21,7 @@ public:
   void setPixelSize(int value);
   void setFont(IBMFFontModPtr font);
   void setFaceIdx(int faceIdx);
+  void setKernFactor(float value);
   void setBypassGlyph(IBMFDefs::GlyphCode glyphCode, IBMFDefs::BitmapPtr bitmap,
                       IBMFDefs::GlyphInfoPtr glyphInfo);
 
@@ -45,6 +46,7 @@ private:
   bool           autoKerning_;
   bool           normalKerning_;
   int            pixelSize_;
+  float          kernFactor_;
   int            wordLength_;
   QSize          requiredSize_;
   QPoint         pos_;

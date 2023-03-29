@@ -574,19 +574,6 @@
              </property>
             </spacer>
            </item>
-           <item>
-            <widget class="QPushButton" name="centerGridButton">
-             <property name="minimumSize">
-              <size>
-               <width>90</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>Center Grid</string>
-             </property>
-            </widget>
-           </item>
           </layout>
          </item>
          <item>
@@ -770,6 +757,19 @@
             </spacer>
            </item>
            <item>
+            <widget class="QPushButton" name="centerGridButton">
+             <property name="minimumSize">
+              <size>
+               <width>90</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Center Grid</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QSlider" name="pixelSize">
              <property name="maximumSize">
               <size>
@@ -788,6 +788,16 @@
              </property>
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="zoomToFitButton">
+             <property name="toolTip">
+              <string>Next character in Face</string>
+             </property>
+             <property name="text">
+              <string>Zoom To Fit</string>
              </property>
             </widget>
            </item>
