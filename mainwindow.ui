@@ -945,7 +945,7 @@
         </widget>
         <widget class="QTabWidget" name="tabs">
          <property name="currentIndex">
-          <number>1</number>
+          <number>2</number>
          </property>
          <widget class="QWidget" name="preview">
           <attribute name="title">
@@ -1325,7 +1325,7 @@
      <x>0</x>
      <y>0</y>
      <width>1585</width>
-     <height>19</height>
+     <height>30</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -1345,6 +1345,12 @@
      </property>
      <addaction name="actionImportTrueTypeFont"/>
     </widget>
+    <widget class="QMenu" name="menuExport">
+     <property name="title">
+      <string>Export</string>
+     </property>
+     <addaction name="actionC_h_File"/>
+    </widget>
     <addaction name="actionOpen"/>
     <addaction name="menuOpenRecent"/>
     <addaction name="actionSaveBackup"/>
@@ -1353,6 +1359,7 @@
     <addaction name="separator"/>
     <addaction name="menuImport"/>
     <addaction name="separator"/>
+    <addaction name="menuExport"/>
    </widget>
    <widget class="QMenu" name="editMenu">
     <property name="title">
@@ -1418,6 +1425,11 @@
   <action name="actionProofing_Tool">
    <property name="text">
     <string>Proofing Tool</string>
+   </property>
+  </action>
+  <action name="actionC_h_File">
+   <property name="text">
+    <string>C Header File ( .h)</string>
    </property>
   </action>
  </widget>

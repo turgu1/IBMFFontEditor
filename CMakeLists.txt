@@ -58,9 +58,9 @@ set(PROJECT_SOURCES
         Kerning/kerningRenderer.cpp
         Kerning/kerningRenderer.h
         Kerning/kernEntry.h
-        kerningTestDialog.h
-        kerningTestDialog.cpp
-        kerningTestDialog.ui
+        proofingDialog.h
+        proofingDialog.cpp
+        proofingDialog.ui
         drawingSpace.h
         drawingSpace.cpp
         fix16Delegate.h

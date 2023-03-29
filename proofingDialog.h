@@ -8,15 +8,15 @@
 #include "drawingSpace.h"
 
 namespace Ui {
-class KerningTestDialog;
+class ProofingDialog;
 }
 
-class KerningTestDialog : public QDialog {
+class ProofingDialog : public QDialog {
   Q_OBJECT
 
 public:
-  explicit KerningTestDialog(IBMFFontModPtr font, int faceIdx, QWidget *parent = nullptr);
-  ~KerningTestDialog();
+  explicit ProofingDialog(IBMFFontModPtr font, int faceIdx, QWidget *parent = nullptr);
+  ~ProofingDialog();
 
   void setText(QString text);
 
@@ -24,11 +24,16 @@ private slots:
   void on_pixelSizeCombo_currentIndexChanged(int index);
   void on_autoKernCheckBox_toggled(bool checked);
   void on_normalKernCheckBox_toggled(bool checked);
-  void on_comboBox_currentIndexChanged(int index);
   void on_faceIdxCombo_currentIndexChanged(int index);
+  void on_patternCombo_currentIndexChanged(int index);
+
+  void on_buttonBox_clicked(QAbstractButton *button);
+
+protected:
+  void closeEvent(QCloseEvent *event);
 
 private:
-  Ui::KerningTestDialog *ui;
+  Ui::ProofingDialog *ui;
 
   DrawingSpace *drawingSpace_;
   bool          resizing_;
@@ -37,6 +42,8 @@ private:
   int            faceIdx_;
   QString        combinedLetters();
   QString        allCodePoints();
+  void           writeSettings();
+  void           readSettings();
 };
 
 const constexpr char *proofingTexts[] = {

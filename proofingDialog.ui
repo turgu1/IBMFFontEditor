@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>KerningTestDialog</class>
- <widget class="QDialog" name="KerningTestDialog">
+ <class>ProofingDialog</class>
+ <widget class="QDialog" name="ProofingDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>825</width>
+    <width>946</width>
     <height>642</height>
    </rect>
   </property>
@@ -33,8 +33,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>791</width>
-        <height>560</height>
+        <width>897</width>
+        <height>525</height>
        </rect>
       </property>
      </widget>
@@ -146,7 +146,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="comboBox">
+      <widget class="QComboBox" name="patternCombo">
        <item>
         <property name="text">
          <string>ASCII Letters Combinations</string>
@@ -225,7 +225,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>KerningTestDialog</receiver>
+   <receiver>ProofingDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -241,7 +241,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>KerningTestDialog</receiver>
+   <receiver>ProofingDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

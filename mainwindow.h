@@ -9,6 +9,7 @@
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QString>
+#include <QStringLiteral>
 #include <QTableWidgetItem>
 #include <QUndoStack>
 #include <QUndoView>
@@ -17,6 +18,8 @@
 #include "bitmapRenderer.h"
 #include "drawingSpace.h"
 #include "freeType.h"
+
+#define IBMF_VERSION "0.90.0"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -71,6 +74,8 @@ private slots:
   void on_autoKernCheckBox_toggled(bool checked);
 
   void on_actionProofing_Tool_triggered();
+
+  void on_actionC_h_File_triggered();
 
 private:
   const int MAX_RECENT_FILES = 10;

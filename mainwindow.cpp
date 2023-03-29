@@ -1,11 +1,13 @@
 #include "mainwindow.h"
 
+#include <iomanip>
 #include <iostream>
 
 #include <QColor>
 #include <QDateTime>
 #include <QRegularExpression>
 #include <QSettings>
+#include <QTextStream>
 
 #include "./ui_mainwindow.h"
 #include "Kerning/kerningDialog.h"
@@ -31,7 +33,7 @@ MainWindow::MainWindow(QWidget *parent)
 
   TRACE("Point 1");
 
-  undoStack_ = new QUndoStack(this);
+  undoStack_  = new QUndoStack(this);
 
   undoAction_ = undoStack_->createUndoAction(this, tr("&Undo"));
   undoAction_->setShortcuts(QKeySequence::Undo);
@@ -190,6 +192,7 @@ MainWindow::MainWindow(QWidget *parent)
   ui->actionSave->setEnabled(false);
   ui->actionSaveBackup->setEnabled(false);
   ui->actionProofing_Tool->setEnabled(false);
+  ui->menuExport->setEnabled(false);
 
   show();
 }
@@ -250,7 +253,7 @@ void MainWindow::updateRecentActionList() {
   QSettings   settings("ibmf", "IBMFEditor");
   QStringList recentFilePaths = settings.value("recentFiles").toStringList();
 
-  auto itEnd = 0u;
+  auto itEnd                  = 0u;
 
   if (recentFilePaths.size() <= MAX_RECENT_FILES) {
     itEnd = recentFilePaths.size();
@@ -298,6 +301,10 @@ void MainWindow::writeSettings() {
   settings.setValue("LeftFrame", ui->leftFrame->saveState());
   settings.setValue("FaceCharsSplitter", ui->FaceCharsSplitter->saveState());
   settings.setValue("RightFrame", ui->rightFrame->saveState());
+  settings.setValue("ProofingText", ui->plainTextEdit->toPlainText());
+  settings.setValue("ProofingAutoKern", ui->autoKernCheckBox->isChecked());
+  settings.setValue("ProofingNormalKern", ui->normalKernCheckBox->isChecked());
+  settings.setValue("ProofingPixelSize", ui->pixelSizeCombo->currentIndex());
   settings.endGroup();
 }
 
@@ -306,17 +313,25 @@ void MainWindow::readSettings() {
 
   settings.beginGroup("MainWindow");
   const auto geometry = settings.value("geometry", QByteArray()).toByteArray();
-  if (geometry.isEmpty()) setGeometry(200, 200, 800, 800);
-  else restoreGeometry(geometry);
+  if (geometry.isEmpty())
+    setGeometry(200, 200, 800, 800);
+  else
+    restoreGeometry(geometry);
 
   const auto rightSplitterState = settings.value("RightSplitter", QByteArray()).toByteArray();
-  if (!rightSplitterState.isEmpty()) { ui->rightSplitter->restoreState(rightSplitterState); }
+  if (!rightSplitterState.isEmpty()) {
+    ui->rightSplitter->restoreState(rightSplitterState);
+  }
 
   const auto leftSplitterState = settings.value("LeftSplitter", QByteArray()).toByteArray();
-  if (!leftSplitterState.isEmpty()) { ui->leftSplitter->restoreState(leftSplitterState); }
+  if (!leftSplitterState.isEmpty()) {
+    ui->leftSplitter->restoreState(leftSplitterState);
+  }
 
   const auto leftFrameState = settings.value("LeftFrame", QByteArray()).toByteArray();
-  if (!leftFrameState.isEmpty()) { ui->leftFrame->restoreState(leftFrameState); }
+  if (!leftFrameState.isEmpty()) {
+    ui->leftFrame->restoreState(leftFrameState);
+  }
 
   const auto faceCharsSplitterState =
       settings.value("FaceCharsSplitter", QByteArray()).toByteArray();
@@ -325,8 +340,14 @@ void MainWindow::readSettings() {
   }
 
   const auto rightFrameState = settings.value("RightFrame", QByteArray()).toByteArray();
-  if (!rightFrameState.isEmpty()) { ui->rightFrame->restoreState(rightFrameState); }
+  if (!rightFrameState.isEmpty()) {
+    ui->rightFrame->restoreState(rightFrameState);
+  }
 
+  ui->plainTextEdit->setPlainText(settings.value("ProofingText").toString());
+  ui->autoKernCheckBox->setChecked(settings.value("ProofingAutoKern").toBool());
+  ui->normalKernCheckBox->setChecked(settings.value("ProofingNormalKern").toBool());
+  ui->pixelSizeCombo->setCurrentIndex(settings.value("ProofingPixelSize").toInt());
   settings.endGroup();
 }
 
@@ -335,7 +356,8 @@ void MainWindow::adjustRecentsForCurrentFile() {
   QStringList recentFilePaths = settings.value("recentFiles").toStringList();
   recentFilePaths.removeAll(currentFilePath_);
   recentFilePaths.prepend(currentFilePath_);
-  while (recentFilePaths.size() > MAX_RECENT_FILES) recentFilePaths.removeLast();
+  while (recentFilePaths.size() > MAX_RECENT_FILES)
+    recentFilePaths.removeLast();
   settings.setValue("recentFiles", recentFilePaths);
   updateRecentActionList();
 }
@@ -355,10 +377,14 @@ void MainWindow::glyphWasChanged(bool initialLoad) {
   IBMFDefs::GlyphInfoPtr glyphInfo = IBMFDefs::GlyphInfoPtr(new IBMFDefs::GlyphInfo);
   IBMFDefs::BitmapPtr    bitmap;
 
-  bitmapRenderer_->retrieveBitmap(&bitmap);
-
-  glyphInfo->bitmapWidth             = bitmap->dim.width;
-  glyphInfo->bitmapHeight            = bitmap->dim.height;
+  if (bitmapRenderer_->retrieveBitmap(&bitmap)) {
+    glyphInfo->bitmapWidth  = bitmap->dim.width;
+    glyphInfo->bitmapHeight = bitmap->dim.height;
+  } else {
+    glyphInfo->bitmapWidth  = 0;
+    glyphInfo->bitmapHeight = 0;
+    bitmap                  = BitmapPtr(new Bitmap());
+  }
   glyphInfo->horizontalOffset        = getValue(ui->characterMetrics, 2, 1).toInt();
   glyphInfo->verticalOffset          = getValue(ui->characterMetrics, 3, 1).toInt();
   glyphInfo->ligKernPgmIndex         = getValue(ui->characterMetrics, 4, 1).toUInt();
@@ -378,9 +404,9 @@ void MainWindow::bitmapChanged(const Bitmap &bitmap, const QPoint &originOffsets
       fontChanged_ = true;
       this->setWindowTitle(this->windowTitle() + '*');
     }
-    float oldAdvance = getValue(ui->characterMetrics, 6, 1).toFloat();
-    int   oldWidth   = getValue(ui->characterMetrics, 0, 1).toInt();
-    int   oldHOffset = getValue(ui->characterMetrics, 2, 1).toInt();
+    float oldAdvance         = getValue(ui->characterMetrics, 6, 1).toFloat();
+    int   oldWidth           = getValue(ui->characterMetrics, 0, 1).toInt();
+    int   oldHOffset         = getValue(ui->characterMetrics, 2, 1).toInt();
 
     int   oldNormalizedWidth = oldWidth - oldHOffset;
     int   newNormalizedWidth = bitmap.dim.width - originOffsets.x();
@@ -447,7 +473,7 @@ bool MainWindow::loadFont(QFile &file) {
   QByteArray content = file.readAll();
   file.close();
   clearAll();
-  ibmfFont_ = IBMFFontModPtr(new IBMFFontMod((uint8_t *) content.data(), content.size()));
+  ibmfFont_ = IBMFFontModPtr(new IBMFFontMod((uint8_t *)content.data(), content.size()));
   if (ibmfFont_->isInitialized()) {
     ibmfPreamble_ = ibmfFont_->getPreamble();
 
@@ -477,6 +503,7 @@ bool MainWindow::loadFont(QFile &file) {
     ui->actionSave->setEnabled(true);
     ui->actionSaveBackup->setEnabled(true);
     ui->actionProofing_Tool->setEnabled(true);
+    ui->menuExport->setEnabled(true);
 
     undoStack_->clear();
   }
@@ -511,9 +538,16 @@ void MainWindow::on_actionOpen_triggered() {
 
   QFile file;
 
-  QString filePath = QFileDialog::getOpenFileName(this, "Open IBMF Font File", ".", "*.ibmf");
+  QSettings settings("ibmf", "IBMFEditor");
+
+  QString filePath = QFileDialog::getOpenFileName(
+      this, "Open IBMF Font File", settings.value("ibmfFolder").toString(), "*.ibmf");
+
   if (!filePath.isEmpty()) {
     file.setFileName(filePath);
+
+    QFileInfo fi(filePath);
+    settings.setValue("ibmfFolder", fi.absolutePath());
 
     if (!file.open(QIODevice::ReadOnly)) {
       QMessageBox::warning(this, "Warning", "Unable to open file " + file.errorString());
@@ -622,14 +656,14 @@ bool MainWindow::loadFace(uint8_t faceIdx) {
       (faceIdx < ibmfPreamble_.faceCount)) {
     ibmfFaceHeader_ = ibmfFont_->getFaceHeader(faceIdx);
 
-    faceReloading_ = true;
+    faceReloading_  = true;
 
     putValue(ui->faceHeader, 0, 1, ibmfFaceHeader_->pointSize, false);
     putValue(ui->faceHeader, 1, 1, ibmfFaceHeader_->lineHeight);
     putValue(ui->faceHeader, 2, 1, ibmfFaceHeader_->dpi, false);
-    putFix16Value(ui->faceHeader, 3, 1, (float) ibmfFaceHeader_->xHeight / 64.0);
-    putFix16Value(ui->faceHeader, 4, 1, (float) ibmfFaceHeader_->emSize / 64.0);
-    putFix16Value(ui->faceHeader, 5, 1, (float) ibmfFaceHeader_->slantCorrection / 64.0);
+    putFix16Value(ui->faceHeader, 3, 1, (float)ibmfFaceHeader_->xHeight / 64.0);
+    putFix16Value(ui->faceHeader, 4, 1, (float)ibmfFaceHeader_->emSize / 64.0);
+    putFix16Value(ui->faceHeader, 5, 1, (float)ibmfFaceHeader_->slantCorrection / 64.0);
     putValue(ui->faceHeader, 6, 1, ibmfFaceHeader_->descenderHeight);
     putValue(ui->faceHeader, 7, 1, ibmfFaceHeader_->spaceSize);
     putValue(ui->faceHeader, 8, 1, ibmfFaceHeader_->glyphCount, false);
@@ -637,7 +671,7 @@ bool MainWindow::loadFace(uint8_t faceIdx) {
 
     faceReloading_ = false;
 
-    ibmfFaceIdx_ = faceIdx;
+    ibmfFaceIdx_   = faceIdx;
 
     loadGlyph(ibmfGlyphCode_);
   } else {
@@ -652,23 +686,26 @@ void MainWindow::saveGlyph() {
     BitmapPtr           theBitmap;
     IBMFDefs::GlyphInfo glyph_info;
     if (bitmapRenderer_->retrieveBitmap(&theBitmap)) {
-
-      glyph_info.bitmapWidth             = theBitmap->dim.width;
-      glyph_info.bitmapHeight            = theBitmap->dim.height;
-      glyph_info.horizontalOffset        = getValue(ui->characterMetrics, 2, 1).toInt();
-      glyph_info.verticalOffset          = getValue(ui->characterMetrics, 3, 1).toInt();
-      glyph_info.ligKernPgmIndex         = getValue(ui->characterMetrics, 4, 1).toUInt();
-      glyph_info.packetLength            = getValue(ui->characterMetrics, 5, 1).toUInt();
-      glyph_info.advance                 = getValue(ui->characterMetrics, 6, 1).toFloat() * 64.0;
-      glyph_info.rleMetrics.dynF         = getValue(ui->characterMetrics, 7, 1).toUInt();
-      glyph_info.rleMetrics.firstIsBlack = getValue(ui->characterMetrics, 8, 1).toUInt();
-
-      ibmfFont_->saveGlyph(ibmfFaceIdx_, ibmfGlyphCode_, &glyph_info, theBitmap);
-      glyphChanged_ = false;
+      glyph_info.bitmapWidth  = theBitmap->dim.width;
+      glyph_info.bitmapHeight = theBitmap->dim.height;
+    } else {
+      glyph_info.bitmapWidth  = 0;
+      glyph_info.bitmapHeight = 0;
+      theBitmap               = BitmapPtr(new Bitmap());
     }
+    glyph_info.horizontalOffset        = getValue(ui->characterMetrics, 2, 1).toInt();
+    glyph_info.verticalOffset          = getValue(ui->characterMetrics, 3, 1).toInt();
+    glyph_info.ligKernPgmIndex         = getValue(ui->characterMetrics, 4, 1).toUInt();
+    glyph_info.packetLength            = getValue(ui->characterMetrics, 5, 1).toUInt();
+    glyph_info.advance                 = getValue(ui->characterMetrics, 6, 1).toFloat() * 64.0;
+    glyph_info.rleMetrics.dynF         = getValue(ui->characterMetrics, 7, 1).toUInt();
+    glyph_info.rleMetrics.firstIsBlack = getValue(ui->characterMetrics, 8, 1).toUInt();
 
-    drawingSpace_->repaint();
+    ibmfFont_->saveGlyph(ibmfFaceIdx_, ibmfGlyphCode_, &glyph_info, theBitmap);
+    glyphChanged_ = false;
   }
+
+  drawingSpace_->repaint();
 }
 
 bool MainWindow::loadGlyph(uint16_t glyphCode) {
@@ -677,7 +714,7 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
       (ibmfFaceIdx_ < ibmfPreamble_.faceCount) && (glyphCode < ibmfFaceHeader_->glyphCount)) {
 
     if (ibmfFont_->getGlyph(ibmfFaceIdx_, glyphCode, ibmfGlyphInfo_, &ibmfGlyphBitmap_)) {
-      ibmfGlyphCode_ = glyphCode;
+      ibmfGlyphCode_  = glyphCode;
 
       glyphChanged_   = false;
       glyphReloading_ = true;
@@ -688,7 +725,7 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
       putValue(ui->characterMetrics, 3, 1, ibmfGlyphInfo_->verticalOffset, false);
       putValue(ui->characterMetrics, 4, 1, ibmfGlyphInfo_->ligKernPgmIndex, false);
       putValue(ui->characterMetrics, 5, 1, ibmfGlyphInfo_->packetLength, false);
-      putFix16Value(ui->characterMetrics, 6, 1, (float) ibmfGlyphInfo_->advance / 64.0);
+      putFix16Value(ui->characterMetrics, 6, 1, (float)ibmfGlyphInfo_->advance / 64.0);
       putValue(ui->characterMetrics, 7, 1, ibmfGlyphInfo_->rleMetrics.dynF, false);
       putValue(ui->characterMetrics, 8, 1, ibmfGlyphInfo_->rleMetrics.firstIsBlack, false);
 
@@ -725,7 +762,7 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
         for (int i = 0; i < ibmfLigKerns_->kernSteps.size(); i++) {
           putValue(ui->kernTable, i, 0,
                    QChar(ibmfFont_->getUTF32(ibmfLigKerns_->kernSteps[i]->nextGlyphCode)));
-          putFix16Value(ui->kernTable, i, 1, (float) ibmfLigKerns_->kernSteps[i]->kern / 64.0);
+          putFix16Value(ui->kernTable, i, 1, (float)ibmfLigKerns_->kernSteps[i]->kern / 64.0);
           int      code      = ibmfLigKerns_->kernSteps[i]->nextGlyphCode;
           char32_t codePoint = ibmfFont_->getUTF32(code);
           ui->kernTable->item(i, 0)->setToolTip(
@@ -785,10 +822,10 @@ void MainWindow::on_faceIndex_currentIndexChanged(int index) {
 void MainWindow::setScrollBarSizes(int pixelSize) {
   ui->bitmapHorizontalScrollBar->setPageStep(
       (ui->bitmapFrame->width() / pixelSize) *
-      ((float) ui->bitmapHorizontalScrollBar->maximum() / BitmapRenderer::bitmapWidth));
+      ((float)ui->bitmapHorizontalScrollBar->maximum() / BitmapRenderer::bitmapWidth));
   ui->bitmapVerticalScrollBar->setPageStep(
       (ui->bitmapFrame->height() / pixelSize) *
-      ((float) ui->bitmapVerticalScrollBar->maximum() / BitmapRenderer::bitmapHeight));
+      ((float)ui->bitmapVerticalScrollBar->maximum() / BitmapRenderer::bitmapHeight));
 }
 
 void MainWindow::centerScrollBarPos() {
@@ -798,10 +835,10 @@ void MainWindow::centerScrollBarPos() {
 
 void MainWindow::updateBitmapOffsetPos() {
   QPoint pos =
-      QPoint((float) ui->bitmapHorizontalScrollBar->value() /
+      QPoint((float)ui->bitmapHorizontalScrollBar->value() /
                      ui->bitmapHorizontalScrollBar->maximum() * BitmapRenderer::bitmapWidth -
                  ((bitmapRenderer_->width() / bitmapRenderer_->getPixelSize()) / 2),
-             (float) ui->bitmapVerticalScrollBar->value() / ui->bitmapVerticalScrollBar->maximum() *
+             (float)ui->bitmapVerticalScrollBar->value() / ui->bitmapVerticalScrollBar->maximum() *
                      BitmapRenderer::bitmapHeight -
                  ((bitmapRenderer_->height() / bitmapRenderer_->getPixelSize()) / 2));
 
@@ -1008,13 +1045,9 @@ void MainWindow::on_bitmapHorizontalScrollBar_valueChanged(int value) {
 //  }
 //}
 
-void MainWindow::on_actionSave_triggered() {
-  saveFont(true);
-}
+void MainWindow::on_actionSave_triggered() { saveFont(true); }
 
-void MainWindow::on_actionSaveBackup_triggered() {
-  saveFont(false);
-}
+void MainWindow::on_actionSaveBackup_triggered() { saveFont(false); }
 
 void MainWindow::on_clearRecentList_triggered() {
   QSettings   settings("ibmf", "IBMFEditor");
@@ -1055,7 +1088,7 @@ void MainWindow::on_actionImportTrueTypeFont_triggered() {
     if (fontDialog->exec() == QDialog::Accepted) {
       auto fontParameters = fontDialog->getParameters();
 
-      ibmfFont_ = IBMFFontModPtr(new IBMFFontMod);
+      ibmfFont_           = IBMFFontModPtr(new IBMFFontMod);
 
       if (ibmfFont_->loadTTF(*ft_, fontParameters)) {
         QFile outFile;
@@ -1092,7 +1125,7 @@ void MainWindow::on_editKerningButton_clicked() {
   kerningDialog->exec();
 }
 
-#include "kerningTestDialog.h"
+#include "proofingDialog.h"
 
 void MainWindow::on_plainTextEdit_textChanged() {
   drawingSpace_->setText(ui->plainTextEdit->toPlainText());
@@ -1112,7 +1145,118 @@ void MainWindow::on_autoKernCheckBox_toggled(bool checked) {
 
 void MainWindow::on_actionProofing_Tool_triggered() {
   if (ibmfFont_ != nullptr) {
-    KerningTestDialog *kerningTestDialog = new KerningTestDialog(ibmfFont_, ibmfFaceIdx_, this);
-    kerningTestDialog->exec();
+    ProofingDialog *proofingDialog = new ProofingDialog(ibmfFont_, ibmfFaceIdx_, this);
+    proofingDialog->exec();
   }
 }
+
+void MainWindow::on_actionC_h_File_triggered() {
+  if (ibmfFont_ != nullptr) {
+    if (!checkFontChanged()) return;
+
+    QString inFilePath = QFileDialog::getOpenFileName(this, "IBMF Font File to Read From",
+                                                      currentFilePath_, "*.ibmf");
+    if (!inFilePath.isEmpty()) {
+
+      QFileInfo               info     = QFileInfo(inFilePath);
+      QString                 baseName = info.completeBaseName();
+      QRegularExpression      theDateTimeWithExt("_\\d\\d\\d\\d\\d\\d\\d\\d_\\d\\d\\d\\d\\d\\d\\$");
+      QRegularExpressionMatch match = theDateTimeWithExt.match(baseName);
+
+      if (match.hasMatch()) {
+        baseName.replace(match.captured(), "");
+      }
+
+      QString headerFilePath = info.absolutePath() + "/" + baseName + ".h";
+
+      QString newFilePath =
+          QFileDialog::getSaveFileName(this, "Save C Header Font File", headerFilePath, "*.h");
+
+      if (!newFilePath.isEmpty()) {
+        info                  = QFileInfo(newFilePath);
+        QString baseName      = info.completeBaseName();
+        QString upperBaseName = info.completeBaseName().toUpper();
+
+        QFile outFile;
+        QFile inFile;
+        inFile.setFileName(inFilePath);
+        outFile.setFileName(newFilePath);
+
+        if (inFile.open(QIODevice::ReadOnly)) {
+          QByteArray content = inFile.readAll();
+          inFile.close();
+
+          if (outFile.open(QIODevice::WriteOnly)) {
+            QTextStream out(&outFile);
+
+            QDateTime UTC(QDateTime::currentDateTimeUtc());
+
+            out << "// ----- IBMF Binary Font " << baseName << " -----" << Qt::endl;
+            out << "//" << Qt::endl;
+            out << "//  Date: " << UTC.toString() << Qt::endl;
+            out << "//" << Qt::endl;
+            out << "// Generated from the IBMFFontEditor Version " << IBMF_VERSION << Qt::endl;
+            out << "//" << Qt::endl;
+            out << Qt::endl;
+            out << "#pragma once" << Qt::endl;
+            out << Qt::endl;
+            out << "const unsigned int " << upperBaseName << "_IBMF_LEN PROGMEM = " << Qt::dec
+                << content.size() << ";" << Qt::endl;
+            out << "const uint8_t " << upperBaseName << "_IBMF[] PROGMEM = {" << Qt::endl;
+
+            int  count   = 0;
+            bool newLine = true;
+
+            for (uint8_t byte : content) {
+              if (newLine) {
+                out << "   ";
+                newLine = false;
+              }
+
+              out << " 0x" << QString("%1").arg(+byte, 2, 16, QChar('0')) << ",";
+
+              if (++count == 12) {
+                out << Qt::endl;
+                newLine = true;
+                count   = 0;
+              }
+            }
+
+            if (count != 0) {
+              out << Qt::endl;
+            }
+
+            out << "};" << Qt::endl;
+
+            outFile.close();
+
+          } else {
+            QMessageBox::critical(nullptr, "Unable to write file",
+                                  QString("Unable to write file %1").arg(newFilePath));
+          }
+        } else {
+          QMessageBox::critical(nullptr, "Unable to read file",
+                                QString("Unable to read file %1").arg(inFilePath));
+        }
+      }
+    }
+  }
+}
+
+//};
+// const unsigned int EC_BOLD_75_IBMF_LEN PROGMEM = 36252;
+
+// ----- IBMF Binary Font EC-Bold_75 ----- 8
+//
+//  Date: Tue 28 Mar 2023 10:32:45 PM EDT
+//
+// Automatically generated on linux using the following commands in a shell script:
+//
+//  $ printf "#pragma once\n" > EC-Bold_75.h
+//  $ xxd -i -C EC-Bold_75.ibmf  | sed -e 's/ = / PROGMEM = /' -e 's/unsigned char/const uint8_t/'
+//  -e 's/unsigned/const unsigned/' >> EC-Bold_75.h
+
+//#pragma once
+
+// const uint8_t EC_BOLD_75_IBMF[] PROGMEM = {
+//     0x49, 0x42, 0x4d, 0x46, 0x07, 0x04, 0x08, 0x09, 0x0a, 0x0c, 0x0e, 0x11,
