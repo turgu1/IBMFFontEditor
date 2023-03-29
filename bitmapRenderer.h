@@ -22,7 +22,7 @@ public:
 
   BitmapRenderer(QWidget *parent = 0, int pixel_size = 20, bool no_scroll = false,
                  QUndoStack *undoStack_ = nullptr);
-  bool retrieveBitmap(IBMFDefs::Bitmap **bitmap, QPoint *offsets = nullptr);
+  bool retrieveBitmap(IBMFDefs::BitmapPtr *bitmap, QPoint *offsets = nullptr);
   void clearAndEmit(bool repaint_after = false);
   bool changed() { return bitmapChanged_; }
   void setPixelSize(int pixel_size);

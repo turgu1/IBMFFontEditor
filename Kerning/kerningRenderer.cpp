@@ -56,9 +56,7 @@ void KerningRenderer::paintEvent(QPaintEvent *event) {
   int idx = 0;
   for (int y = 0; y < _glyphsHeight; y++) {
     for (int x = 0; x < _glyphsWidth; x++, idx++) {
-      if (_glyphsBitmap.pixels[idx] != 0) {
-        setScreenPixel(QPoint(x, y), painter);
-      }
+      if (_glyphsBitmap.pixels[idx] != 0) { setScreenPixel(QPoint(x, y), painter); }
     }
   }
 }
@@ -85,4 +83,6 @@ int KerningRenderer::putGlyph(IBMFDefs::GlyphCode code, IBMFDefs::Pos atPos) {
   }
 }
 
-QSize KerningRenderer::sizeHint() const { return minimumSizeHint(); }
+QSize KerningRenderer::sizeHint() const {
+  return minimumSizeHint();
+}

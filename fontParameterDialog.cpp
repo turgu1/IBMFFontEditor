@@ -22,8 +22,8 @@ FontParameterDialog::FontParameterDialog(FreeType &ft, QString title, QWidget *p
 
   ui->nextButton->setEnabled(false);
 
-  charSelections_              = new IBMFDefs::CharSelections;
-  codePointBlocks_             = nullptr;
+  charSelections_  = IBMFDefs::CharSelectionsPtr(new IBMFDefs::CharSelections);
+  codePointBlocks_ = nullptr;
 
   QHBoxLayout *ttfFontFilename = new QHBoxLayout();
   ttfFontFilename_             = new QLineEdit();
@@ -98,7 +98,6 @@ FontParameterDialog::FontParameterDialog(FreeType &ft, QString title, QWidget *p
 
 FontParameterDialog::~FontParameterDialog() {
   delete ui;
-  delete charSelections_;
 }
 
 void FontParameterDialog::checkForNext() {
@@ -106,9 +105,7 @@ void FontParameterDialog::checkForNext() {
       !(ttfFontFilename_->text().isEmpty() || ibmfFontFilename_->text().isEmpty()) &&
       (pt8_->isChecked() || pt9_->isChecked() || pt10_->isChecked() || pt12_->isChecked() ||
        pt14_->isChecked() || pt17_->isChecked() || pt24_->isChecked() || pt48_->isChecked()));
-  if (ui->nextButton->isEnabled()) {
-    ui->nextButton->setFocus(Qt::OtherFocusReason);
-  }
+  if (ui->nextButton->isEnabled()) { ui->nextButton->setFocus(Qt::OtherFocusReason); }
 }
 
 void FontParameterDialog::browseIBMFFontFilename() {
@@ -117,9 +114,7 @@ void FontParameterDialog::browseIBMFFontFilename() {
   if (filename.isEmpty()) filename = settings.value("ibmfFolder").toString();
   QString newFilePath =
       QFileDialog::getSaveFileName(this, "New IBMF Font File", filename, "*.ibmf");
-  if (!newFilePath.isEmpty()) {
-    ibmfFontFilename_->setText(newFilePath);
-  }
+  if (!newFilePath.isEmpty()) { ibmfFontFilename_->setText(newFilePath); }
   checkForNext();
 }
 
@@ -129,9 +124,7 @@ void FontParameterDialog::browseTTFFontFilename() {
   if (filename.isEmpty()) filename = settings.value("ttfFolder").toString();
   QString newFilePath =
       QFileDialog::getOpenFileName(this, "Open TTF/OTF Font File", filename, "Font (*.ttf *.otf)");
-  if (!newFilePath.isEmpty()) {
-    ttfFontFilename_->setText(newFilePath);
-  }
+  if (!newFilePath.isEmpty()) { ttfFontFilename_->setText(newFilePath); }
   checkForNext();
 }
 
@@ -151,7 +144,7 @@ void FontParameterDialog::on_nextButton_clicked() {
     charSelections_->push_back(IBMFDefs::CharSelection(
         {.filename = ttfFontFilename_->text(), .selectedBlockIndexes = blockIndexes}));
 
-    fontParameters_ =
+    fontParameters_ = IBMFDefs::FontParametersPtr(
         new IBMFDefs::FontParameters(IBMFDefs::FontParameters{.dpi      = dpi75_->isChecked() ? 75
                                                                           : dpi100_->isChecked() ? 100
                                                                           : dpi120_->isChecked() ? 120
@@ -166,11 +159,15 @@ void FontParameterDialog::on_nextButton_clicked() {
                                                               .pt24     = pt24_->isChecked(),
                                                               .pt48     = pt48_->isChecked(),
                                                               .filename = ibmfFontFilename_->text(),
-                                                              .charSelections = charSelections_});
+                                                              .charSelections = charSelections_}));
     accept();
   }
 }
 
-void FontParameterDialog::on_cancelButton_clicked() { reject(); }
+void FontParameterDialog::on_cancelButton_clicked() {
+  reject();
+}
 
-void FontParameterDialog::onCheckBoxClicked() { checkForNext(); }
+void FontParameterDialog::onCheckBoxClicked() {
+  checkForNext();
+}

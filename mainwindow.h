@@ -52,8 +52,8 @@ private slots:
   void on_leftSplitter_splitterMoved(int pos, int index);
   void on_bitmapVerticalScrollBar_valueChanged(int value);
   void on_bitmapHorizontalScrollBar_valueChanged(int value);
-  void on_actionFont_load_save_triggered();
-  void on_actionRLE_Encoder_triggered();
+  // void on_actionFont_load_save_triggered();
+  // void on_actionRLE_Encoder_triggered();
   void on_actionSave_triggered();
   void on_actionSaveBackup_triggered();
   void on_clearRecentList_triggered();
@@ -62,14 +62,15 @@ private slots:
   void centerScrollBarPos();
   void updateBitmapOffsetPos();
   void openRecent();
-  void on_actionTest_Dialog_triggered();
+  // void on_actionTest_Dialog_triggered();
   void on_actionImportTrueTypeFont_triggered();
   void on_editKerningButton_clicked();
-  void on_actionTest_Auto_Kerning_triggered();
   void on_plainTextEdit_textChanged();
   void on_pixelSizeCombo_currentIndexChanged(int index);
   void on_normalKernCheckBox_toggled(bool checked);
   void on_autoKernCheckBox_toggled(bool checked);
+
+  void on_actionProofing_Tool_triggered();
 
 private:
   const int MAX_RECENT_FILES = 10;

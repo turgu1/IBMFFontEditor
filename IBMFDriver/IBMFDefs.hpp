@@ -82,8 +82,8 @@ const constexpr uint8_t MAX_GLYPH_COUNT = 254; // Index Value 0xFE and 0xFF are 
 // const constexpr uint8_t BLACK_EIGHT_BITS = 0;
 // const constexpr uint8_t WHITE_EIGHT_BITS = 0xFF;
 
-const constexpr uint8_t BLACK_ONE_BIT    = 1;
-const constexpr uint8_t WHITE_ONE_BIT    = 0;
+const constexpr uint8_t BLACK_ONE_BIT = 1;
+const constexpr uint8_t WHITE_ONE_BIT = 0;
 
 const constexpr uint8_t BLACK_EIGHT_BITS = 0xFF;
 const constexpr uint8_t WHITE_EIGHT_BITS = 0x00;
@@ -97,14 +97,14 @@ struct Dim {
   uint8_t width;
   uint8_t height;
   Dim(uint8_t w, uint8_t h) : width(w), height(h) {}
-  Dim() {}
+  Dim() : width(0), height(0) {}
 };
 
 struct Pos {
   int8_t x;
   int8_t y;
   Pos(int8_t xpos, int8_t ypos) : x(xpos), y(ypos) {}
-  Pos() {}
+  Pos() : x(0), y(0) {}
 };
 
 typedef uint8_t              *MemoryPtr;
@@ -131,7 +131,7 @@ struct RLEBitmap {
         length = 0;
   }
 };
-typedef RLEBitmap *RLEBitmapPtr;
+typedef std::shared_ptr<RLEBitmap> RLEBitmapPtr;
 
 // Uncompressed Bitmap.
 
@@ -144,7 +144,7 @@ struct Bitmap {
     dim = Dim(0, 0);
   }
 };
-typedef std::shared_ptr<Bitmap *> BitmapPtr;
+typedef std::shared_ptr<Bitmap> BitmapPtr;
 
 #pragma pack(push, 1)
 
@@ -159,7 +159,7 @@ struct Preamble {
     FontFormat fontFormat : 3;
   } bits;
 };
-typedef Preamble *PreamblePtr;
+typedef std::shared_ptr<Preamble> PreamblePtr;
 
 struct FaceHeader {
   uint8_t  pointSize;        // In points (pt) a point is 1 / 72.27 of an inch
@@ -359,8 +359,7 @@ struct LigKernStep {
   ReplDisp b;
 };
 #endif
-
-typedef LigKernStep *LigKernStepPtr;
+typedef std::shared_ptr<LigKernStep> LigKernStepPtr;
 
 struct RLEMetrics {
   uint8_t dynF         : 4;
@@ -446,21 +445,21 @@ struct GlyphKernStep {
   uint16_t nextGlyphCode;
   FIX16    kern;
 };
-typedef GlyphKernStep                *GlyphKernStepPtr;
-typedef std::vector<GlyphKernStepPtr> GlyphKernSteps;
+typedef std::shared_ptr<GlyphKernStep> GlyphKernStepPtr;
+typedef std::vector<GlyphKernStepPtr>  GlyphKernSteps;
 
 struct GlyphLigStep {
   uint16_t nextGlyphCode;
   uint16_t replacementGlyphCode;
 };
-typedef GlyphLigStep                *GlyphLigStepPtr;
-typedef std::vector<GlyphLigStepPtr> GlyphLigSteps;
+typedef std::shared_ptr<GlyphLigStep> GlyphLigStepPtr;
+typedef std::vector<GlyphLigStepPtr>  GlyphLigSteps;
 
 struct GlyphLigKern {
   GlyphLigSteps  ligSteps;
   GlyphKernSteps kernSteps;
 };
-typedef GlyphLigKern *GlyphLigKernPtr;
+typedef std::shared_ptr<GlyphLigKern> GlyphLigKernPtr;
 
 // These are the structure required to create a new font
 // from some parameters. For now, it is used to create UTF32
@@ -470,8 +469,8 @@ struct CharSelection {
   QString                 filename; // Filename to import from
   SelectedBlockIndexesPtr selectedBlockIndexes;
 };
-typedef std::vector<CharSelection> CharSelections;
-typedef CharSelections            *CharSelectionsPtr;
+typedef std::vector<CharSelection>      CharSelections;
+typedef std::shared_ptr<CharSelections> CharSelectionsPtr;
 
 struct FontParameters {
   int               dpi;
@@ -486,7 +485,7 @@ struct FontParameters {
   QString           filename;
   CharSelectionsPtr charSelections;
 };
-typedef FontParameters *FontParametersPtr;
+typedef std::shared_ptr<FontParameters> FontParametersPtr;
 
 // Ligature table. Used to create entries in a new font defintition.
 // Of course, the three letters must be present in the resulting font to have
@@ -718,7 +717,7 @@ const CharCodes fontFormat0CodePoints = {
 //
 // The index in the table corresponds to UTF16 U+00A1 to U+017F CodePoints.
 
-const constexpr uint16_t LATIN_GLYPH_CODE_MASK  = 0x7FF;
+const constexpr uint16_t LATIN_GLYPH_CODE_MASK = 0x7FF;
 
 const constexpr GlyphCode latinTranslationSet[] = {
     /* 0x0A1 */ 0x0020, // ¡
