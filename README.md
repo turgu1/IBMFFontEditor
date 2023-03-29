@@ -1,28 +1,28 @@
-### IBMF Font Editor
+### IBMF Font Editor Version 0.90.0
 
 This is a simple font editor for the IBMF Font format. 
-Using QtCreator v9.0.1 and GCC.
+Using QtCreator v9.0.2, Qt v6.4.2 and GCC.
 
-Work in progress. Not ready yet.
+Work in progress. Close to be ready ...
 
 ToDo:
 
 - [x] Run Length Encoding algorithm for glyph' bitmap
 - [x] Ligature / Kerning format change in IBMFFont file structure
 - [x] ibmf_font.hpp update according to new IBMFFont structure format
-- [ ] Testing IBMFFont new format (V4) - ongoing
+- [x] Testing IBMFFont new format (V4) - ongoing
 - [x] Edited Font save using date/time suffix on filename
 - [x] Algorithm for modified font file saved to disk 
 - [ ] Kern and Ligature edition and update
 - [ ] Copy / Paste of a glyph
 - [x] Connect vertical/horizontal scrollBars to grid positioning
-- [ ] Add export to .h header file
-- [ ] Add manual Text entry and formatting with the current font for proofreading.
+- [x] Add export to .h header file
+- [x] Add manual Text entry and formatting with the current font for proofreading.
 - [x] Add Undo/Redo capability
 - [x] Add Recent documents management
 - [x] Add Geometry and Recent documents config management
-- [ ] Add import capability (GFX and/or TTF)
-- [ ] Testing everything
+- [x] Add import capability (TTF)
+- [ ] Testing everything (ongoing)
 
 Known bugs:
 
