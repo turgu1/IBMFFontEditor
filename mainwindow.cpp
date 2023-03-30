@@ -1200,9 +1200,9 @@ void MainWindow::on_actionC_h_File_triggered() {
             out << Qt::endl;
             out << "#pragma once" << Qt::endl;
             out << Qt::endl;
-            out << "const unsigned int " << upperBaseName << "_IBMF_LEN PROGMEM = " << Qt::dec
+            out << "const unsigned int " << upperBaseName << "_IBMF_LEN = " << Qt::dec
                 << content.size() << ";" << Qt::endl;
-            out << "const uint8_t " << upperBaseName << "_IBMF[] PROGMEM = {" << Qt::endl;
+            out << "const uint8_t " << upperBaseName << "_IBMF[] = {" << Qt::endl;
 
             int  count   = 0;
             bool newLine = true;
