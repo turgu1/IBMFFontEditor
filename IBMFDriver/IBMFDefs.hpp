@@ -82,8 +82,8 @@ const constexpr uint8_t MAX_GLYPH_COUNT = 254; // Index Value 0xFE and 0xFF are 
 // const constexpr uint8_t BLACK_EIGHT_BITS = 0;
 // const constexpr uint8_t WHITE_EIGHT_BITS = 0xFF;
 
-const constexpr uint8_t BLACK_ONE_BIT = 1;
-const constexpr uint8_t WHITE_ONE_BIT = 0;
+const constexpr uint8_t BLACK_ONE_BIT    = 1;
+const constexpr uint8_t WHITE_ONE_BIT    = 0;
 
 const constexpr uint8_t BLACK_EIGHT_BITS = 0xFF;
 const constexpr uint8_t WHITE_EIGHT_BITS = 0x00;
@@ -173,8 +173,6 @@ struct FaceHeader {
   uint16_t glyphCount;       // Must be the same for all face
   uint16_t ligKernStepCount; // Length of the Ligature/Kerning table
   uint32_t pixelsPoolSize;   // Size of the Pixels Pool
-  //  uint8_t  maxHeight;        // The maximum hight in pixels of every glyph in the face
-  //  uint8_t  filler[3];        // To keep the struct to be at a frontier of 32 bits
 };
 
 // typedef FaceHeader *FaceHeaderPtr;
@@ -376,6 +374,7 @@ struct GlyphInfo {
   FIX16      advance;          // Normal advance to the next glyph position in line
   RLEMetrics rleMetrics;       // RLE Compression information
   uint8_t    ligKernPgmIndex;  // = 255 if none, Index in the ligature/kern array
+  GlyphCode  mainCode;         // Main composite (or not) glyphCode for kerning matching algo
 };
 
 typedef std::shared_ptr<GlyphInfo> GlyphInfoPtr;
@@ -447,6 +446,7 @@ struct GlyphKernStep {
 };
 typedef std::shared_ptr<GlyphKernStep> GlyphKernStepPtr;
 typedef std::vector<GlyphKernStepPtr>  GlyphKernSteps;
+typedef GlyphKernSteps                *GlyphKernStepsVecPtr;
 
 struct GlyphLigStep {
   uint16_t nextGlyphCode;
@@ -454,6 +454,7 @@ struct GlyphLigStep {
 };
 typedef std::shared_ptr<GlyphLigStep> GlyphLigStepPtr;
 typedef std::vector<GlyphLigStepPtr>  GlyphLigSteps;
+typedef GlyphLigSteps                *GlyphLigStepsVecPtr;
 
 struct GlyphLigKern {
   GlyphLigSteps  ligSteps;
@@ -717,7 +718,7 @@ const CharCodes fontFormat0CodePoints = {
 //
 // The index in the table corresponds to UTF16 U+00A1 to U+017F CodePoints.
 
-const constexpr uint16_t LATIN_GLYPH_CODE_MASK = 0x7FF;
+const constexpr uint16_t LATIN_GLYPH_CODE_MASK  = 0x7FF;
 
 const constexpr GlyphCode latinTranslationSet[] = {
     /* 0x0A1 */ 0x0020, // ¡

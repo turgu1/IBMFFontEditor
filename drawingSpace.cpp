@@ -5,9 +5,7 @@
 #include <QPainter>
 
 DrawingSpace::DrawingSpace(IBMFFontModPtr font, int faceIdx, QWidget *parent)
-    : QWidget{parent}, font_(font), faceIdx_(faceIdx), autoKerning_(false), normalKerning_(false),
-      pixelSize_(1), kernFactor_(1.0), wordLength_(0), bypassGlyphCode_(IBMFDefs::NO_GLYPH_CODE),
-      bypassGlyphInfo_(nullptr) {
+    : QWidget{parent}, font_(font), faceIdx_(faceIdx) {
   this->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 }
 
@@ -49,7 +47,7 @@ auto DrawingSpace::computeAutoKerning(const IBMFDefs::BitmapPtr b1, const IBMFDe
       }
     }
   }
-  int advance = (i1.advance >> 6);
+  int advance = ((i1.advance + 32) >> 6);
   if (advance == 0) advance = i1.bitmapWidth + 1;
 
   pos.setX(pos.x() + advance);
@@ -149,11 +147,11 @@ void DrawingSpace::paintWord(QPainter *painter, int lineHeight) {
 
     pos_.setX(pos_.x() + ch.kern);
 
-    int voff    = ch.glyphInfo->verticalOffset;
-    int hoff    = ch.glyphInfo->horizontalOffset;
+    int voff      = ch.glyphInfo->verticalOffset;
+    int hoff      = ch.glyphInfo->horizontalOffset;
 
-    int advance = (ch.glyphInfo->advance >> 6);
-    if (advance == 0) advance = ch.glyphInfo->bitmapWidth + 1;
+    FIX16 advance = ch.glyphInfo->advance;
+    if (advance == 0) advance = (ch.glyphInfo->bitmapWidth + 1) << 6;
 
     if (((pos_.x() - hoff + advance) * pixelSize_ + 20) > this->width()) {
       pos_.setY(pos_.y() + lineHeight);
@@ -187,7 +185,7 @@ void DrawingSpace::paintWord(QPainter *painter, int lineHeight) {
       }
     }
 
-    advance = (ch.glyphInfo->advance >> 6);
+    advance = ((ch.glyphInfo->advance + 32) >> 6);
     if (advance == 0) advance = ch.glyphInfo->bitmapWidth + 1;
     pos_.setX(pos_.x() + advance);
   }
@@ -259,7 +257,7 @@ void DrawingSpace::drawScreen(QPainter *painter) {
     //      this->resize(this->width(), this->height() + 100);
     //    }
 
-    int kerning = 0;
+    FIX16 kerning = 0;
 
     if (autoKerning_ || normalKerning_) {
       if (!first) {
@@ -289,7 +287,7 @@ void DrawingSpace::drawScreen(QPainter *painter) {
             b2 = bitmap;
             i2 = glyphInfo;
           }
-          float fkerning = (float(kern + ((kern < 0) ? -32 : 32)) / 64.0) * kernFactor_;
+          float fkerning = float(kern) * kernFactor_;
           kerning        = fkerning;
         }
 
@@ -307,12 +305,12 @@ void DrawingSpace::drawScreen(QPainter *painter) {
       }
     }
 
-    int advance = (glyphInfo->advance >> 6);
+    FIX16 advance = glyphInfo->advance;
     if (advance == 0) {
       advance = glyphInfo->bitmapWidth + 1; // Some codePoints have a zero advance...
     }
     word_.push_back(OneGlyph({.bitmap = bitmap, .glyphInfo = glyphInfo, .kern = kerning}));
-    wordLength_ += advance + kerning - glyphInfo->horizontalOffset;
+    wordLength_ += ((advance + kerning + 32) >> 6) - glyphInfo->horizontalOffset;
     startOfLine = false;
   }
 

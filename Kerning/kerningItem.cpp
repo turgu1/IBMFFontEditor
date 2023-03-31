@@ -8,7 +8,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-KerningItem::KerningItem(KernEntry kernEntry, IBMFFontMod *font, int faceIdx, QWidget *parent)
+KerningItem::KerningItem(KernEntry kernEntry, IBMFFontModPtr font, int faceIdx, QWidget *parent)
     : QWidget(parent), kernEntry_(kernEntry), font_(font) {
 
   frame_            = new QFrame(this);

@@ -11,8 +11,8 @@ public:
   ~KerningEditor() {}
 
   QSize        sizeHint() const override;
-  void         setKerningItem(KerningItem *kerningItem) { _kerningItem = kerningItem; }
-  KerningItem *kerningItem() { return _kerningItem; }
+  void         setKerningItem(KerningItem *kerningItem) { kerningItem_ = kerningItem; }
+  KerningItem *kerningItem() { return kerningItem_; }
 
 signals:
   void editingFinished();
@@ -25,5 +25,5 @@ protected:
 private:
   //  int starAtPosition(int x) const;
 
-  KerningItem *_kerningItem;
+  KerningItem *kerningItem_;
 };

@@ -21,8 +21,8 @@ using namespace IBMFDefs;
 #define DEBUG 0
 
 #if DEBUG
-#include <iomanip>
-#include <iostream>
+  #include <iomanip>
+  #include <iostream>
 #endif
 
 /**
@@ -99,6 +99,7 @@ public:
   auto charSelected(char32_t ch, SelectedBlockIndexesPtr &selectedBlockIndexes) const -> bool;
   auto prepareCodePlanes(FT_Face &face, CharSelections &charSelections) -> int;
   auto retrieveKernPairsTable(FT_Face ftFace) -> void;
+  auto findGlyphCodeFromIndex(int index, FT_Face ftFace, int glyphCount) -> GlyphCode;
   auto loadTTF(FreeType &ft, FontParametersPtr fontParameters) -> bool;
 
 private:
@@ -125,4 +126,4 @@ private:
   auto load() -> bool;
 };
 
-typedef IBMFFontMod *IBMFFontModPtr;
+typedef std::shared_ptr<IBMFFontMod> IBMFFontModPtr;

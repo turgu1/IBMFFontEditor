@@ -12,7 +12,7 @@ class CharacterSelector : public QDialog {
 public:
   CharacterSelector(const IBMFDefs::CharCodes *chars, QString title = nullptr,
                     QString info = nullptr, QWidget *parent = nullptr);
-  int selectedCharIndex() { return _selectedCharIndex; }
+  int selectedCharIndex() { return selectedCharIndex_; }
 
 private slots:
   void onDoubleClick(const QModelIndex &index);
@@ -21,8 +21,8 @@ private slots:
   void onSelected();
 
 private:
-  int           _selectedCharIndex;
-  int           _columnCount;
-  QTableWidget *_charsTable;
-  QPushButton  *_okButton;
+  int           selectedCharIndex_{-1};
+  int           columnCount_;
+  QTableWidget *charsTable_;
+  QPushButton  *okButton_;
 };

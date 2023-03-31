@@ -43,17 +43,17 @@ private:
   QString        textToDraw_;
   IBMFFontModPtr font_;
   int            faceIdx_;
-  bool           autoKerning_;
-  bool           normalKerning_;
-  int            pixelSize_;
-  float          kernFactor_;
-  int            wordLength_;
-  QSize          requiredSize_;
-  QPoint         pos_;
+  bool           autoKerning_{false};
+  bool           normalKerning_{false};
+  int            pixelSize_{1};
+  float          kernFactor_{1.0};
+  int            wordLength_{0};
+  QSize          requiredSize_{QSize(0, 0)};
+  QPoint         pos_{QPoint(0, 0)};
 
-  IBMFDefs::GlyphCode    bypassGlyphCode_;
-  IBMFDefs::BitmapPtr    bypassBitmap_;
-  IBMFDefs::GlyphInfoPtr bypassGlyphInfo_;
+  IBMFDefs::GlyphCode    bypassGlyphCode_{IBMFDefs::NO_GLYPH_CODE};
+  IBMFDefs::BitmapPtr    bypassBitmap_{nullptr};
+  IBMFDefs::GlyphInfoPtr bypassGlyphInfo_{nullptr};
 
   auto computeAutoKerning(const BitmapPtr b1, const BitmapPtr b2, const GlyphInfo &i1,
                           const GlyphInfo &i2) const -> int;

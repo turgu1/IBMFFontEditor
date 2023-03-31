@@ -18,12 +18,7 @@
 //#define TRACE(str) std::cout << str << std::endl;
 #define TRACE(str)
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow), ft_(nullptr), currentFilePath_(""),
-      undoView_(nullptr), fontChanged_(false), faceChanged_(false), glyphChanged_(false),
-      initialized_(false), glyphReloading_(false), faceReloading_(false), ibmfFont_(nullptr),
-      ibmfFaceHeader_(nullptr), ibmfGlyphInfo_(nullptr), ibmfGlyphBitmap_(nullptr),
-      ibmfLigKerns_(nullptr), ibmfFaceIdx_(0), ibmfGlyphCode_(0) {
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) {
 
   ui->setupUi(this);
 
@@ -423,11 +418,14 @@ void MainWindow::bitmapChanged(const Bitmap &bitmap, const QPoint &originOffsets
 }
 
 bool MainWindow::saveFont(bool askToConfirmName) {
-  QString            newFilePath;
-  QRegularExpression theDateTimeWithExt("_\\d\\d\\d\\d\\d\\d\\d\\d_\\d\\d\\d\\d\\d\\d\\.ibmf$");
+  saveGlyph();
+  saveFace();
+  QString                   newFilePath;
+  static QRegularExpression theDateTimeWithExt(
+      "_\\d\\d\\d\\d\\d\\d\\d\\d_\\d\\d\\d\\d\\d\\d\\.ibmf$");
   QRegularExpressionMatch match = theDateTimeWithExt.match(currentFilePath_);
   if (!match.hasMatch()) {
-    QRegularExpression extension("\\.ibmf$");
+    static QRegularExpression extension("\\.ibmf$");
     match = extension.match(currentFilePath_);
   }
   if (match.hasMatch()) {
@@ -604,7 +602,7 @@ void MainWindow::putFix16Value(QTableWidget *w, int row, int col, QVariant value
   w->setItem(row, col, item);
   QAbstractItemDelegate *delegate;
   if ((delegate = w->itemDelegateForRow(row)) != nullptr) delete delegate;
-  w->setItemDelegateForRow(row, new Fix16Delegate);
+  w->setItemDelegateForRow(row, new Fix16Delegate(this));
 }
 
 void MainWindow::putColoredFix16Value(QTableWidget *w, int row, int col, QVariant value,
@@ -622,7 +620,7 @@ void MainWindow::putColoredFix16Value(QTableWidget *w, int row, int col, QVarian
   w->setItem(row, col, item);
   QAbstractItemDelegate *delegate;
   if ((delegate = w->itemDelegateForRow(row)) != nullptr) delete delegate;
-  w->setItemDelegateForRow(row, new Fix16Delegate);
+  w->setItemDelegateForRow(row, new Fix16Delegate(this));
 }
 
 QVariant MainWindow::getValue(QTableWidget *w, int row, int col) {
@@ -1110,6 +1108,11 @@ void MainWindow::on_actionImportTrueTypeFont_triggered() {
                                      "Unable to load IBMF file " + fontParameters->filename);
               }
               file.close();
+
+              QFileInfo info = QFileInfo(fontParameters->filename);
+              QMessageBox::information(
+                  this, "Import Completed",
+                  QString("Import of TTF file to %1 completed!").arg(info.completeBaseName()));
             }
           }
         }
@@ -1158,9 +1161,10 @@ void MainWindow::on_actionC_h_File_triggered() {
                                                       currentFilePath_, "*.ibmf");
     if (!inFilePath.isEmpty()) {
 
-      QFileInfo               info     = QFileInfo(inFilePath);
-      QString                 baseName = info.completeBaseName();
-      QRegularExpression      theDateTimeWithExt("_\\d\\d\\d\\d\\d\\d\\d\\d_\\d\\d\\d\\d\\d\\d\\$");
+      QFileInfo                 info     = QFileInfo(inFilePath);
+      QString                   baseName = info.completeBaseName();
+      static QRegularExpression theDateTimeWithExt(
+          "_\\d\\d\\d\\d\\d\\d\\d\\d_\\d\\d\\d\\d\\d\\d\\$");
       QRegularExpressionMatch match = theDateTimeWithExt.match(baseName);
 
       if (match.hasMatch()) {
@@ -1200,9 +1204,9 @@ void MainWindow::on_actionC_h_File_triggered() {
             out << Qt::endl;
             out << "#pragma once" << Qt::endl;
             out << Qt::endl;
-            out << "const unsigned int " << upperBaseName << "_IBMF_LEN PROGMEM = " << Qt::dec
+            out << "const unsigned int " << upperBaseName << "_IBMF_LEN = " << Qt::dec
                 << content.size() << ";" << Qt::endl;
-            out << "const uint8_t " << upperBaseName << "_IBMF[] PROGMEM = {" << Qt::endl;
+            out << "const uint8_t " << upperBaseName << "_IBMF[] = {" << Qt::endl;
 
             int  count   = 0;
             bool newLine = true;
@@ -1229,6 +1233,10 @@ void MainWindow::on_actionC_h_File_triggered() {
             out << "};" << Qt::endl;
 
             outFile.close();
+
+            QMessageBox::information(
+                this, "Export Completed",
+                QString("Export to a C Header Format of %1 completed!").arg(baseName));
 
           } else {
             QMessageBox::critical(nullptr, "Unable to write file",

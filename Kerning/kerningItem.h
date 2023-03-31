@@ -14,7 +14,7 @@ class KerningItem : public QWidget {
 public:
   enum class EditMode { Editable, ReadOnly };
 
-  KerningItem(KernEntry kernEntry, IBMFFontMod *font, int faceIdx, QWidget *parent = nullptr);
+  KerningItem(KernEntry kernEntry, IBMFFontModPtr font, int faceIdx, QWidget *parent = nullptr);
   KerningItem() {}
 
   void  paint(QPainter *painter, const QRect &rect, const QPalette &palette, EditMode mode) const;
@@ -29,8 +29,8 @@ private slots:
   void onRightButtonClicked();
 
 private:
-  KernEntry    kernEntry_;
-  IBMFFontMod *font_;
+  KernEntry      kernEntry_;
+  IBMFFontModPtr font_;
 
   QFrame          *frame_;
   QLabel          *kernLabel_;

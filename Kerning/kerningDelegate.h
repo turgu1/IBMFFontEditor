@@ -12,7 +12,7 @@ class KerningDelegate : public QStyledItemDelegate {
   Q_OBJECT
 
 public:
-  KerningDelegate(IBMFFontMod *font, int faceIdx)
+  KerningDelegate(IBMFFontModPtr font, int faceIdx)
       : QStyledItemDelegate(), font_(font), faceIdx_(faceIdx) {}
 
   void     paint(QPainter *painter, const QStyleOptionViewItem &option,
@@ -28,6 +28,6 @@ private slots:
   void commitAndCloseEditor();
 
 private:
-  IBMFFontMod *font_;
-  int          faceIdx_;
+  IBMFFontModPtr font_;
+  int            faceIdx_;
 };

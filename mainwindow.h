@@ -83,20 +83,20 @@ private:
   const int MAX_RECENT_FILES = 10;
 
   Ui::MainWindow *ui;
-  QString         currentFilePath_;
+  QString         currentFilePath_{""};
 
-  FreeType   *ft_;
+  FreeType   *ft_{nullptr};
   QUndoStack *undoStack_;
   QUndoView  *undoView_;
   QAction    *undoAction_;
   QAction    *redoAction_;
 
-  bool fontChanged_;
-  bool faceChanged_;
-  bool glyphChanged_;
-  bool initialized_;
-  bool glyphReloading_;
-  bool faceReloading_;
+  bool fontChanged_{false};
+  bool faceChanged_{false};
+  bool glyphChanged_{false};
+  bool initialized_{false};
+  bool glyphReloading_{false};
+  bool faceReloading_{false};
 
   BitmapRenderer *bitmapRenderer_;
   BitmapRenderer *smallGlyph_;
@@ -104,15 +104,15 @@ private:
 
   DrawingSpace *drawingSpace_;
 
-  IBMFFontModPtr            ibmfFont_;
+  IBMFFontModPtr            ibmfFont_{nullptr};
   IBMFDefs::Preamble        ibmfPreamble_;
-  IBMFDefs::FaceHeaderPtr   ibmfFaceHeader_;
-  IBMFDefs::GlyphInfoPtr    ibmfGlyphInfo_;
-  IBMFDefs::BitmapPtr       ibmfGlyphBitmap_;
-  IBMFDefs::GlyphLigKernPtr ibmfLigKerns_;
+  IBMFDefs::FaceHeaderPtr   ibmfFaceHeader_{nullptr};
+  IBMFDefs::GlyphInfoPtr    ibmfGlyphInfo_{nullptr};
+  IBMFDefs::BitmapPtr       ibmfGlyphBitmap_{nullptr};
+  IBMFDefs::GlyphLigKernPtr ibmfLigKerns_{nullptr};
 
-  int              ibmfFaceIdx_;
-  int              ibmfGlyphCode_;
+  int              ibmfFaceIdx_{0};
+  int              ibmfGlyphCode_{0};
   QList<QAction *> recentFileActionList_;
 
   void     updateCharactersList();

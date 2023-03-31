@@ -2,22 +2,22 @@
 
 #include <QMessageBox>
 
-KerningModel::KerningModel(GlyphCode glyphCode, IBMFDefs::GlyphKernSteps *glyphKernSteps,
+KerningModel::KerningModel(GlyphCode glyphCode, IBMFDefs::GlyphKernStepsVecPtr glyphKernSteps,
                            QObject *parent)
-    : QAbstractTableModel(parent), _glyphCode(glyphCode), _glyphKernSteps(glyphKernSteps) {
+    : QAbstractTableModel(parent), glyphCode_(glyphCode), glyphKernSteps_(glyphKernSteps) {
 
-  for (auto entry : *_glyphKernSteps) {
-    addKernEntry(KernEntry(_glyphCode, entry->nextGlyphCode, (float)(entry->kern / 64.0)));
+  for (auto entry : *glyphKernSteps_) {
+    addKernEntry(KernEntry(glyphCode_, entry->nextGlyphCode, (float)(entry->kern / 64.0)));
   }
 }
 
-int KerningModel::rowCount(const QModelIndex & /*parent*/) const { return _kernEntries.length(); }
+int KerningModel::rowCount(const QModelIndex & /*parent*/) const { return kernEntries_.length(); }
 
 int KerningModel::columnCount(const QModelIndex & /*parent*/) const { return 1; }
 
 void KerningModel::addKernEntry(KernEntry entry) {
-  beginInsertRows(QModelIndex(), _kernEntries.length(), _kernEntries.length());
-  _kernEntries.push_back(entry);
+  beginInsertRows(QModelIndex(), kernEntries_.length(), kernEntries_.length());
+  kernEntries_.push_back(entry);
   endInsertRows();
 }
 
@@ -26,7 +26,7 @@ QVariant KerningModel::data(const QModelIndex &index, int role) const {
   if (role == Qt::DisplayRole) {
     switch (index.column()) {
       case 0:
-        val.setValue(_kernEntries[index.row()]);
+        val.setValue(kernEntries_[index.row()]);
         return val;
     }
   }
@@ -48,7 +48,7 @@ bool KerningModel::setData(const QModelIndex &index, const QVariant &value, int 
     if (!checkIndex(index)) return false;
     switch (index.column()) {
       case 0:
-        _kernEntries[index.row()] = value.value<KernEntry>();
+        kernEntries_[index.row()] = value.value<KernEntry>();
         break;
     }
     emit editCompleted();
@@ -56,9 +56,9 @@ bool KerningModel::setData(const QModelIndex &index, const QVariant &value, int 
     //    QMessageBox::information(nullptr, "Model Update",
     //                             QString("Idx: %1, code: %2, next: %3, kern: %4")
     //                                 .arg(index.row())
-    //                                 .arg(_kernEntries[index.row()].glyphCode)
-    //                                 .arg(_kernEntries[index.row()].nextGlyphCode)
-    //                                 .arg(_kernEntries[index.row()]._kern));
+    //                                 .arg(kernEntries_[index.row()].glyphCode)
+    //                                 .arg(kernEntries_[index.row()].nextGlyphCode)
+    //                                 .arg(kernEntries_[index.row()]._kern));
     return true;
   }
   return false;

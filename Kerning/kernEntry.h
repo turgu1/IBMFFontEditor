@@ -5,13 +5,13 @@
 #include "../IBMFDriver/IBMFDefs.hpp"
 
 struct KernEntry {
-  IBMFDefs::GlyphCode glyphCode;
-  IBMFDefs::GlyphCode nextGlyphCode;
-  float               kern;
+  IBMFDefs::GlyphCode glyphCode{0};
+  IBMFDefs::GlyphCode nextGlyphCode{0};
+  float               kern{0.0};
   KernEntry(IBMFDefs::GlyphCode code, IBMFDefs::GlyphCode nextCode, float kern)
       : glyphCode(code), nextGlyphCode(nextCode), kern(kern) {}
-  KernEntry() : glyphCode(0), nextGlyphCode(0), kern(0.0) {}
-  ~KernEntry() {}
+  KernEntry()  = default;
+  ~KernEntry() = default;
 };
 
 Q_DECLARE_METATYPE(KernEntry)

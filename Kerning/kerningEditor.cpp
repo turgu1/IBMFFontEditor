@@ -7,7 +7,7 @@ KerningEditor::KerningEditor(QWidget *parent) : QWidget(parent) {
 
 void KerningEditor::paintEvent(QPaintEvent *) {
   QPainter painter(this);
-  _kerningItem->paint(&painter, rect(), palette(), KerningItem::EditMode::Editable);
+  kerningItem_->paint(&painter, rect(), palette(), KerningItem::EditMode::Editable);
 }
 
 // void KerningEditor::mouseReleaseEvent(QMouseEvent *event) {
@@ -15,6 +15,4 @@ void KerningEditor::paintEvent(QPaintEvent *) {
 //   QWidget::mouseReleaseEvent(event);
 // }
 
-QSize KerningEditor::sizeHint() const {
-  return _kerningItem->sizeHint();
-}
+QSize KerningEditor::sizeHint() const { return kerningItem_->sizeHint(); }

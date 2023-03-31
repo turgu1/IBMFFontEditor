@@ -1,5 +1,8 @@
 #include "IBMFFontMod.hpp"
 
+#include <iomanip>
+#include <iostream>
+
 void IBMFFontMod::clear() {
   initialized_ = false;
   for (auto &face : faces_) {
@@ -349,7 +352,7 @@ auto IBMFFontMod::ligKern(int faceIndex, const GlyphCode glyphCode1, GlyphCode *
     return false;
   }
 
-  GlyphCode code = *glyphCode2;
+  GlyphCode code = faces_[faceIndex]->glyphs[*glyphCode2]->mainCode;
   if (preamble_.bits.fontFormat == FontFormat::LATIN) {
     code &= LATIN_GLYPH_CODE_MASK;
   }
@@ -474,8 +477,8 @@ auto IBMFFontMod::prepareLigKernVectors() -> bool {
 
     lkSteps.clear();
 
-    std::set<int>    overflowList;     // List of starting pgm index that are larger than 254
-    std::vector<int> uniquePgmIndexes; // List of all unique start indexes
+    std::set<int> overflowList;     // List of starting pgm index that are larger than 254
+    std::set<int> uniquePgmIndexes; // List of all unique start indexes
 
     // Working list for glyphs pgm vector reconstruction
     // = -1 if a glyph's Lig/Kern pgm is empty
@@ -506,7 +509,7 @@ auto IBMFFontMod::prepareLigKernVectors() -> bool {
       glyphPgm.reserve(lSteps.size() + kSteps.size());
 
       // clang-format off
-        for (auto lStep : lSteps) {
+        for (auto &lStep : lSteps) {
           lks = LigKernStepPtr(new LigKernStep({
             .a = {.data = {.nextGlyphCode = lStep->nextGlyphCode, .stop = false}},
             .b = {.repl = {.replGlyphCode = lStep->replacementGlyphCode, .isAKern = false}}
@@ -514,7 +517,7 @@ auto IBMFFontMod::prepareLigKernVectors() -> bool {
           glyphPgm.push_back(lks);
         }
 
-        for (auto kStep : kSteps) {
+        for (auto &kStep : kSteps) {
           lks = LigKernStepPtr(new LigKernStep({
             .a = { .data = {.nextGlyphCode = kStep->nextGlyphCode, .stop = false}},
             .b = {.kern = {.kerningValue = (FIX14)kStep->kern, .isAGoTo = false, .isAKern = true}}
@@ -536,15 +539,10 @@ auto IBMFFontMod::prepareLigKernVectors() -> bool {
           // point to the first found to be similar.
           glyphPgm.clear();
           glyphsPgmIndexes[glyphIdx] = -sameIdx; // negative to signify a duplicate list
-          if (sameIdx >= 255) {
-            overflowList.insert(sameIdx);
-          }
+          uniquePgmIndexes.insert(sameIdx);
         } else {
           int index = lkSteps.size();
-          if (index >= 255) {
-            overflowList.insert(index);
-          }
-          uniquePgmIndexes.push_back(index);
+          uniquePgmIndexes.insert(index);
           glyphsPgmIndexes[glyphIdx] = index;
           std::move(glyphPgm.begin(), glyphPgm.end(), std::back_inserter(lkSteps));
         }
@@ -563,54 +561,44 @@ auto IBMFFontMod::prepareLigKernVectors() -> bool {
     // Compute how many entries we need to add to the lig/kern vector to
     // redirect over the limiting 255 indexes, and where to add them.
 
-    int spaceRequired = overflowList.size();
-
-    if (spaceRequired > 0) {
-      int i = uniquePgmIndexes.size() - spaceRequired - 1;
-
-      while (true) {
-        if ((uniquePgmIndexes[i] + spaceRequired) >= 255) {
-          spaceRequired += 1;
-          overflowList.insert(uniquePgmIndexes[i]);
-          i -= 1;
-        } else
-          break;
+    int spaceRequired = 0;
+    int newLigKernIdx = 0;
+    for (auto idx = uniquePgmIndexes.rbegin(); idx != uniquePgmIndexes.rend(); idx++) {
+      if ((*idx + spaceRequired) >= 255) {
+        overflowList.insert(*idx);
+        spaceRequired += 1;
+      } else {
+        overflowList.insert(*idx);
+        spaceRequired += 1;
+        newLigKernIdx = *idx;
+        break;
       }
+    }
 
-      overflowList.insert(uniquePgmIndexes[i]);
-      spaceRequired += 1;
+    for (auto idx = overflowList.rbegin(); idx != overflowList.rend(); idx++) {
+      // std::cout << *idx << " treatment: " << std::endl;
+      LigKernStepPtr ligKernStep = LigKernStepPtr(new LigKernStep);
+      memset(ligKernStep.get(), 0, sizeof(LigKernStep));
+      ligKernStep->b.goTo.isAKern      = true;
+      ligKernStep->b.goTo.isAGoTo      = true;
+      ligKernStep->b.goTo.displacement = (*idx + spaceRequired);
 
-      // Starting at index uniquePgmIndexes[i], all items must go down for an
-      // amount of spaceRequired The corresponding indices in the glyphs table
-      // must be adjusted accordingly.
+      // std::cout << "Added goto at location " << *idx << " to point at location "
+      //           << (*idx + spaceRequired) << std::endl;
 
-      int newLigKernIdx = uniquePgmIndexes[i];
-
-      for (auto idx = overflowList.rbegin(); idx != overflowList.rend(); idx++) {
-        // std::cout << *idx << " treatment: " << std::endl;
-        LigKernStepPtr ligKernStep = LigKernStepPtr(new LigKernStep);
-        memset(ligKernStep.get(), 0, sizeof(LigKernStep));
-        ligKernStep->b.goTo.isAKern      = true;
-        ligKernStep->b.goTo.isAGoTo      = true;
-        ligKernStep->b.goTo.displacement = (*idx + spaceRequired);
-
-        std::cout << "Added goto at location " << *idx << " to point at location "
-                  << (*idx + spaceRequired) << std::endl;
-
-        lkSteps.insert(lkSteps.begin() + newLigKernIdx, ligKernStep);
-        int gCode = 0;
-        for (auto pgmIdx = glyphsPgmIndexes.begin(); pgmIdx != glyphsPgmIndexes.end(); pgmIdx++) {
-          if (abs(*pgmIdx) == *idx) { // Must look at both duplicated and
-                                      // non-duplicated indexes
-            std::cout << "Entry " << gCode << " pointing at " << *pgmIdx << " redirected to "
-                      << (-5000 - newLigKernIdx) << std::endl;
-            *pgmIdx = -5000 - newLigKernIdx;
-          }
-          gCode++;
+      lkSteps.insert(lkSteps.begin() + newLigKernIdx, ligKernStep);
+      int gCode = 0;
+      for (auto pgmIdx = glyphsPgmIndexes.begin(); pgmIdx != glyphsPgmIndexes.end(); pgmIdx++) {
+        if (abs(*pgmIdx) == *idx) { // Must look at both duplicated and
+                                    // non-duplicated indexes
+          // std::cout << "Entry " << gCode << " pointing at " << *pgmIdx << " redirected to "
+          //           << (-5000 - newLigKernIdx) << std::endl;
+          *pgmIdx = -5000 - newLigKernIdx;
         }
-        newLigKernIdx++;
-      } // for
-    }   // spaceRequired > 0
+        gCode++;
+      }
+      newLigKernIdx++;
+    } // for
 
     glyphIdx = 0;
     for (auto &glyph : face->glyphs) {
@@ -1032,6 +1020,14 @@ auto IBMFFontMod::retrieveKernPairsTable(FT_Face ftFace) -> void {
   }
 }
 
+auto IBMFFontMod::findGlyphCodeFromIndex(int index, FT_Face ftFace, int glyphCount) -> GlyphCode {
+  for (GlyphCode glyphCode = 0; glyphCode < glyphCount; glyphCode++) {
+    char32_t ch2 = getUTF32(glyphCode);
+    FT_UInt  idx = FT_Get_Char_Index(ftFace, ch2);
+    if ((idx != 0) && (idx == index)) return glyphCode;
+  }
+  return NO_GLYPH_CODE;
+}
 auto IBMFFontMod::loadTTF(FreeType &ft, FontParametersPtr fontParameters) -> bool {
 
   clear();
@@ -1100,7 +1096,7 @@ auto IBMFFontMod::loadTTF(FreeType &ft, FontParametersPtr fontParameters) -> boo
 
         // ----- For each glyphCode part of the new font -----
 
-        for (int glyphCode = 0; glyphCode < glyphCount; glyphCode++) {
+        for (GlyphCode glyphCode = 0; glyphCode < glyphCount; glyphCode++) {
 
           char32_t ch    = getUTF32(glyphCode);
           FT_UInt  index = FT_Get_Char_Index(ftFace, ch);
@@ -1167,33 +1163,32 @@ auto IBMFFontMod::loadTTF(FreeType &ft, FontParametersPtr fontParameters) -> boo
             // create an entry for it
             for (int i = 0; i < kernPairsCount; i++) {
               if (kernPairs[i].first == index) {
-                char32_t ch1 = getUTF32(glyphCode);
-                for (GlyphCode glyphCode = 0; glyphCode < glyphCount; glyphCode++) {
-                  char32_t ch2 = getUTF32(glyphCode);
-                  FT_UInt  idx = FT_Get_Char_Index(ftFace, ch2);
-                  if ((idx != 0) && (idx == kernPairs[i].next)) {
-                    //                      QString info = QString("Found a kerning pair: %1
-                    //                      (U+%2) and %3 (U+%4)")
-                    //                                         .arg(ch1)
-                    //                                         .arg(ch1, 5, 16, QChar('0'))
-                    //                                         .arg(ch2)
-                    //                                         .arg(ch2, 5, 16, QChar('0'));
-                    //                      std::cout << info.toStdString() << std::endl;
+                // char32_t ch1 = getUTF32(glyphCode);
+                GlyphCode glyphCode2 =
+                    findGlyphCodeFromIndex(kernPairs[i].next, ftFace, glyphCount);
+                if (glyphCode2 != NO_GLYPH_CODE) {
 
-                    FIX16   kern;
-                    FT_Long kernLong = FT_MulFix(kernPairs[i].value, ftFace->size->metrics.x_scale);
-                    if (ftFace->size->metrics.x_ppem < 14) {
-                      kern = FT_MulDiv(kernLong, ftFace->size->metrics.x_ppem * 11 / 5, 15);
-                    } else if (ftFace->size->metrics.x_ppem < 25) {
-                      kern = FT_MulDiv(kernLong, ftFace->size->metrics.x_ppem * 11 / 5, 25);
-                    } else {
-                      kern = kernLong;
-                    }
-                    // kern                           = FT_PIX_ROUND(kern);
-                    GlyphKernStepPtr glyphKernStep = GlyphKernStepPtr(
-                        new GlyphKernStep(GlyphKernStep{.nextGlyphCode = glyphCode, .kern = kern}));
-                    glyphLigKern->kernSteps.push_back(glyphKernStep);
+                  // QString info = QString("Found a kerning pair: %1
+                  // (U+%2) and %3 (U+%4)")
+                  //                    .arg(ch1)
+                  //                    .arg(ch1, 5, 16, QChar('0'))
+                  //                    .arg(ch2)
+                  //                    .arg(ch2, 5, 16, QChar('0'));
+                  // std::cout << info.toStdString() << std::endl;
+
+                  FIX16   kern;
+                  FT_Long kernLong = FT_MulFix(kernPairs[i].value, ftFace->size->metrics.x_scale);
+                  if (ftFace->size->metrics.x_ppem < 14) {
+                    kern = FT_MulDiv(kernLong, ftFace->size->metrics.x_ppem * 11 / 5, 15);
+                  } else if (ftFace->size->metrics.x_ppem < 25) {
+                    kern = FT_MulDiv(kernLong, ftFace->size->metrics.x_ppem * 11 / 5, 25);
+                  } else {
+                    kern = kernLong;
                   }
+                  // kern                           = FT_PIX_ROUND(kern);
+                  GlyphKernStepPtr glyphKernStep = GlyphKernStepPtr(
+                      new GlyphKernStep(GlyphKernStep{.nextGlyphCode = glyphCode2, .kern = kern}));
+                  glyphLigKern->kernSteps.push_back(glyphKernStep);
                 }
               }
             }
@@ -1209,9 +1204,10 @@ auto IBMFFontMod::loadTTF(FreeType &ft, FontParametersPtr fontParameters) -> boo
                 .verticalOffset   = static_cast<int8_t>(ftFace->glyph->bitmap_top),
                 .packetLength =
                     static_cast<uint16_t>(ftFace->glyph->bitmap.width * ftFace->glyph->bitmap.rows),
-                .advance         = static_cast<FIX16>(ftFace->glyph->advance.x),
+                .advance         = static_cast<FIX16>(ftFace->glyph->linearHoriAdvance / 1024),
                 .rleMetrics      = RLEMetrics{.dynF = 0, .firstIsBlack = false, .filler = 0},
                 .ligKernPgmIndex = 0, // completed at save time
+                .mainCode        = glyphCode  // maybe changed below when searching for composites
             }));
 
             face->glyphs.push_back(glyphInfo);
@@ -1220,6 +1216,53 @@ auto IBMFFontMod::loadTTF(FreeType &ft, FontParametersPtr fontParameters) -> boo
                 nullptr, "Internal error!",
                 QString("Can't find utf32 codePoint for glyphCode %1)").arg(glyphCode));
             return false;
+          }
+        }
+
+        // ----- Check for composite information -----
+
+        // If the main composite element is having a kerning table associated with it, it will
+        // be duplicated to the composed codePoint.
+
+        for (GlyphCode glyphCode = 0; glyphCode < glyphCount; glyphCode++) {
+
+          char32_t ch = getUTF32(glyphCode);
+          // FT_UInt  index = FT_Get_Char_Index(ftFace, ch);
+          (void)FT_Load_Char(ftFace, ch, FT_LOAD_NO_RECURSE);
+
+          if (ftFace->glyph->format == FT_GLYPH_FORMAT_COMPOSITE) {
+            //            std::cout << "Glyph composite of index: " << index << ", glyphCode " <<
+            //            glyphCode
+            //                      << std::endl;
+            for (int i = 0; i < ftFace->glyph->num_subglyphs; i++) {
+              FT_Int    p_index;
+              FT_UInt   p_flags;
+              FT_Int    p_arg1;
+              FT_Int    p_arg2;
+              FT_Matrix p_transform;
+              FT_Get_SubGlyph_Info(ftFace->glyph, i, &p_index, &p_flags, &p_arg1, &p_arg2,
+                                   &p_transform);
+              if ((p_flags & 2) && (p_arg1 == 0) && (p_arg2 == 0)) {
+                // We have a main component
+                GlyphCode code = findGlyphCodeFromIndex(p_index, ftFace, glyphCount);
+
+                if (code != NO_GLYPH_CODE) {
+                  face->glyphs[glyphCode]->mainCode = code;
+                  // std::cout << "Composite main code: " << code << " for glyphCode " << glyphCode
+                  //           << "(U+" << std::hex << std::setfill('0') << std::setw(5) << ch
+                  //           << std::dec << ")" << std::endl;
+                  if (face->glyphsLigKern[glyphCode]->kernSteps.size() == 0) {
+                    std::copy(face->glyphsLigKern[code]->kernSteps.begin(),
+                              face->glyphsLigKern[code]->kernSteps.end(),
+                              std::back_inserter(face->glyphsLigKern[glyphCode]->kernSteps));
+                    // if (face->glyphsLigKern[glyphCode]->kernSteps.size() != 0) {
+                    //  std::cout << "Got a main composite with augmented kern vector: "
+                    //            << glyphCode << std::endl;
+                    // }
+                  }
+                }
+              }
+            }
           }
         }
 
@@ -1248,9 +1291,9 @@ auto IBMFFontMod::loadTTF(FreeType &ft, FontParametersPtr fontParameters) -> boo
 
         // ----- Retrieve the space size -----
 
-        FT_UInt index     = FT_Get_Char_Index(ftFace, ' ');
-        uint8_t spaceSize = emSize / 2;
-        if (index != 0) {
+        FT_UInt spaceIndex = FT_Get_Char_Index(ftFace, ' ');
+        uint8_t spaceSize  = emSize / 2;
+        if (spaceIndex != 0) {
           FT_Load_Char(ftFace, ' ', FT_LOAD_NO_BITMAP);
           spaceSize = static_cast<uint8_t>(ftFace->glyph->metrics.horiAdvance >> 6);
         } else {
@@ -1272,8 +1315,6 @@ auto IBMFFontMod::loadTTF(FreeType &ft, FontParametersPtr fontParameters) -> boo
             .glyphCount       = glyphCount,
             .ligKernStepCount = 0, // will be set at save time
             .pixelsPoolSize   = 0, // will be set at save time
-                                   //            .maxHeight        = 0,
-                                   //            .filler           = {0, 0, 0}
         }));
         faces_.push_back(std::move(face));
       }

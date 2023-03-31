@@ -10,7 +10,7 @@
 
 CharacterSelector::CharacterSelector(const IBMFDefs::CharCodes *chars, QString title, QString info,
                                      QWidget *parent)
-    : QDialog(parent), _selectedCharIndex(-1) {
+    : QDialog(parent) {
 
   setModal(true);
   setWindowTitle(title == nullptr ? "Character Selector" : title);
@@ -21,9 +21,9 @@ CharacterSelector::CharacterSelector(const IBMFDefs::CharCodes *chars, QString t
   fnt.setPointSize(14);
   fnt.setFamily("Arial");
 
-  _charsTable = new QTableWidget();
-  _okButton   = new QPushButton("Ok");
-  _okButton->setEnabled(false);
+  charsTable_ = new QTableWidget();
+  okButton_   = new QPushButton("Ok");
+  okButton_->setEnabled(false);
 
   QVBoxLayout *mainLayout    = new QVBoxLayout();
   QLabel      *subTitle      = new QLabel(info == nullptr ? "Please select a character" : info);
@@ -35,12 +35,12 @@ CharacterSelector::CharacterSelector(const IBMFDefs::CharCodes *chars, QString t
   QFrame      *buttonsFrame = new QFrame();
   QPushButton *cancelButton = new QPushButton("Cancel", buttonsFrame);
   buttonsLayout->addStretch();
-  buttonsLayout->addWidget(_okButton);
+  buttonsLayout->addWidget(okButton_);
   buttonsLayout->addWidget(cancelButton);
   buttonsFrame->setLayout(buttonsLayout);
 
   mainLayout->addWidget(subTitle);
-  mainLayout->addWidget(_charsTable);
+  mainLayout->addWidget(charsTable_);
   mainLayout->addWidget(buttonsFrame);
 
   this->setLayout(mainLayout);
@@ -49,25 +49,25 @@ CharacterSelector::CharacterSelector(const IBMFDefs::CharCodes *chars, QString t
   charsTableFont.setPointSize(16);
   charsTableFont.setBold(true);
 
-  _charsTable->setFont(charsTableFont);
-  _charsTable->verticalHeader()->setDefaultSectionSize(50);
-  _charsTable->horizontalHeader()->setDefaultSectionSize(50);
-  _charsTable->horizontalHeader()->hide();
-  _charsTable->verticalHeader()->hide();
+  charsTable_->setFont(charsTableFont);
+  charsTable_->verticalHeader()->setDefaultSectionSize(50);
+  charsTable_->horizontalHeader()->setDefaultSectionSize(50);
+  charsTable_->horizontalHeader()->hide();
+  charsTable_->verticalHeader()->hide();
 
-  _columnCount = _charsTable->width() / 50;
-  int rowCount = (chars->size() + _columnCount - 1) / _columnCount;
-  _charsTable->setColumnCount(_columnCount);
-  _charsTable->setRowCount(rowCount);
-  _charsTable->setSelectionBehavior(QAbstractItemView::SelectItems);
-  _charsTable->setSelectionMode(QAbstractItemView::SingleSelection);
+  columnCount_ = charsTable_->width() / 50;
+  int rowCount = (chars->size() + columnCount_ - 1) / columnCount_;
+  charsTable_->setColumnCount(columnCount_);
+  charsTable_->setRowCount(rowCount);
+  charsTable_->setSelectionBehavior(QAbstractItemView::SelectItems);
+  charsTable_->setSelectionMode(QAbstractItemView::SingleSelection);
 
   fnt.setPointSize(18);
 
   int idx = 0;
 
   for (int row = 0; row < rowCount; row++) {
-    for (int col = 0; col < _columnCount; col++, idx++) {
+    for (int col = 0; col < columnCount_; col++, idx++) {
       auto item = new QTableWidgetItem;
       item->setFlags(item->flags() & ~Qt::ItemIsEditable);
       item->setTextAlignment(Qt::AlignCenter | Qt::AlignVCenter);
@@ -81,32 +81,32 @@ CharacterSelector::CharacterSelector(const IBMFDefs::CharCodes *chars, QString t
       } else {
         item->setFlags(Qt::NoItemFlags);
       }
-      _charsTable->setItem(row, col, item);
+      charsTable_->setItem(row, col, item);
     }
   }
-  QHeaderView *header = _charsTable->horizontalHeader();
+  QHeaderView *header = charsTable_->horizontalHeader();
   header->setSectionResizeMode(QHeaderView::Stretch);
 
-  QObject::connect(_charsTable, &QTableWidget::doubleClicked, this,
+  QObject::connect(charsTable_, &QTableWidget::doubleClicked, this,
                    &CharacterSelector::onDoubleClick);
-  QObject::connect(_charsTable, &QTableWidget::itemSelectionChanged, this,
+  QObject::connect(charsTable_, &QTableWidget::itemSelectionChanged, this,
                    &CharacterSelector::onSelected);
-  QObject::connect(_okButton, &QPushButton::clicked, this, &CharacterSelector::onOk);
+  QObject::connect(okButton_, &QPushButton::clicked, this, &CharacterSelector::onOk);
   QObject::connect(cancelButton, &QPushButton::clicked, this, &CharacterSelector::onCancel);
 }
 
 void CharacterSelector::onDoubleClick(const QModelIndex &index) {
-  auto items = _charsTable->selectedItems();
+  auto items = charsTable_->selectedItems();
   if (!items.isEmpty()) {
-    _selectedCharIndex = items.first()->row() * _columnCount + items.first()->column();
+    selectedCharIndex_ = items.first()->row() * columnCount_ + items.first()->column();
     accept();
   }
 }
 
 void CharacterSelector::onOk(bool checked) {
-  auto items = _charsTable->selectedItems();
+  auto items = charsTable_->selectedItems();
   if (!items.isEmpty()) {
-    _selectedCharIndex = items.first()->row() * _columnCount + items.first()->column();
+    selectedCharIndex_ = items.first()->row() * columnCount_ + items.first()->column();
     accept();
   }
 }
@@ -114,5 +114,5 @@ void CharacterSelector::onOk(bool checked) {
 void CharacterSelector::onCancel(bool checked) { reject(); }
 
 void CharacterSelector::onSelected() {
-  _okButton->setEnabled(!_charsTable->selectedItems().isEmpty());
+  okButton_->setEnabled(!charsTable_->selectedItems().isEmpty());
 }

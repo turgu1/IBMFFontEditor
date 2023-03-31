@@ -62,7 +62,7 @@ FontParameterDialog::FontParameterDialog(FreeType &ft, QString title, QWidget *p
   errorMsg_         = new QLabel("Must be a valid integer between 50 and 500!");
   errorMsg_->setVisible(false);
   errorMsg_->setStyleSheet("QLabel {color: red;}");
-  dpi3->addWidget(new QLabel("SPecific DPI:"));
+  dpi3->addWidget(new QLabel("Specific DPI:"));
   dpi3->addWidget(dpiNbr_);
   dpi3->addWidget(errorMsg_);
   dpi3->addStretch();

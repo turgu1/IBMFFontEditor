@@ -10,7 +10,7 @@ const constexpr int PIXEL_SIZE = 4;
 class KerningRenderer : public QWidget {
   Q_OBJECT
 public:
-  explicit KerningRenderer(QWidget *parent, IBMFFontMod *font, int faceIdx, KernEntry *kernEntry);
+  explicit KerningRenderer(QWidget *parent, IBMFFontModPtr font, int faceIdx, KernEntry *kernEntry);
   void  setScreenPixel(QPoint pos, QPainter &painter);
   void  paintEvent(QPaintEvent *event);
   int   putGlyph(IBMFDefs::GlyphCode code, IBMFDefs::Pos atPos);
@@ -19,11 +19,11 @@ public:
 signals:
 
 private:
-  IBMFFontMod            *font_;
+  IBMFFontModPtr          font_;
   IBMFDefs::FaceHeaderPtr faceHeader_;
-  IBMFDefs::Bitmap        _glyphsBitmap;
-  KernEntry              *_kernEntry;
-  QPoint                  _bitmapOffsetPos;
-  int                     _glyphsWidth;
-  int                     _glyphsHeight;
+  IBMFDefs::Bitmap        glyphsBitmap_;
+  KernEntry              *kernEntry_;
+  QPoint                  bitmapOffsetPos_;
+  int                     glyphsWidth_;
+  int                     glyphsHeight_;
 };
