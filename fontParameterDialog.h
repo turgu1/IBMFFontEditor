@@ -37,26 +37,7 @@ private:
   FreeType                   &ft_;
 
   IBMFDefs::CharSelectionsPtr charSelections_;
-  QLineEdit                  *ibmfFontFilename_;
-  QLineEdit                  *ttfFontFilename_;
   CodePointBlocks            *codePointBlocks_;
-  QRadioButton               *dpi75_;
-  QRadioButton               *dpi96_;
-  QRadioButton               *dpi150_;
-  QRadioButton               *dpi166_;
-  QRadioButton               *dpi212_;
-  QRadioButton               *dpi300_;
-  QLineEdit                  *dpiNbr_;
-  QLabel                     *errorMsg_;
-  QCheckBox                  *pt8_;
-  QCheckBox                  *pt9_;
-  QCheckBox                  *pt10_;
-  QCheckBox                  *pt12_;
-  QCheckBox                  *pt14_;
-  QCheckBox                  *pt17_;
-  QCheckBox                  *pt24_;
-  QCheckBox                  *pt48_;
-  QCheckBox                  *withKerning_;
 
   void checkForNext();
 };
