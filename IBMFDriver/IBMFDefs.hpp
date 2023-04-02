@@ -485,6 +485,7 @@ struct FontParameters {
   bool              pt48;
   QString           filename;
   CharSelectionsPtr charSelections;
+  bool              withKerning;
 };
 typedef std::shared_ptr<FontParameters> FontParametersPtr;
 

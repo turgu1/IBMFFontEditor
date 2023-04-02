@@ -56,6 +56,7 @@ private:
   QCheckBox                  *pt17_;
   QCheckBox                  *pt24_;
   QCheckBox                  *pt48_;
+  QCheckBox                  *withKerning_;
 
   void checkForNext();
 };

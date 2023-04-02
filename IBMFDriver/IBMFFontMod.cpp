@@ -1,5 +1,6 @@
 #include "IBMFFontMod.hpp"
 
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 
@@ -432,34 +433,13 @@ auto IBMFFontMod::convertToOneBit(const Bitmap &bitmapHeightBits, BitmapPtr *bit
 // similar list of steps is returned, else -1
 auto IBMFFontMod::findList(std::vector<LigKernStepPtr> &pgm,
                            std::vector<LigKernStepPtr> &list) const -> int {
-  int idx = 0;
-  for (auto entry = list.begin(); entry != list.end(); entry++) {
-    bool found = true;
-    for (auto pgmEntry = pgm.begin(); pgmEntry != pgm.end(); pgmEntry++) {
-      if (((*pgmEntry)->a.whole.val != (*entry)->a.whole.val) ||
-          ((*pgmEntry)->b.whole.val != (*entry)->b.whole.val)) {
-        found = false;
-        break;
-      } else {
-        int startIdx = idx++;
-        pgmEntry++;
-        entry++;
-        while ((pgmEntry != pgm.end()) && (entry != list.end())) {
-          if (((*pgmEntry)->a.whole.val != (*entry)->a.whole.val) ||
-              ((*pgmEntry)->b.whole.val != (*entry)->b.whole.val)) {
-            found = false;
-            break;
-          }
-          pgmEntry++;
-          entry++;
-          idx++;
-        }
-        if (found) return startIdx;
-      }
-    }
-    idx += 1;
-  }
-  return -1;
+
+  auto pred = [](const LigKernStepPtr &e1, const LigKernStepPtr &e2) -> bool {
+    return (e1->a.whole.val == e2->a.whole.val) && (e1->b.whole.val == e2->b.whole.val);
+  };
+
+  auto it = std::search(list.begin(), list.end(), pgm.begin(), pgm.end(), pred);
+  return (it == list.end()) ? -1 : std::distance(list.begin(), it);
 }
 
 // For all faces:
@@ -568,9 +548,11 @@ auto IBMFFontMod::prepareLigKernVectors() -> bool {
         overflowList.insert(*idx);
         spaceRequired += 1;
       } else {
-        overflowList.insert(*idx);
-        spaceRequired += 1;
-        newLigKernIdx = *idx;
+        if (spaceRequired > 0) {
+          overflowList.insert(*idx);
+          spaceRequired += 1;
+          newLigKernIdx = *idx;
+        }
         break;
       }
     }
@@ -1163,32 +1145,35 @@ auto IBMFFontMod::loadTTF(FreeType &ft, FontParametersPtr fontParameters) -> boo
             // create an entry for it
             for (int i = 0; i < kernPairsCount; i++) {
               if (kernPairs[i].first == index) {
-                // char32_t ch1 = getUTF32(glyphCode);
                 GlyphCode glyphCode2 =
                     findGlyphCodeFromIndex(kernPairs[i].next, ftFace, glyphCount);
                 if (glyphCode2 != NO_GLYPH_CODE) {
 
-                  // QString info = QString("Found a kerning pair: %1
-                  // (U+%2) and %3 (U+%4)")
-                  //                    .arg(ch1)
-                  //                    .arg(ch1, 5, 16, QChar('0'))
-                  //                    .arg(ch2)
-                  //                    .arg(ch2, 5, 16, QChar('0'));
-                  // std::cout << info.toStdString() << std::endl;
+                  FT_Vector akerning;
+                  FT_Get_Kerning(ftFace, FT_Get_Char_Index(ftFace, getUTF32(glyphCode)),
+                                 FT_Get_Char_Index(ftFace, getUTF32(glyphCode2)),
+                                 FT_KERNING_DEFAULT, &akerning);
 
-                  FIX16   kern;
-                  FT_Long kernLong = FT_MulFix(kernPairs[i].value, ftFace->size->metrics.x_scale);
-                  if (ftFace->size->metrics.x_ppem < 14) {
-                    kern = FT_MulDiv(kernLong, ftFace->size->metrics.x_ppem * 11 / 5, 15);
-                  } else if (ftFace->size->metrics.x_ppem < 25) {
-                    kern = FT_MulDiv(kernLong, ftFace->size->metrics.x_ppem * 11 / 5, 25);
-                  } else {
-                    kern = kernLong;
-                  }
+                  auto kern = static_cast<FIX16>(akerning.x);
+
+                  //                  FT_Long kernLong = FT_MulFix(kernPairs[i].value,
+                  //                  ftFace->size->metrics.x_scale); if
+                  //                  (ftFace->size->metrics.x_ppem < 14) {
+                  //                    kern = FT_MulDiv(kernLong, ftFace->size->metrics.x_ppem * 11
+                  //                    / 5, 15);
+                  //                  } else if (ftFace->size->metrics.x_ppem < 25) {
+                  //                    kern = FT_MulDiv(kernLong, ftFace->size->metrics.x_ppem * 11
+                  //                    / 5, 25);
+                  //                  } else {
+                  //                    kern = kernLong;
+                  //                  }
                   // kern                           = FT_PIX_ROUND(kern);
-                  GlyphKernStepPtr glyphKernStep = GlyphKernStepPtr(
-                      new GlyphKernStep(GlyphKernStep{.nextGlyphCode = glyphCode2, .kern = kern}));
-                  glyphLigKern->kernSteps.push_back(glyphKernStep);
+
+                  if (kern != 0) {
+                    GlyphKernStepPtr glyphKernStep = GlyphKernStepPtr(new GlyphKernStep(
+                        GlyphKernStep{.nextGlyphCode = glyphCode2, .kern = kern}));
+                    glyphLigKern->kernSteps.push_back(glyphKernStep);
+                  }
                 }
               }
             }
@@ -1204,7 +1189,9 @@ auto IBMFFontMod::loadTTF(FreeType &ft, FontParametersPtr fontParameters) -> boo
                 .verticalOffset   = static_cast<int8_t>(ftFace->glyph->bitmap_top),
                 .packetLength =
                     static_cast<uint16_t>(ftFace->glyph->bitmap.width * ftFace->glyph->bitmap.rows),
-                .advance         = static_cast<FIX16>(ftFace->glyph->linearHoriAdvance / 1024),
+ //                .advance         =
+  //                static_cast<FIX16>(ftFace->glyph->linearHoriAdvance / 1024),
+                .advance         = static_cast<FIX16>(ftFace->glyph->advance.x),
                 .rleMetrics      = RLEMetrics{.dynF = 0, .firstIsBlack = false, .filler = 0},
                 .ligKernPgmIndex = 0, // completed at save time
                 .mainCode        = glyphCode  // maybe changed below when searching for composites

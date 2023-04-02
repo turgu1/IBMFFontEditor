@@ -7,7 +7,7 @@
 #include "IBMFDriver/IBMFFontMod.hpp"
 
 #define AUTO_KERNING 0
-#define KERNING_SIZE 2
+#define KERNING_SIZE 1
 
 class DrawingSpace : public QWidget {
   Q_OBJECT
@@ -35,7 +35,7 @@ private:
   struct OneGlyph {
     IBMFDefs::BitmapPtr    bitmap;
     IBMFDefs::GlyphInfoPtr glyphInfo;
-    int                    kern;
+    FIX16                  kern;
   };
 
   std::vector<OneGlyph> word_;
@@ -56,7 +56,7 @@ private:
   IBMFDefs::GlyphInfoPtr bypassGlyphInfo_{nullptr};
 
   auto computeAutoKerning(const BitmapPtr b1, const BitmapPtr b2, const GlyphInfo &i1,
-                          const GlyphInfo &i2) const -> int;
+                          const GlyphInfo &i2) const -> FIX16;
   auto paintWord(QPainter *painter, int lineHeight) -> void;
   auto computeSize() -> void;
 };

@@ -88,6 +88,12 @@ FontParameterDialog::FontParameterDialog(FreeType &ft, QString title, QWidget *p
   pointSizes2->addWidget(pt24_);
   pointSizes2->addWidget(pt48_);
 
+  QHBoxLayout *kerningLayout = new QHBoxLayout();
+  withKerning_               = new QCheckBox("");
+  withKerning_->setChecked(true);
+  kerningLayout->addWidget(withKerning_);
+  kerningLayout->addStretch();
+
   QFormLayout *formLayout = new QFormLayout;
   formLayout->addRow(tr("TTF Font File Name:"), ttfFontFilename);
   formLayout->addRow(tr("IBMF Font File Name:"), fontFilename);
@@ -96,6 +102,7 @@ FontParameterDialog::FontParameterDialog(FreeType &ft, QString title, QWidget *p
   formLayout->addRow(tr(""), dpi3);
   formLayout->addRow(tr("Face Sizes:"), pointSizes1);
   formLayout->addRow(tr(""), pointSizes2);
+  formLayout->addRow(tr("With Kerning"), kerningLayout);
 
   ui->mainFrame->setLayout(formLayout);
 
@@ -206,7 +213,8 @@ void FontParameterDialog::on_nextButton_clicked() {
                                  .pt24           = pt24_->isChecked(),
                                  .pt48           = pt48_->isChecked(),
                                  .filename       = ibmfFontFilename_->text(),
-                                 .charSelections = charSelections_}));
+                                 .charSelections = charSelections_,
+                                 .withKerning    = withKerning_->isChecked()}));
     accept();
   }
 }
