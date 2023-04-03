@@ -18,8 +18,10 @@ public:
   bool          setData(const QModelIndex &index, const QVariant &value, int role) override;
   QVariant      headerData(int section, Qt::Orientation orientation, int role) const override;
   Qt::ItemFlags flags(const QModelIndex &index) const override;
+  void          addKernEntry(KernEntry entry);
+  void          save();
 
-  void addKernEntry(KernEntry entry);
+  inline IBMFDefs::GlyphCode getGlyphCode() const { return glyphCode_; }
 
 signals:
   void editCompleted();

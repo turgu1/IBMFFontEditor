@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1585</width>
-    <height>820</height>
+    <width>1197</width>
+    <height>884</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -955,7 +955,7 @@
         </widget>
         <widget class="QTabWidget" name="tabs">
          <property name="currentIndex">
-          <number>2</number>
+          <number>1</number>
          </property>
          <widget class="QWidget" name="preview">
           <attribute name="title">
@@ -1136,7 +1136,7 @@
              <item>
               <widget class="QPushButton" name="editKerningButton">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
                <property name="maximumSize">
                 <size>
@@ -1334,7 +1334,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1585</width>
+     <width>1197</width>
      <height>19</height>
     </rect>
    </property>

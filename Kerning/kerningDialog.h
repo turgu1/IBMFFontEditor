@@ -18,6 +18,6 @@ private slots:
 
 private:
   IBMFFontModPtr font_;
-  KerningModel  *_kerningModel;
-  QListView     *_listView;
+  KerningModel  *kerningModel_;
+  QListView     *listView_;
 };

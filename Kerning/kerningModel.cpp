@@ -7,13 +7,25 @@ KerningModel::KerningModel(GlyphCode glyphCode, IBMFDefs::GlyphKernStepsVecPtr g
     : QAbstractTableModel(parent), glyphCode_(glyphCode), glyphKernSteps_(glyphKernSteps) {
 
   for (auto entry : *glyphKernSteps_) {
-    addKernEntry(KernEntry(glyphCode_, entry->nextGlyphCode, (float)(entry->kern / 64.0)));
+    addKernEntry(KernEntry(glyphCode_, entry->nextGlyphCode, (float) (entry->kern / 64.0)));
   }
 }
 
-int KerningModel::rowCount(const QModelIndex & /*parent*/) const { return kernEntries_.length(); }
+void KerningModel::save() {
+  glyphKernSteps_->clear();
+  for (auto entry : kernEntries_) {
+    glyphKernSteps_->push_back(GlyphKernStepPtr(new GlyphKernStep{
+        .nextGlyphCode = entry.nextGlyphCode, .kern = static_cast<FIX16>(entry.kern * 64.0)}));
+  }
+}
 
-int KerningModel::columnCount(const QModelIndex & /*parent*/) const { return 1; }
+int KerningModel::rowCount(const QModelIndex & /*parent*/) const {
+  return kernEntries_.length();
+}
+
+int KerningModel::columnCount(const QModelIndex & /*parent*/) const {
+  return 1;
+}
 
 void KerningModel::addKernEntry(KernEntry entry) {
   beginInsertRows(QModelIndex(), kernEntries_.length(), kernEntries_.length());
@@ -25,9 +37,9 @@ QVariant KerningModel::data(const QModelIndex &index, int role) const {
   QVariant val;
   if (role == Qt::DisplayRole) {
     switch (index.column()) {
-      case 0:
-        val.setValue(kernEntries_[index.row()]);
-        return val;
+    case 0:
+      val.setValue(kernEntries_[index.row()]);
+      return val;
     }
   }
   return QVariant();
@@ -36,8 +48,8 @@ QVariant KerningModel::data(const QModelIndex &index, int role) const {
 QVariant KerningModel::headerData(int section, Qt::Orientation orientation, int role) const {
   if (role == Qt::DisplayRole && orientation == Qt::Horizontal) {
     switch (section) {
-      case 0:
-        return QString("Kerning");
+    case 0:
+      return QString("Kerning");
     }
   }
   return QVariant();
@@ -47,9 +59,9 @@ bool KerningModel::setData(const QModelIndex &index, const QVariant &value, int 
   if (role == Qt::EditRole) {
     if (!checkIndex(index)) return false;
     switch (index.column()) {
-      case 0:
-        kernEntries_[index.row()] = value.value<KernEntry>();
-        break;
+    case 0:
+      kernEntries_[index.row()] = value.value<KernEntry>();
+      break;
     }
     emit editCompleted();
 

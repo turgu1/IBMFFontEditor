@@ -139,4 +139,5 @@ private:
   QVariant getValue(QTableWidget *w, int row, int col);
   void     clearEditable(QTableWidget *w, int row, int col);
   void     glyphWasChanged(bool initialLoad = false);
+  void     populateKernTable();
 };

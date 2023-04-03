@@ -12,16 +12,18 @@
 #include "kerningModel.h"
 
 KerningDialog::KerningDialog(IBMFFontModPtr font, int faceIdx, KerningModel *model, QWidget *parent)
-    : QDialog(parent), font_(font), _kerningModel(model) {
+    : QDialog(parent), font_(font), kerningModel_(model) {
 
-  this->setMinimumSize(QSize(300, 600));
+  setWindowTitle(QString("Kerning Table for letter '%1'")
+                     .arg(QChar(font_->getUTF32(kerningModel_->getGlyphCode()))));
+  setMinimumSize(QSize(300, 600));
 
   QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
-  _listView               = new QListView;
+  listView_ = new QListView;
 
-  _listView->setModel(_kerningModel);
-  _listView->setItemDelegate(new KerningDelegate(font_, faceIdx));
+  listView_->setModel(kerningModel_);
+  listView_->setItemDelegate(new KerningDelegate(font_, faceIdx));
 
   QFrame      *buttonsFace   = new QFrame();
   QHBoxLayout *buttonsLayout = new QHBoxLayout(buttonsFace);
@@ -41,7 +43,7 @@ KerningDialog::KerningDialog(IBMFFontModPtr font, int faceIdx, KerningModel *mod
   buttonsLayout->addWidget(okButton);
   buttonsLayout->addWidget(cancelButton);
 
-  mainLayout->addWidget(_listView);
+  mainLayout->addWidget(listView_);
   mainLayout->addWidget(buttonsFace);
 
   this->setLayout(mainLayout);
@@ -55,19 +57,26 @@ KerningDialog::KerningDialog(IBMFFontModPtr font, int faceIdx, KerningModel *mod
 }
 
 void KerningDialog::onAddButtonClicked() {
-  CharacterSelector *charSelector =
-      new CharacterSelector(font_->characterCodes(), QString("New Kerning Entry for '%1'").arg("A"),
-                            QString("Select the character that follows '%1'").arg("A"), this);
+  char32_t ch = font_->getUTF32(kerningModel_->getGlyphCode());
+
+  CharacterSelector *charSelector = new CharacterSelector(
+      font_->characterCodes(), QString("New Kerning Entry for '%1'").arg(QChar(ch)),
+      QString("Select the character that follows '%1'").arg(QChar(ch)), this);
 
   if (charSelector->exec() == QDialog::Accepted) {
-    int row = _kerningModel->rowCount();
-    _kerningModel->addKernEntry((KernEntry('A', charSelector->selectedCharIndex(), 0)));
-    _listView->setCurrentIndex(_kerningModel->index(row, 0));
+    int row = kerningModel_->rowCount();
+    kerningModel_->addKernEntry(
+        (KernEntry(kerningModel_->getGlyphCode(), charSelector->selectedCharIndex(), 0)));
+    listView_->setCurrentIndex(kerningModel_->index(row, 0));
   }
 }
 
 void KerningDialog::onRemoveButtonClicked() {}
 
-void KerningDialog::onOkButtonClicked() { accept(); }
+void KerningDialog::onOkButtonClicked() {
+  accept();
+}
 
-void KerningDialog::onCancelButtonClicked() { reject(); }
+void KerningDialog::onCancelButtonClicked() {
+  reject();
+}
