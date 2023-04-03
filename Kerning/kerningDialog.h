@@ -4,6 +4,7 @@
 #include <QListView>
 
 #include "../IBMFDriver/IBMFFontMod.hpp"
+#include "kerningDelegate.h"
 #include "kerningModel.h"
 
 class KerningDialog : public QDialog {
@@ -17,7 +18,8 @@ private slots:
   void onCancelButtonClicked();
 
 private:
-  IBMFFontModPtr font_;
-  KerningModel  *kerningModel_;
-  QListView     *listView_;
+  IBMFFontModPtr   font_;
+  KerningModel    *kerningModel_;
+  QListView       *listView_;
+  KerningDelegate *kerningDelegate_;
 };

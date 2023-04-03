@@ -26,10 +26,7 @@ private slots:
   void on_normalKernCheckBox_toggled(bool checked);
   void on_faceIdxCombo_currentIndexChanged(int index);
   void on_patternCombo_currentIndexChanged(int index);
-
   void on_buttonBox_clicked(QAbstractButton *button);
-
-  void on_kernFactorEdit_editingFinished();
 
 protected:
   void closeEvent(QCloseEvent *event);
@@ -255,6 +252,6 @@ const constexpr char *proofingTexts[] = {
     "-, and -: a--a\n"
     "-, -, and -: a---a\n",
 
-    "VAVATiTATuToVuVo YeYuYoWeWuWo"
+    "VAVATiTATuToVuVo YeYuYoWeWuWo vov"
     //  clang-format on
 };

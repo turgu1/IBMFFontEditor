@@ -20,10 +20,12 @@ KerningDialog::KerningDialog(IBMFFontModPtr font, int faceIdx, KerningModel *mod
 
   QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
-  listView_ = new QListView;
+  listView_               = new QListView;
+
+  kerningDelegate_        = new KerningDelegate(font_, faceIdx);
 
   listView_->setModel(kerningModel_);
-  listView_->setItemDelegate(new KerningDelegate(font_, faceIdx));
+  listView_->setItemDelegate(kerningDelegate_);
 
   QFrame      *buttonsFace   = new QFrame();
   QHBoxLayout *buttonsLayout = new QHBoxLayout(buttonsFace);
@@ -57,7 +59,7 @@ KerningDialog::KerningDialog(IBMFFontModPtr font, int faceIdx, KerningModel *mod
 }
 
 void KerningDialog::onAddButtonClicked() {
-  char32_t ch = font_->getUTF32(kerningModel_->getGlyphCode());
+  char32_t ch                     = font_->getUTF32(kerningModel_->getGlyphCode());
 
   CharacterSelector *charSelector = new CharacterSelector(
       font_->characterCodes(), QString("New Kerning Entry for '%1'").arg(QChar(ch)),
@@ -71,12 +73,17 @@ void KerningDialog::onAddButtonClicked() {
   }
 }
 
-void KerningDialog::onRemoveButtonClicked() {}
+void KerningDialog::onRemoveButtonClicked() {
+  QModelIndex index = listView_->currentIndex();
+  if (index.isValid()) {
+    kerningModel_->removeKernEntry(index);
+  }
+  listView_->update();
+}
 
 void KerningDialog::onOkButtonClicked() {
+  kerningDelegate_->completed();
   accept();
 }
 
-void KerningDialog::onCancelButtonClicked() {
-  reject();
-}
+void KerningDialog::onCancelButtonClicked() { reject(); }

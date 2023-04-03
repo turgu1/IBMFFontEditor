@@ -955,7 +955,7 @@
         </widget>
         <widget class="QTabWidget" name="tabs">
          <property name="currentIndex">
-          <number>1</number>
+          <number>2</number>
          </property>
          <widget class="QWidget" name="preview">
           <attribute name="title">
@@ -1190,7 +1190,7 @@
          </widget>
          <widget class="QWidget" name="tab">
           <attribute name="title">
-           <string>Test</string>
+           <string>Proofing</string>
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_7">
            <item>
@@ -1264,7 +1264,7 @@
              <item>
               <widget class="QCheckBox" name="autoKernCheckBox">
                <property name="text">
-                <string>Auto Kern</string>
+                <string>Optical Kerning</string>
                </property>
               </widget>
              </item>
@@ -1335,7 +1335,7 @@
      <x>0</x>
      <y>0</y>
      <width>1197</width>
-     <height>19</height>
+     <height>30</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

@@ -19,6 +19,7 @@ public:
   QVariant      headerData(int section, Qt::Orientation orientation, int role) const override;
   Qt::ItemFlags flags(const QModelIndex &index) const override;
   void          addKernEntry(KernEntry entry);
+  void          removeKernEntry(QModelIndex entry);
   void          save();
 
   inline IBMFDefs::GlyphCode getGlyphCode() const { return glyphCode_; }

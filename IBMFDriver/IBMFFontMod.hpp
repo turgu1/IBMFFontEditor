@@ -15,6 +15,7 @@ using namespace IBMFDefs;
 #include <QIODevice>
 #include <QMessageBox>
 
+#include "../Kerning/kerningModel.h"
 #include "RLEExtractor.hpp"
 #include "RLEGenerator.hpp"
 
@@ -83,8 +84,8 @@ public:
     return chCodes;
   }
 
-  auto ligKern(int faceIndex, const GlyphCode glyphCode1, GlyphCode *glyphCode2, FIX16 *kern) const
-      -> bool;
+  auto ligKern(int faceIndex, const GlyphCode glyphCode1, GlyphCode *glyphCode2, FIX16 *kern,
+               bool *kernPairPresent) const -> bool;
   auto getGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKernPtr *glyphLigKern) const -> bool;
   auto getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyph_info, BitmapPtr *bitmap) const
       -> bool;

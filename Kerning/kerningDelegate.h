@@ -7,6 +7,7 @@
 #include <QWidget>
 
 #include "../IBMFDriver/IBMFFontMod.hpp"
+#include "kerningEditor.h"
 
 class KerningDelegate : public QStyledItemDelegate {
   Q_OBJECT
@@ -23,11 +24,12 @@ public:
   void     setEditorData(QWidget *editor, const QModelIndex &index) const override;
   void     setModelData(QWidget *editor, QAbstractItemModel *model,
                         const QModelIndex &index) const override;
-
+  void     completed();
 private slots:
   void commitAndCloseEditor();
 
 private:
   IBMFFontModPtr font_;
   int            faceIdx_;
+  KerningEditor *editor_;
 };

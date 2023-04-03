@@ -67,3 +67,7 @@ QSize KerningDelegate::sizeHint(const QStyleOptionViewItem &option,
   }
   return QStyledItemDelegate::sizeHint(option, index);
 }
+
+void KerningDelegate::completed() {
+  // if (editor_ != nullptr) closeEditor(editor_, QAbstractItemDelegate::SubmitModelCache);
+}

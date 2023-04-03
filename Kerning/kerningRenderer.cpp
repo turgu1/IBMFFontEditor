@@ -6,7 +6,7 @@
 
 KerningRenderer::KerningRenderer(QWidget *parent, IBMFFontModPtr font, int faceIdx,
                                  KernEntry *kernEntry)
-    : QWidget(parent), font_(font), kernEntry_(kernEntry) {
+    : QWidget(parent), font_(font), faceIdx_(faceIdx), kernEntry_(kernEntry) {
 
   this->setStyleSheet("color: black;"
                       "background-color: lightgray;"
@@ -66,10 +66,9 @@ void KerningRenderer::paintEvent(QPaintEvent *event) {
 int KerningRenderer::putGlyph(IBMFDefs::GlyphCode code, IBMFDefs::Pos atPos) {
   IBMFDefs::BitmapPtr    glyphBitmap;
   IBMFDefs::GlyphInfoPtr glyphInfo;
-  font_->getGlyph(1, code, glyphInfo, &glyphBitmap);
+  font_->getGlyph(faceIdx_, code, glyphInfo, &glyphBitmap);
 
   if (glyphInfo != nullptr) {
-    // std::cout << "Got something!!" << std::endl;
     int outRow = atPos.y - glyphInfo->verticalOffset;
     for (int inRow = 0; inRow < glyphBitmap->dim.height; inRow++, outRow++) {
       int outCol = atPos.x - glyphInfo->horizontalOffset;

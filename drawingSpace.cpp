@@ -137,7 +137,7 @@ void DrawingSpace::setText(QString text) {
 }
 
 void DrawingSpace::setAutoKerning(bool value) {
-  autoKerning_ = value;
+  opticalKerning_ = value;
   computeSize();
 }
 
@@ -149,13 +149,6 @@ void DrawingSpace::setNormalKerning(bool value) {
 void DrawingSpace::setPixelSize(int value) {
   pixelSize_ = value;
   computeSize();
-}
-
-void DrawingSpace::setKernFactor(float value) {
-  if (value > 0.5) {
-    kernFactor_ = value;
-    computeSize();
-  }
 }
 
 auto DrawingSpace::computeSize() -> void {
@@ -300,8 +293,9 @@ void DrawingSpace::drawScreen(QPainter *painter) {
     //    }
 
     FIX16 kerning = 0;
+    bool  kernPairPresent;
 
-    if (autoKerning_ || normalKerning_) {
+    if (opticalKerning_ || normalKerning_) {
       if (!first) {
         b1 = b2;
         i1 = i2;
@@ -313,7 +307,7 @@ void DrawingSpace::drawScreen(QPainter *painter) {
         if (normalKerning_) {
           IBMFDefs::GlyphCode code = g2;
           FIX16               kern;
-          while (font_->ligKern(faceIdx_, g1, &code, &kern))
+          while (font_->ligKern(faceIdx_, g1, &code, &kern, &kernPairPresent))
             ;
           if (code != g2) {
             word_.pop_back();
@@ -329,10 +323,10 @@ void DrawingSpace::drawScreen(QPainter *painter) {
             b2 = bitmap;
             i2 = glyphInfo;
           }
-          kerning = float(kern) * kernFactor_;
+          kerning = float(kern);
         }
 
-        if ((kerning == 0) && autoKerning_) {
+        if ((!kernPairPresent) && opticalKerning_) {
           kerning = computeAutoKerning(b1, b2, *i1, *i2);
         }
 

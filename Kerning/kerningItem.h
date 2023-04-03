@@ -23,10 +23,15 @@ public:
   KernEntry kernEntry() const { return kernEntry_; }
 
   void setKernEntry(KernEntry kernEntry) { kernEntry_ = kernEntry; }
+  void editing();
 
 private slots:
   void onLeftButtonClicked();
   void onRightButtonClicked();
+  void onDoneButtonClicked();
+
+signals:
+  void editingCompleted();
 
 private:
   KernEntry      kernEntry_;
@@ -35,6 +40,10 @@ private:
   QFrame          *frame_;
   QLabel          *kernLabel_;
   KerningRenderer *kerningRenderer_;
+
+  QPushButton *leftButton_;
+  QPushButton *rightButton_;
+  QPushButton *doneButton_;
 };
 
 Q_DECLARE_METATYPE(KerningItem)

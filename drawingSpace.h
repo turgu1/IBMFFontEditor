@@ -21,7 +21,6 @@ public:
   void setPixelSize(int value);
   void setFont(IBMFFontModPtr font);
   void setFaceIdx(int faceIdx);
-  void setKernFactor(float value);
   void setBypassGlyph(IBMFDefs::GlyphCode glyphCode, IBMFDefs::BitmapPtr bitmap,
                       IBMFDefs::GlyphInfoPtr glyphInfo);
 
@@ -43,10 +42,9 @@ private:
   QString        textToDraw_;
   IBMFFontModPtr font_;
   int            faceIdx_;
-  bool           autoKerning_{false};
+  bool           opticalKerning_{false};
   bool           normalKerning_{false};
   int            pixelSize_{1};
-  float          kernFactor_{1.0};
   int            wordLength_{0};
   QSize          requiredSize_{QSize(0, 0)};
   QPoint         pos_{QPoint(0, 0)};

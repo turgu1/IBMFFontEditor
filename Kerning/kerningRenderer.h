@@ -20,6 +20,7 @@ signals:
 
 private:
   IBMFFontModPtr          font_;
+  int                     faceIdx_;
   IBMFDefs::FaceHeaderPtr faceHeader_;
   IBMFDefs::Bitmap        glyphsBitmap_;
   KernEntry              *kernEntry_;
