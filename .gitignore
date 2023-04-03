@@ -35,7 +35,8 @@ Thumbs.db
 /.qmake.cache
 /.qmake.stash
 CMakeLists.txt.user*
-Fonts/IBMF/toto.ibmf
+Fonts/*
+Fonts/**/*
 
 # qtcreator generated files
 *.pro.user*
