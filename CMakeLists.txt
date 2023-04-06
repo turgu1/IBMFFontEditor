@@ -30,6 +30,10 @@ set(PROJECT_SOURCES
         IBMFDriver/RLEGenerator.hpp
         IBMFDriver/RLEExtractor.hpp
         IBMFDriver/IBMFDefs.hpp
+        IBMFDriver/IBMFTTFImport.cpp
+        IBMFDriver/IBMFTTFImport.hpp
+        IBMFDriver/IBMFHexImport.hpp
+        IBMFDriver/IBMFHexImport.cpp
         Unicode/UBlocks.hpp
         Unicode/uBlockSelectionDialog.hpp
         blocksDialog.cpp

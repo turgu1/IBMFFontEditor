@@ -3,6 +3,7 @@
 #include <QFrame>
 #include <QLabel>
 #include <QPainter>
+#include <QPushButton>
 #include <QSize>
 
 #include "../IBMFDriver/IBMFFontMod.hpp"

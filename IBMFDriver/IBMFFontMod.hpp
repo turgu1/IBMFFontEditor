@@ -7,13 +7,10 @@
 #include <vector>
 
 #include "IBMFDefs.hpp"
-#include "freeType.h"
 
 using namespace IBMFDefs;
 
 #include <QDataStream>
-#include <QIODevice>
-#include <QMessageBox>
 
 #include "../Kerning/kerningModel.h"
 #include "RLEExtractor.hpp"
@@ -22,8 +19,8 @@ using namespace IBMFDefs;
 #define DEBUG 0
 
 #if DEBUG
-  #include <iomanip>
-  #include <iostream>
+#include <iomanip>
+#include <iostream>
 #endif
 
 /**
@@ -97,28 +94,25 @@ public:
   auto translate(char32_t codePoint) const -> GlyphCode;
   auto getUTF32(GlyphCode glyphCode) const -> char32_t;
   auto toGlyphCode(char32_t codePoint) const -> GlyphCode;
-  auto charSelected(char32_t ch, SelectedBlockIndexesPtr &selectedBlockIndexes) const -> bool;
-  auto prepareCodePlanes(FT_Face &face, CharSelections &charSelections) -> int;
-  auto retrieveKernPairsTable(FT_Face ftFace) -> void;
-  auto findGlyphCodeFromIndex(int index, FT_Face ftFace, int glyphCount) -> GlyphCode;
-  auto loadTTF(FreeType &ft, FontParametersPtr fontParameters) -> bool;
 
-private:
-  static constexpr uint8_t MAX_GLYPH_COUNT = 254; // Index Value 0xFE and 0xFF are reserved
-  static constexpr uint8_t IBMF_VERSION    = 4;
-
-  bool initialized_;
+protected:
+  static constexpr uint8_t IBMF_VERSION = 4;
 
   Preamble preamble_;
 
+  std::vector<Plane>           planes_;
+  std::vector<CodePointBundle> codePointBundles_;
+  std::vector<FacePtr>         faces_;
+
+private:
+  static constexpr uint8_t MAX_GLYPH_COUNT = 254; // Index Value 0xFE and 0xFF are reserved
+
+  bool initialized_;
+
   std::vector<uint32_t> faceOffsets_;
-  std::vector<FacePtr>  faces_;
 
   uint8_t *memory_;
   uint32_t memoryLength_;
-
-  std::vector<Plane>           planes_;
-  std::vector<CodePointBundle> codePointBundles_;
 
   int lastError_;
 

@@ -10,6 +10,7 @@
 #include <QTextStream>
 
 #include "./ui_mainwindow.h"
+#include "IBMFDriver/IBMFTTFImport.hpp"
 #include "Kerning/kerningDialog.h"
 #include "blocksDialog.h"
 #include "fix16Delegate.h"
@@ -1083,14 +1084,14 @@ void MainWindow::on_actionImportTrueTypeFont_triggered() {
     if (fontDialog->exec() == QDialog::Accepted) {
       auto fontParameters = fontDialog->getParameters();
 
-      ibmfFont_ = IBMFFontModPtr(new IBMFFontMod);
+      IBMFTTFImportPtr importFont = IBMFTTFImportPtr(new IBMFTTFImport);
 
-      if (ibmfFont_->loadTTF(*ft_, fontParameters)) {
+      if (importFont->loadTTF(*ft_, fontParameters)) {
         QFile outFile;
         outFile.setFileName(fontParameters->filename);
         if (outFile.open(QIODevice::WriteOnly)) {
           QDataStream out(&outFile);
-          if (ibmfFont_->save(out)) {
+          if (importFont->save(out)) {
             outFile.close();
             QFile file;
             file.setFileName(fontParameters->filename);

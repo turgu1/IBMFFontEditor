@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include <QAbstractButton>
 #include <QDialog>
 
 #include "IBMFDriver/IBMFFontMod.hpp"
