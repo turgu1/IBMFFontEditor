@@ -8,15 +8,15 @@ using namespace IBMFDefs;
 #define DEBUG 0
 
 #if DEBUG
-#include <iomanip>
-#include <iostream>
+  #include <iomanip>
+  #include <iostream>
 #endif
 
-#define firstIsBlack(c) (c == 0)
-#define SET_AS_FIRST_BLACK (0)
+#define firstIsBlack(c)        (c == 0)
+#define SET_AS_FIRST_BLACK     (0)
 #define SET_AS_REPEAT_COUNT(c) (-c)
-#define REPEAT_COUNT(c) (-c)
-#define IS_A_REPEAT_COUNT(c) (c < 0)
+#define REPEAT_COUNT(c)        (-c)
+#define IS_A_REPEAT_COUNT(c)   (c < 0)
 #define REPEAT_COUNT_IS_ONE(c) (c == -1)
 
 class RLEGenerator {
@@ -28,30 +28,29 @@ public:
 
 private:
   uint8_t value;
-  bool firstNyb;
-  Data data;
+  bool    firstNyb;
+  Data    data;
 
   typedef std::vector<int16_t> RepeatCounts;
-  typedef int Chunk;
-  typedef std::vector<Chunk> Chunks;
+  typedef int                  Chunk;
+  typedef std::vector<Chunk>   Chunks;
 
-  uint8_t dynF; // = 14 if not compressed
-  bool
-      firstIsBlack; // if compressed, true if first nibble contains black pixels
+  uint8_t dynF;         // = 14 if not compressed
+  bool    firstIsBlack; // if compressed, true if first nibble contains black pixels
 
 public:
   RLEGenerator() {
-    value = 0;
+    value    = 0;
     firstNyb = true;
     data.clear();
   }
 
   uint8_t getDynF() { return dynF; }
-  bool getFirstIsBlack() { return firstIsBlack; }
+  bool    getFirstIsBlack() { return firstIsBlack; }
   DataPtr getData() { return &data; }
 
   void clean() {
-    value = 0;
+    value    = 0;
     firstNyb = true;
     data.clear();
   }
@@ -59,13 +58,12 @@ public:
 #if DEBUG
   void show() {
     std::cout << "RLEGenerator content:" << std::endl
-              << "  First nybble is " << (firstIsBlack ? "" : "NOT ")
-              << "for black pixels." << std::endl
+              << "  First nybble is " << (firstIsBlack ? "" : "NOT ") << "for black pixels."
+              << std::endl
               << "  dynF value is " << +dynF << std::endl;
 
     for (auto byte : data) {
-      std::cout << std::hex << std::setfill('0') << std::setw(2)
-                << std::uppercase << +byte << ' ';
+      std::cout << std::hex << std::setfill('0') << std::setw(2) << std::uppercase << +byte << ' ';
     }
     std::cout << std::endl;
   }
@@ -127,22 +125,20 @@ public:
   }
 #endif
 
-  void computeChunks(Chunks &chunks, const IBMFDefs::Bitmap &bitmap,
-                      const RepeatCounts &repeatCounts) {
+  void computeChunks(Chunks &chunks, const BitmapPtr bitmap, const RepeatCounts &repeatCounts) {
     chunks.clear();
     chunks.reserve(50);
-    Chunk chunk;
+    Chunk   chunk;
     uint8_t val;
-    if ((val = bitmap.pixels[0]) != 0)
-      chunks.push_back(SET_AS_FIRST_BLACK);
-    chunk = 1;
-    int row = 0;
-    int col = 1;
-    int idx = 1;
+    if ((val = bitmap->pixels[0]) != 0) chunks.push_back(SET_AS_FIRST_BLACK);
+    chunk            = 1;
+    int  row         = 0;
+    int  col         = 1;
+    int  idx         = 1;
     bool show_repeat = repeatCounts[row] > 0;
-    while (row < bitmap.dim.height) {
-      while (col < bitmap.dim.width) {
-        if (val == bitmap.pixels[idx++]) {
+    while (row < bitmap->dim.height) {
+      while (col < bitmap->dim.width) {
+        if (val == bitmap->pixels[idx++]) {
           chunk++;
         } else {
           chunks.push_back(chunk);
@@ -157,47 +153,45 @@ public:
       }
       row++;
       col = 0;
-      while ((row < bitmap.dim.height) && (repeatCounts[row] == -1)) {
+      while ((row < bitmap->dim.height) && (repeatCounts[row] == -1)) {
         row++;
-        idx += bitmap.dim.width;
+        idx += bitmap->dim.width;
       }
       show_repeat = repeatCounts[row] > 0;
     }
     chunks.push_back(chunk);
   }
 
-  void computeRepeatCounts(const Bitmap &bitmap, RepeatCounts &repeatCounts) {
-    int row, col, current;
+  void computeRepeatCounts(const BitmapPtr bitmap, RepeatCounts &repeatCounts) {
+    int     row, col, current;
     uint8_t val;
-    bool same;
+    bool    same;
 
     repeatCounts.clear();
-    repeatCounts.reserve(bitmap.dim.height);
+    repeatCounts.reserve(bitmap->dim.height);
 
-    for (row = 0; row < bitmap.dim.height; row++)
+    for (row = 0; row < bitmap->dim.height; row++)
       repeatCounts.push_back(0);
 
-    row = 0;
+    row     = 0;
     current = 1;
-    while (current < bitmap.dim.height) {
+    while (current < bitmap->dim.height) {
       // Check if all pixels are the same, if so, we pass the row
-      val = bitmap.pixels[row * bitmap.dim.width];
+      val  = bitmap->pixels[row * bitmap->dim.width];
       same = true;
-      for (col = 1; col < bitmap.dim.width; col++) {
-        same = val == bitmap.pixels[row * bitmap.dim.width + col];
-        if (!same)
-          break;
+      for (col = 1; col < bitmap->dim.width; col++) {
+        same = val == bitmap->pixels[row * bitmap->dim.width + col];
+        if (!same) break;
       }
       if (same) {
         row++;
         current++;
       } else {
         same = true;
-        for (col = 0; col < bitmap.dim.width; col++) {
-          same = bitmap.pixels[row * bitmap.dim.width + col] ==
-                 bitmap.pixels[current * bitmap.dim.width + col];
-          if (!same)
-            break;
+        for (col = 0; col < bitmap->dim.width; col++) {
+          same = bitmap->pixels[row * bitmap->dim.width + col] ==
+                 bitmap->pixels[current * bitmap->dim.width + col];
+          if (!same) break;
         }
         if (same) {
           repeatCounts[row]++;
@@ -210,10 +204,9 @@ public:
     }
   }
 
-  bool encodeBitmap(const Bitmap &bitmap) {
+  bool encodeBitmap(const BitmapPtr bitmap) {
 
-    if ((bitmap.dim.height * bitmap.dim.width) == 0)
-      return false;
+    if ((bitmap->dim.height * bitmap->dim.width) == 0) return false;
 
     int compSize = 0;
     int deriv[14]; // index 1..13 are used
@@ -223,7 +216,7 @@ public:
     // compute compression size and dynF
 
     RepeatCounts repeatCounts;
-    Chunks chunks;
+    Chunks       chunks;
 
     computeRepeatCounts(bitmap, repeatCounts);
     computeChunks(chunks, bitmap, repeatCounts);
@@ -235,7 +228,7 @@ public:
 
     firstIsBlack = false;
 
-    bool first = true;
+    bool first   = true;
     for (auto chunk : chunks) {
       if (first) {
         first = false;
@@ -270,44 +263,42 @@ public:
           int k = 16;
           while ((k << 4) < (count + 3))
             k <<= 4;
-          if ((count - k) <= 192)
-            deriv[(207 - count + k) / 15] += 2;
+          if ((count - k) <= 192) deriv[(207 - count + k) / 15] += 2;
         }
       }
     }
 
     int bCompSize = compSize;
-    dynF = 0;
+    dynF          = 0;
 
     for (int i = 1; i <= 13; i++) {
       compSize += deriv[i];
       if (compSize <= bCompSize) {
         bCompSize = compSize;
-        dynF = i;
+        dynF      = i;
       }
     }
 
     compSize = (bCompSize + 1) >> 1;
-    if ((compSize > ((bitmap.dim.height * bitmap.dim.width + 7) >> 3))) {
-      compSize = (bitmap.dim.height * bitmap.dim.width + 7) >> 3;
-      dynF = 14;
+    if ((compSize > ((bitmap->dim.height * bitmap->dim.width + 7) >> 3))) {
+      compSize = (bitmap->dim.height * bitmap->dim.width + 7) >> 3;
+      dynF     = 14;
     }
 
     data.reserve(compSize);
 
 #if DEBUG
-    std::cout << "Best packing is dynF of " << dynF << " with length "
-              << compSize << "." << std::endl;
+    std::cout << "Best packing is dynF of " << dynF << " with length " << compSize << "."
+              << std::endl;
 #endif
 
     if (dynF != 14) {
 
       // ---- Send rle format ----
 
-      const int max_2 =
-          208 - 15 * dynF; // the highest count that fits in two bytes
+      const int max_2 = 208 - 15 * dynF; // the highest count that fits in two bytes
 
-      bool first = true;
+      bool first      = true;
       for (auto chunk : chunks) {
         if (first) {
           first = false;
@@ -344,37 +335,36 @@ public:
           }
         }
       }
-      if (!firstNyb)
-        putRemainder();
+      if (!firstNyb) putRemainder();
     } else {
 
       // ---- Send bit map (rle uncompressed format) ----
 
-      uint8_t buff = 0;
-      int pBit = 8;
-      int i = 1; // index in the chunks list
-      int rI = 0;
-      int sI = 0;
-      int hBit = bitmap.dim.width;
-      bool on = false; // true if it's for black pixels
-      bool rOn = false;
-      bool sOn = false;
-      bool repeating = false; // true if we are repeating previous line
-      int count = chunks[0];  // number of bits in the current chunk
-      int rCount = 0;
-      int sCount = 0;
-      int repeatFlag = 0;
+      uint8_t buff       = 0;
+      int     pBit       = 8;
+      int     i          = 1; // index in the chunks list
+      int     rI         = 0;
+      int     sI         = 0;
+      int     hBit       = bitmap->dim.width;
+      bool    on         = false; // true if it's for black pixels
+      bool    rOn        = false;
+      bool    sOn        = false;
+      bool    repeating  = false;     // true if we are repeating previous line
+      int     count      = chunks[0]; // number of bits in the current chunk
+      int     rCount     = 0;
+      int     sCount     = 0;
+      int     repeatFlag = 0;
 
       while ((i < chunks.size()) || repeating || (count > 0)) {
         if (repeating) {
           count = rCount;
-          i = rI;
-          on = rOn;
+          i     = rI;
+          on    = rOn;
           repeatFlag -= 1;
         } else {
           rCount = count;
-          rI = i;
-          rOn = on;
+          rI     = i;
+          rOn    = on;
         }
 
         // Send one row of bits
@@ -387,7 +377,7 @@ public:
               i += 1;
             }
             count = chunks[i++];
-            on = !on;
+            on    = !on;
           }
           if ((count >= pBit) && (pBit < hBit)) {
             // we end a byte, we don’t end the row
@@ -414,29 +404,28 @@ public:
             }
             count -= hBit;
             pBit -= hBit;
-            hBit = bitmap.dim.width;
+            hBit = bitmap->dim.width;
             if (pBit == 0) {
               putByte(buff);
               buff = 0;
               pBit = 8;
             }
           }
-        } while (hBit != bitmap.dim.width);
+        } while (hBit != bitmap->dim.width);
 
         if (repeating && (repeatFlag == 0)) {
-          count = sCount;
-          i = sI;
-          on = sOn;
+          count     = sCount;
+          i         = sI;
+          on        = sOn;
           repeating = false;
         } else if (!repeating && (repeatFlag > 0)) {
-          sCount = count;
-          sI = i;
-          sOn = on;
+          sCount    = count;
+          sI        = i;
+          sOn       = on;
           repeating = true;
         }
       }
-      if (pBit != 8)
-        putByte(buff);
+      if (pBit != 8) putByte(buff);
     }
 
     return true;

@@ -8,33 +8,30 @@
 
 #include "IBMFDriver/IBMFDefs.hpp"
 #include "Unicode/UBlocks.hpp"
-#include "freeType.h"
 
 namespace Ui {
-class FontParameterDialog;
+class HexFontParameterDialog;
 }
 
-class FontParameterDialog : public QDialog {
+class HexFontParameterDialog : public QDialog {
   Q_OBJECT
 
 public:
-  explicit FontParameterDialog(FreeType &ft, QString title, QWidget *parent = nullptr);
-  ~FontParameterDialog();
+  explicit HexFontParameterDialog(QString title, QWidget *parent = nullptr);
+  ~HexFontParameterDialog();
 
   IBMFDefs::FontParametersPtr getParameters() { return fontParameters_; }
 
 private slots:
   void browseIBMFFontFilename();
-  void browseTTFFontFilename();
+  void browseHexFontFilename();
   void on_nextButton_clicked();
   void on_cancelButton_clicked();
   void onCheckBoxClicked();
-  void checkDpiNbr(const QString &value);
 
 private:
-  Ui::FontParameterDialog    *ui;
+  Ui::HexFontParameterDialog *ui;
   IBMFDefs::FontParametersPtr fontParameters_;
-  FreeType                   &ft_;
 
   IBMFDefs::CharSelectionsPtr charSelections_;
   CodePointBlocks            *codePointBlocks_;

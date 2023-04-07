@@ -1354,6 +1354,7 @@
       <string>Import</string>
      </property>
      <addaction name="actionImportTrueTypeFont"/>
+     <addaction name="actionImportHexFont"/>
     </widget>
     <widget class="QMenu" name="menuExport">
      <property name="title">
@@ -1440,6 +1441,11 @@
   <action name="actionC_h_File">
    <property name="text">
     <string>C Header File ( .h)</string>
+   </property>
+  </action>
+  <action name="actionImportHexFont">
+   <property name="text">
+    <string>GNU  Unicode Hex Font ...</string>
    </property>
   </action>
  </widget>

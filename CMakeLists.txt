@@ -40,9 +40,12 @@ set(PROJECT_SOURCES
         blocksDialog.h
         mainwindow.ui
         blocksDialog.ui
-        fontParameterDialog.h
-        fontParameterDialog.cpp
-        fontParameterDialog.ui
+        ttfFontParameterDialog.h
+        ttfFontParameterDialog.cpp
+        ttfFontParameterDialog.ui
+        hexFontParameterDialog.h
+        hexFontParameterDialog.cpp
+        hexFontParameterDialog.ui
         freeType.h
         freeType.cpp
         characterViewer.cpp

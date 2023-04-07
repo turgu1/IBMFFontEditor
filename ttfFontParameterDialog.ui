@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>FontParameterDialog</class>
- <widget class="QDialog" name="FontParameterDialog">
+ <class>TTFFontParameterDialog</class>
+ <widget class="QDialog" name="TTFFontParameterDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>521</width>
-    <height>510</height>
+    <width>663</width>
+    <height>693</height>
    </rect>
   </property>
   <property name="windowTitle">

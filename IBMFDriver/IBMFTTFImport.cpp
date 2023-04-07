@@ -8,7 +8,9 @@ auto IBMFTTFImport::prepareCodePlanes(FT_Face &face, CharSelections &charSelecti
 
   if (charSelections.size() == 1) {
 
-    for (int i = 0; i < 4; i++) { planes_.push_back(Plane({0, 0, 0})); }
+    for (int i = 0; i < 4; i++) {
+      planes_.push_back(Plane({0, 0, 0}));
+    }
 
     SelectedBlockIndexesPtr selectedBlockIndexes = charSelections[0].selectedBlockIndexes;
 
@@ -79,7 +81,7 @@ auto IBMFTTFImport::prepareCodePlanes(FT_Face &face, CharSelections &charSelecti
   return glyphCode;
 }
 
-// Returns true if the received character is not part of the control characters nor one of the
+// Returns true if the received character is part of the control characters nor one of the
 // space characters as defined in Unicode.
 auto IBMFTTFImport::charSelected(char32_t ch, SelectedBlockIndexesPtr &selectedBlockIndexes) const
     -> bool {
@@ -95,26 +97,25 @@ auto IBMFTTFImport::charSelected(char32_t ch, SelectedBlockIndexesPtr &selectedB
   return false;
 }
 
-#define FT_TYPEOF(type) (__typeof__(type))
-#define FT_PIX_FLOOR(x) ((x) & ~FT_TYPEOF(x) 63)
-#define FT_PIX_ROUND(x) FT_PIX_FLOOR((x) + 32)
+#define FT_TYPEOF(type)       (__typeof__(type))
+#define FT_PIX_FLOOR(x)       ((x) & ~FT_TYPEOF(x) 63)
+#define FT_PIX_ROUND(x)       FT_PIX_FLOOR((x) + 32)
 
 #define LITTLE_ENDIEN_16(val) val = (val << 8) | (val >> 8);
 
 auto IBMFTTFImport::retrieveKernPairsTable(FT_Face ftFace) -> void {
-  kernPairs      = nullptr;
-  kernPairsCount = 0;
+  kernPairs       = nullptr;
+  kernPairsCount  = 0;
 
   FT_ULong length = sizeof(KernTableHeader);
-  FT_Error error =
-      FT_Load_Sfnt_Table(ftFace, TTAG_kern, 0, (FT_Byte *) (&kernTableHeader), &length);
+  FT_Error error = FT_Load_Sfnt_Table(ftFace, TTAG_kern, 0, (FT_Byte *)(&kernTableHeader), &length);
   if (error == 0) {
     LITTLE_ENDIEN_16(kernTableHeader.nTables);
     int offset = sizeof(KernTableHeader);
     for (uint16_t i = 0; i < kernTableHeader.nTables; i++) {
       length = sizeof(KernSubTableHeader);
       error =
-          FT_Load_Sfnt_Table(ftFace, TTAG_kern, offset, (FT_Byte *) (&kernSubTableHeader), &length);
+          FT_Load_Sfnt_Table(ftFace, TTAG_kern, offset, (FT_Byte *)(&kernSubTableHeader), &length);
       if (error == 0) {
         if (kernSubTableHeader.coverage.data.format == 0) {
           LITTLE_ENDIEN_16(kernSubTableHeader.nPairs);
@@ -123,7 +124,7 @@ auto IBMFTTFImport::retrieveKernPairsTable(FT_Face ftFace) -> void {
               kernSubTableHeader.length - (sizeof(KernSubTableHeader) + sizeof(KernFormat0Header));
           offset += sizeof(KernSubTableHeader) + sizeof(KernFormat0Header);
           kernPairs = (KernPairsPtr) new uint8_t[length];
-          error = FT_Load_Sfnt_Table(ftFace, TTAG_kern, offset, (FT_Byte *) (kernPairs), &length);
+          error = FT_Load_Sfnt_Table(ftFace, TTAG_kern, offset, (FT_Byte *)(kernPairs), &length);
           if (error == 0) {
             kernPairsCount = length / sizeof(KernPair);
             for (int i = 0; i < kernPairsCount; i++) {
@@ -191,7 +192,9 @@ auto IBMFTTFImport::loadTTF(FreeType &ft, FontParametersPtr fontParameters) -> b
 
       // ----- Prepare for kerning information retrieval -----
 
-      if (fontParameters->withKerning) { retrieveKernPairsTable(ftFace); }
+      if (fontParameters->withKerning) {
+        retrieveKernPairsTable(ftFace);
+      }
 
       // ----- Build Code Planes structures -----
 
@@ -349,7 +352,7 @@ auto IBMFTTFImport::loadTTF(FreeType &ft, FontParametersPtr fontParameters) -> b
 
           char32_t ch = getUTF32(glyphCode);
           // FT_UInt  index = FT_Get_Char_Index(ftFace, ch);
-          (void) FT_Load_Char(ftFace, ch, FT_LOAD_NO_RECURSE);
+          (void)FT_Load_Char(ftFace, ch, FT_LOAD_NO_RECURSE);
 
           if (ftFace->glyph->format == FT_GLYPH_FORMAT_COMPOSITE) {
             //            std::cout << "Glyph composite of index: " << index << ", glyphCode " <<
@@ -391,7 +394,7 @@ auto IBMFTTFImport::loadTTF(FreeType &ft, FontParametersPtr fontParameters) -> b
 
         TT_PCLT_ pclt;
         FIX16    xHeight = 0;
-        error            = FT_Load_Sfnt_Table(ftFace, TTAG_PCLT, 0, (FT_Byte *) (&pclt), nullptr);
+        error            = FT_Load_Sfnt_Table(ftFace, TTAG_PCLT, 0, (FT_Byte *)(&pclt), nullptr);
         if (error == 0) {
           xHeight = static_cast<FIX16>(pclt.xHeight * (ftFace->size->metrics.x_scale / 1024.0));
         } else {

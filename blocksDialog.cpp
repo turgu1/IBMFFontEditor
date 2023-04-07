@@ -14,8 +14,9 @@
 #include "characterViewer.h"
 #include "ui_blocksDialog.h"
 
-BlocksDialog::BlocksDialog(FreeType &ft, QString fontFile, QString fontName, QWidget *parent)
-    : QDialog(parent), ft_(ft), fontName_(fontName), ui(new Ui::BlocksDialog) {
+BlocksDialog::BlocksDialog(GetNextUTF32 nextUTF32, IsAvailable isAvailable, QString fontName,
+                           QWidget *parent)
+    : QDialog(parent), fontName_(fontName), isAvailable_(isAvailable), ui(new Ui::BlocksDialog) {
   ui->setupUi(this);
 
   ui->createButton->setEnabled(false);
@@ -26,22 +27,6 @@ BlocksDialog::BlocksDialog(FreeType &ft, QString fontFile, QString fontName, QWi
   this->setWindowTitle("Font Content");
   ui->titleLabel->setText("CodePoint Selection from " + fontName);
 
-  if ((face_ = ft.openFace(fontFile)) == nullptr) {
-    reject();
-    return;
-  }
-
-  if (face_->charmap == nullptr) {
-    QMessageBox::warning(this, "Not Unicode", "There is no Unicode charmap in this font!");
-    reject();
-    return;
-  }
-
-  for (int n = 0; n < face_->num_charmaps; n++) {
-    std::cout << "PlatformId: " << face_->charmap[n].platform_id
-              << " EncodingId: " << face_->charmap[n].encoding_id << std::endl;
-  }
-
   struct CustomCmp {
     bool operator()(const CodePointBlock *a, const CodePointBlock *b) const {
       return a->blockIdx_ < b->blockIdx_;
@@ -50,10 +35,11 @@ BlocksDialog::BlocksDialog(FreeType &ft, QString fontFile, QString fontName, QWi
 
   std::set<CodePointBlock *, CustomCmp> blocksSet;
 
-  FT_UInt  index;
-  char32_t ch = FT_Get_First_Char(face_, &index);
+  char32_t ch;
+  bool     first = true;
 
-  while (index != 0) {
+  while (nextUTF32(&ch, first)) {
+    first = false;
     int idx;
     //    std::cout << "CodePoint: " << +ch << "(" << ch << ")" << std::endl;
     if ((ch >= 0x00021) && (ch != 0x000A0) && ((ch < 0x02000) || (ch >= 0x2010))) {
@@ -68,7 +54,6 @@ BlocksDialog::BlocksDialog(FreeType &ft, QString fontFile, QString fontName, QWi
         }
       }
     }
-    ch = FT_Get_Next_Char(face_, ch, &index);
   }
 
   codePointBlocks_->clear();
@@ -140,13 +125,15 @@ void BlocksDialog::checkCreateReady() {
 
 void BlocksDialog::tableSectionClicked(int idx) {
   if (idx == 4) {
-    allChecked_ = !allChecked_;
+    allChecked_   = !allChecked_;
+    codePointQty_ = 0;
     for (int i = 0; i < ui->blocksTable->rowCount(); i++) {
       QFrame    *frame = (QFrame *)(ui->blocksTable->cellWidget(i, 4));
       QCheckBox *cb    = (QCheckBox *)(frame->layout()->itemAt(0)->widget());
+      int        qty = allChecked_ ? ui->blocksTable->item(i, 3)->data(Qt::DisplayRole).toInt() : 0;
+      codePointQty_ += qty;
       cb->setChecked(allChecked_);
     }
-    codePointQty_ = allChecked_ ? face_->num_glyphs : 0;
     updateQtyLabel();
     checkCreateReady();
   }
@@ -178,13 +165,11 @@ void BlocksDialog::saveData() {
 
 void BlocksDialog::on_createButton_clicked() {
   saveData();
-  FT_Done_Face(face_);
   accept();
 }
 
 void BlocksDialog::on_backButton_clicked() {
   saveData();
-  FT_Done_Face(face_);
   reject();
 }
 
@@ -197,11 +182,15 @@ void BlocksDialog::on_blocksTable_cellDoubleClicked(int row, int column) {
 
     for (char32_t ch = first; ch <= last; ch++) {
       if ((ch >= 0x0021) && (ch != 0x00A0) && ((ch < 0x02000) || (ch >= 0x2010))) {
-        FT_UInt index = FT_Get_Char_Index(face_, ch);
-        if (index != 0) {
+        if (isAvailable_(ch, ch == first)) {
           charCodes->push_back(ch);
         }
       }
+      //        FT_UInt index = FT_Get_Char_Index(face_, ch);
+      //        if (index != 0) {
+      //          charCodes->push_back(ch);
+      //        }
+      //      }
     }
     CharacterViewer *viewer = new CharacterViewer(
         charCodes, fontName_,

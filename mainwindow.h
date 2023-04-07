@@ -79,6 +79,8 @@ private slots:
 
   void on_zoomToFitButton_clicked();
 
+  void on_actionImportHexFont_triggered();
+
 private:
   const int MAX_RECENT_FILES = 10;
 

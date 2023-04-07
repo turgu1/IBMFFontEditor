@@ -5,8 +5,9 @@
 #include <QSet>
 
 #include "Unicode/UBlocks.hpp"
-#include "freeType.h"
 
+typedef std::function<bool(char32_t *, bool)> GetNextUTF32;
+typedef std::function<bool(char32_t, bool)>   IsAvailable;
 namespace Ui {
 class BlocksDialog;
 }
@@ -15,7 +16,7 @@ class BlocksDialog : public QDialog {
   Q_OBJECT
 
 public:
-  explicit BlocksDialog(FreeType &ft, QString fontFile, QString fontName,
+  explicit BlocksDialog(GetNextUTF32 nextUTF32, IsAvailable isAvailable, QString fontName,
                         QWidget *parent = nullptr);
   SelectedBlockIndexesPtr getSelectedBlockIndexes() { return selectedBlockIndexes_; }
   CodePointBlocksPtr      getCodePointBlocks() { return codePointBlocks_; }
@@ -32,14 +33,13 @@ private slots:
 
 private:
   Ui::BlocksDialog *ui;
-  FreeType          ft_;
 
   QString                 fontName_;
-  FT_Face                 face_;
   bool                    allChecked_;
   int                     codePointQty_;
   SelectedBlockIndexesPtr selectedBlockIndexes_;
   CodePointBlocksPtr      codePointBlocks_;
+  IsAvailable             isAvailable_;
 
   void checkCreateReady();
   void updateQtyLabel();
