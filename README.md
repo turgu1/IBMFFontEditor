@@ -34,4 +34,4 @@ Known bugs:
 
 #### Main screen capture:
 
-<img src="Pictures/main2.png" alt="app picture" width="500"/>
+<img src="Pictures/main.png" alt="app picture" width="500"/>
