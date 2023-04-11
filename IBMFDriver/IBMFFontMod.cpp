@@ -194,7 +194,10 @@ auto IBMFFontMod::save(QDataStream &out) -> bool {
 
   WRITE(&preamble_, sizeof(Preamble));
 
-  int  fill   = 4 - ((sizeof(Preamble) + preamble_.faceCount) & 3);
+  int fill = 4 - ((sizeof(Preamble) + preamble_.faceCount) & 3);
+  if (fill == 4) {
+    fill = 0;
+  }
   char filler = 0;
   for (auto &face : faces_) {
     WRITE(&face->header->pointSize, 1);
@@ -265,6 +268,8 @@ auto IBMFFontMod::save(QDataStream &out) -> bool {
 
     fill = 4 - (poolData->size() + (sizeof(GlyphInfo) * face->header->glyphCount) &
                 3); // to keep alignment to 32bits offsets
+    if (fill == 4) fill = 0;
+
     face->header->pixelsPoolSize   = poolData->size() + fill;
     face->header->ligKernStepCount = face->ligKernSteps.size();
 

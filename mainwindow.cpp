@@ -1110,16 +1110,15 @@ void MainWindow::on_actionImportTrueTypeFont_triggered() {
             } else {
               if (loadFont(file)) {
                 newFontLoaded(fontParameters->filename);
+                QFileInfo info = QFileInfo(fontParameters->filename);
+                QMessageBox::information(
+                    this, "Import Completed",
+                    QString("Import of TTF file to %1 completed!").arg(info.completeBaseName()));
               } else {
                 QMessageBox::warning(this, "Warning",
                                      "Unable to load IBMF file " + fontParameters->filename);
               }
               file.close();
-
-              QFileInfo info = QFileInfo(fontParameters->filename);
-              QMessageBox::information(
-                  this, "Import Completed",
-                  QString("Import of TTF file to %1 completed!").arg(info.completeBaseName()));
             }
           }
         }
@@ -1298,16 +1297,15 @@ void MainWindow::on_actionImportHexFont_triggered() {
             } else {
               if (loadFont(file)) {
                 newFontLoaded(fontParameters->filename);
+                QFileInfo info = QFileInfo(fontParameters->filename);
+                QMessageBox::information(this, "Import Completed",
+                                         QString("Import of GNU Hex file to %1 completed!")
+                                             .arg(info.completeBaseName()));
               } else {
                 QMessageBox::warning(this, "Warning",
                                      "Unable to load IBMF file " + fontParameters->filename);
               }
               file.close();
-
-              QFileInfo info = QFileInfo(fontParameters->filename);
-              QMessageBox::information(
-                  this, "Import Completed",
-                  QString("Import of GNU Hex file to %1 completed!").arg(info.completeBaseName()));
             }
           }
         }
