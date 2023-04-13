@@ -74,3 +74,5 @@ Fonts/**/*
 *.dll
 *.exe
 
+# CMake generated files
+build
