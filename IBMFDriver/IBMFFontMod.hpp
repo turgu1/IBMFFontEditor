@@ -19,8 +19,8 @@ using namespace IBMFDefs;
 #define DEBUG 0
 
 #if DEBUG
-#include <iomanip>
-#include <iostream>
+  #include <iomanip>
+  #include <iostream>
 #endif
 
 /**
@@ -42,7 +42,7 @@ public:
     std::vector<RLEBitmapPtr> compressedBitmaps; // Todo: maybe unused at the end
 
     // used only at save time
-    std::vector<LigKernStepPtr> ligKernSteps; // The complete list of lig/kerns
+    std::vector<LigKernStep> ligKernSteps; // The complete list of lig/kerns
   };
 
   typedef std::unique_ptr<Face> FacePtr;
@@ -83,12 +83,13 @@ public:
 
   auto ligKern(int faceIndex, const GlyphCode glyphCode1, GlyphCode *glyphCode2, FIX16 *kern,
                bool *kernPairPresent) const -> bool;
-  auto getGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKernPtr *glyphLigKern) const -> bool;
-  auto getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyph_info, BitmapPtr *bitmap) const
+  auto getGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKernPtr &glyphLigKern) const -> bool;
+  auto getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyph_info, BitmapPtr &bitmap) const
       -> bool;
   auto saveFaceHeader(int faceIndex, FaceHeader &face_header) -> bool;
-  auto saveGlyph(int faceIndex, int glyphCode, GlyphInfo *newGlyphInfo, BitmapPtr new_bitmap)
+  auto saveGlyph(int faceIndex, int glyphCode, GlyphInfoPtr newGlyphInfo, BitmapPtr newBitmap)
       -> bool;
+  auto saveGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKernPtr glyphLigKern) -> bool;
   auto convertToOneBit(const Bitmap &bitmapHeightBits, BitmapPtr *bitmapOneBit) -> bool;
   auto save(QDataStream &out) -> bool;
   auto translate(char32_t codePoint) const -> GlyphCode;
@@ -116,7 +117,7 @@ private:
 
   int lastError_;
 
-  auto findList(std::vector<LigKernStepPtr> &pgm, std::vector<LigKernStepPtr> &list) const -> int;
+  auto findList(std::vector<LigKernStep> &pgm, std::vector<LigKernStep> &list) const -> int;
   auto prepareLigKernVectors() -> bool;
   auto load() -> bool;
 };

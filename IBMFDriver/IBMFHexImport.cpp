@@ -310,9 +310,8 @@ auto IBMFHexImport::loadHex(FontParametersPtr fontParameters) -> bool {
             GlyphCode nextGlyphCode        = toGlyphCode(ligature.nextChar);
             GlyphCode replacementGlyphCode = toGlyphCode(ligature.replacement);
             if ((nextGlyphCode != NO_GLYPH_CODE) && (replacementGlyphCode != NO_GLYPH_CODE)) {
-              GlyphLigStepPtr glyphLigStep = GlyphLigStepPtr(new GlyphLigStep(GlyphLigStep{
-                  .nextGlyphCode = nextGlyphCode, .replacementGlyphCode = replacementGlyphCode}));
-              glyphLigKern->ligSteps.push_back(glyphLigStep);
+              glyphLigKern->ligSteps.push_back(GlyphLigStep{
+                  .nextGlyphCode = nextGlyphCode, .replacementGlyphCode = replacementGlyphCode});
             }
           }
         }

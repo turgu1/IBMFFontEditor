@@ -357,7 +357,6 @@ struct LigKernStep {
   ReplDisp b;
 };
 #endif
-typedef std::shared_ptr<LigKernStep> LigKernStepPtr;
 
 struct RLEMetrics {
   uint8_t dynF         : 4;
@@ -444,17 +443,13 @@ struct GlyphKernStep {
   uint16_t nextGlyphCode;
   FIX16    kern;
 };
-typedef std::shared_ptr<GlyphKernStep> GlyphKernStepPtr;
-typedef std::vector<GlyphKernStepPtr>  GlyphKernSteps;
-typedef GlyphKernSteps                *GlyphKernStepsVecPtr;
+typedef std::vector<GlyphKernStep> GlyphKernSteps;
 
 struct GlyphLigStep {
   uint16_t nextGlyphCode;
   uint16_t replacementGlyphCode;
 };
-typedef std::shared_ptr<GlyphLigStep> GlyphLigStepPtr;
-typedef std::vector<GlyphLigStepPtr>  GlyphLigSteps;
-typedef GlyphLigSteps                *GlyphLigStepsVecPtr;
+typedef std::vector<GlyphLigStep> GlyphLigSteps;
 
 struct GlyphLigKern {
   GlyphLigSteps  ligSteps;

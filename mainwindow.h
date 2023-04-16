@@ -109,9 +109,7 @@ private:
   IBMFFontModPtr            ibmfFont_{nullptr};
   IBMFDefs::Preamble        ibmfPreamble_;
   IBMFDefs::FaceHeaderPtr   ibmfFaceHeader_{nullptr};
-  IBMFDefs::GlyphInfoPtr    ibmfGlyphInfo_{nullptr};
-  IBMFDefs::BitmapPtr       ibmfGlyphBitmap_{nullptr};
-  IBMFDefs::GlyphLigKernPtr ibmfLigKerns_{nullptr};
+  IBMFDefs::GlyphLigKernPtr ibmfGlyphLigKern_{nullptr};
 
   int              ibmfFaceIdx_{0};
   int              ibmfGlyphCode_{0};

@@ -2,20 +2,20 @@
 
 #include <QMessageBox>
 
-KerningModel::KerningModel(GlyphCode glyphCode, IBMFDefs::GlyphKernStepsVecPtr glyphKernSteps,
+KerningModel::KerningModel(GlyphCode glyphCode, const IBMFDefs::GlyphKernSteps &glyphKernSteps,
                            QObject *parent)
-    : QAbstractTableModel(parent), glyphCode_(glyphCode), glyphKernSteps_(glyphKernSteps) {
+    : QAbstractTableModel(parent), glyphCode_(glyphCode) {
 
-  for (auto entry : *glyphKernSteps_) {
-    addKernEntry(KernEntry(glyphCode_, entry->nextGlyphCode, (float)(entry->kern / 64.0)));
+  for (const auto &entry : glyphKernSteps) {
+    addKernEntry(KernEntry(glyphCode_, entry.nextGlyphCode, (float)(entry.kern / 64.0)));
   }
 }
 
-void KerningModel::save() {
-  glyphKernSteps_->clear();
+void KerningModel::save(GlyphKernSteps &glyphKernSteps) {
+  glyphKernSteps.clear();
   for (auto entry : kernEntries_) {
-    glyphKernSteps_->push_back(GlyphKernStepPtr(new GlyphKernStep{
-        .nextGlyphCode = entry.nextGlyphCode, .kern = static_cast<FIX16>(entry.kern * 64.0)}));
+    glyphKernSteps.push_back(GlyphKernStep{.nextGlyphCode = entry.nextGlyphCode,
+                                           .kern          = static_cast<FIX16>(entry.kern * 64.0)});
   }
 }
 

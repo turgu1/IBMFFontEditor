@@ -9,8 +9,8 @@
 class KerningModel : public QAbstractTableModel {
   Q_OBJECT
 public:
-  explicit KerningModel(IBMFDefs::GlyphCode            glyphCode,
-                        IBMFDefs::GlyphKernStepsVecPtr glyphKernSteps, QObject *parent = nullptr);
+  explicit KerningModel(IBMFDefs::GlyphCode             glyphCode,
+                        const IBMFDefs::GlyphKernSteps &glyphKernSteps, QObject *parent = nullptr);
 
   int           rowCount(const QModelIndex &parent = QModelIndex()) const override;
   int           columnCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -20,7 +20,7 @@ public:
   Qt::ItemFlags flags(const QModelIndex &index) const override;
   void          addKernEntry(KernEntry entry);
   void          removeKernEntry(QModelIndex entry);
-  void          save();
+  void          save(GlyphKernSteps &glyphKernSteps);
 
   inline IBMFDefs::GlyphCode getGlyphCode() const { return glyphCode_; }
 
@@ -28,7 +28,6 @@ signals:
   void editCompleted();
 
 private:
-  QVector<KernEntry>             kernEntries_;
-  IBMFDefs::GlyphCode            glyphCode_;
-  IBMFDefs::GlyphKernStepsVecPtr glyphKernSteps_;
+  QVector<KernEntry>  kernEntries_;
+  IBMFDefs::GlyphCode glyphCode_;
 };

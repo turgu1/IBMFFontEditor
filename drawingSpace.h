@@ -53,8 +53,8 @@ private:
   IBMFDefs::BitmapPtr    bypassBitmap_{nullptr};
   IBMFDefs::GlyphInfoPtr bypassGlyphInfo_{nullptr};
 
-  auto computeAutoKerning(const BitmapPtr b1, const BitmapPtr b2, const GlyphInfo &i1,
-                          const GlyphInfo &i2) const -> FIX16;
+  auto computeAutoKerning(const BitmapPtr b1, const BitmapPtr b2, const GlyphInfoPtr i1,
+                          const GlyphInfoPtr i2) const -> FIX16;
   auto paintWord(QPainter *painter, int lineHeight) -> void;
   auto computeSize() -> void;
 };

@@ -7,10 +7,7 @@
 
 BitmapRenderer::BitmapRenderer(QWidget *parent, int pixelSize, bool noScroll,
                                QUndoStack *undoStack_)
-    : QWidget(parent), undoStack_(undoStack_), bitmapChanged_(false), glyphPresent_(false),
-      pixelSize_(pixelSize), wasBlack_(true), editable_(true), noScroll_(noScroll),
-      lastPos_(QPoint(0, 0)), bitmapOffsetPos_(QPoint(0, 0)), glyphBitmapPos_(QPoint(0, 0)),
-      glyphOriginPos_(QPoint(0, 0)) {
+    : QWidget(parent), pixelSize_(pixelSize), noScroll_(noScroll), undoStack_(undoStack_) {
   setBackgroundRole(QPalette::Base);
   setAutoFillBackground(true);
   clearBitmap();
@@ -25,9 +22,7 @@ void BitmapRenderer::resizeEvent(QResizeEvent *event) {
   }
 }
 
-int BitmapRenderer::getPixelSize() {
-  return pixelSize_;
-}
+int BitmapRenderer::getPixelSize() { return pixelSize_; }
 
 void BitmapRenderer::connectTo(BitmapRenderer *main_renderer) {
   QObject::connect(main_renderer, &BitmapRenderer::bitmapHasChanged, this,
@@ -120,8 +115,8 @@ void BitmapRenderer::paintEvent(QPaintEvent * /* event */) {
       int originCol    = (glyphOriginPos_.x() - bitmapOffsetPos_.x()) * pixelSize_;
       int descenderRow = originRow + (faceHeader_.descenderHeight * pixelSize_);
       int topRow       = descenderRow - (faceHeader_.lineHeight * pixelSize_);
-      int xRow         = originRow - (((float) faceHeader_.xHeight / 64.0) * pixelSize_);
-      int advCol       = originCol + (((float) glyphInfo_.advance / 64.0) * pixelSize_);
+      int xRow         = originRow - (((float)faceHeader_.xHeight / 64.0) * pixelSize_);
+      int advCol       = originCol + (((float)glyphInfo_.advance / 64.0) * pixelSize_);
 
       painter.setPen(QPen(QBrush(QColorConstants::Red), 1));
       painter.drawLine(QPoint(originCol, originRow), QPoint(advCol, originRow));
@@ -142,7 +137,9 @@ void BitmapRenderer::paintEvent(QPaintEvent * /* event */) {
   for (int row = bitmapOffsetPos_.y(), rowp = row * bitmapWidth; row < bitmapHeight;
        row++, rowp += bitmapWidth) {
     for (int col = bitmapOffsetPos_.x(); col < bitmapWidth; col++) {
-      if (displayBitmap_[rowp + col] == PixelType::BLACK) { setScreenPixel(QPoint(col, row)); }
+      if (displayBitmap_[rowp + col] == PixelType::BLACK) {
+        setScreenPixel(QPoint(col, row));
+      }
     }
   }
 }
@@ -197,10 +194,8 @@ void BitmapRenderer::mouseMoveEvent(QMouseEvent *event) {
 void BitmapRenderer::wheelEvent(QWheelEvent *event) {}
 
 void BitmapRenderer::clearAndLoadBitmap(const IBMFDefs::Bitmap     &bitmap,
-                                        const IBMFDefs::Preamble   &preamble,
                                         const IBMFDefs::FaceHeader &faceHeader,
                                         const IBMFDefs::GlyphInfo  &glyphInfo) {
-  preamble_     = preamble;
   faceHeader_   = faceHeader;
   glyphInfo_    = glyphInfo;
   glyphPresent_ = true;
@@ -294,7 +289,7 @@ cont4:
   int size          = theBitmap->dim.width * theBitmap->dim.height;
   theBitmap->pixels = IBMFDefs::Pixels(size, 0);
 
-  idx = 0;
+  idx               = 0;
   for (row = topLeft.y(), rowp = row * bitmapWidth; row <= bottomRight.y();
        row++, rowp += bitmapWidth) {
     for (col = topLeft.x(); col <= bottomRight.x(); col++) {
@@ -306,13 +301,13 @@ cont4:
     *originOffsets =
         QPoint(glyphOriginPos_.x() - topLeft.x(), glyphOriginPos_.y() - topLeft.y() - 1);
 
-    float oldAdvance = (float) glyphInfo_.advance / 64.0;
-    int   oldWidth   = glyphInfo_.bitmapWidth;
-    int   oldHOffset = glyphInfo_.horizontalOffset;
+    float oldAdvance            = (float)glyphInfo_.advance / 64.0;
+    int   oldWidth              = glyphInfo_.bitmapWidth;
+    int   oldHOffset            = glyphInfo_.horizontalOffset;
 
-    int   oldNormalizedWidth = oldWidth - oldHOffset;
-    int   newNormalizedWidth = theBitmap->dim.width - originOffsets->x();
-    float newAdvance         = oldAdvance + (newNormalizedWidth - oldNormalizedWidth);
+    int   oldNormalizedWidth    = oldWidth - oldHOffset;
+    int   newNormalizedWidth    = theBitmap->dim.width - originOffsets->x();
+    float newAdvance            = oldAdvance + (newNormalizedWidth - oldNormalizedWidth);
 
     glyphInfo_.advance          = newAdvance * 64.0;
     glyphInfo_.bitmapWidth      = theBitmap->dim.width;

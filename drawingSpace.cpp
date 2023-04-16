@@ -22,8 +22,8 @@ void DrawingSpace::setBypassGlyph(IBMFDefs::GlyphCode glyphCode, IBMFDefs::Bitma
 }
 
 auto DrawingSpace::computeAutoKerning(const IBMFDefs::BitmapPtr b1, const IBMFDefs::BitmapPtr b2,
-                                      const IBMFDefs::GlyphInfo &i1,
-                                      const IBMFDefs::GlyphInfo &i2) const -> FIX16 {
+                                      const IBMFDefs::GlyphInfoPtr i1,
+                                      const IBMFDefs::GlyphInfoPtr i2) const -> FIX16 {
   int kerning     = 0;
 
   int buffWidth   = (font_->getFaceHeader(faceIdx_)->emSize >> 6) * 2;
@@ -35,8 +35,8 @@ auto DrawingSpace::computeAutoKerning(const IBMFDefs::BitmapPtr b1, const IBMFDe
 
   QPoint pos = QPoint(5, (buffHeight / 3) * 2); //  This is the origin
 
-  int voff   = i1.verticalOffset;
-  int hoff   = i1.horizontalOffset;
+  int voff   = i1->verticalOffset;
+  int hoff   = i1->horizontalOffset;
 
   int idx    = 0;
   for (int row = 0; row < b1->dim.height; row++) {
@@ -48,15 +48,15 @@ auto DrawingSpace::computeAutoKerning(const IBMFDefs::BitmapPtr b1, const IBMFDe
     }
   }
 
-  int advance = ((i1.advance + 32) >> 6);
-  if (advance == 0) advance = i1.bitmapWidth + 1;
+  int advance = ((i1->advance + 32) >> 6);
+  if (advance == 0) advance = i1->bitmapWidth + 1;
 
   pos.setX(pos.x() + advance);
 
   int max = advance - 1;
   while (max > 0) {
-    int voff = i2.verticalOffset;
-    int hoff = i2.horizontalOffset;
+    int voff = i2->verticalOffset;
+    int hoff = i2->horizontalOffset;
 
     for (int col = 0; col < b2->dim.width; col++) {
       for (int row = 0; row < b2->dim.height; row++) {
@@ -228,7 +228,7 @@ void DrawingSpace::drawScreen(QPainter *painter) {
 
   // std::cout << "drawScreen()..." << std::endl;
 
-  if (font_ == nullptr) return;
+  if ((font_ == nullptr) || textToDraw_.isEmpty()) return;
 
   word_.clear();
   wordLength_ = 0;
@@ -242,10 +242,74 @@ void DrawingSpace::drawScreen(QPainter *painter) {
 
   pos_             = QPoint(0, lineHeight);
 
-  bool first       = true; // True if 1st character of a word, to reset the kerning process
   bool startOfLine = true; // True if we are at the beginning of a line,
                            // to not print the spaces there
 
+  IBMFDefs::GlyphCode    g1, g2;
+  IBMFDefs::BitmapPtr    b1, b2;
+  IBMFDefs::GlyphInfoPtr i1, i2;
+
+  g1        = NO_GLYPH_CODE;
+
+  auto iter = textToDraw_.begin();
+  do {
+    QChar ch = *iter++;
+    if (ch == '\n') {
+      if (word_.size() > 0) {
+        paintWord(painter, lineHeight);
+      }
+      pos_.setY(pos_.y() + lineHeight);
+      pos_.setX(0);
+      startOfLine = true;
+      g1          = NO_GLYPH_CODE;
+      continue;
+    } else if (ch == ' ') {
+      if (word_.size() > 0) {
+        paintWord(painter, lineHeight);
+      }
+      g1 = NO_GLYPH_CODE;
+      if (!startOfLine) {
+        pos_.setX(pos_.x() + font_->getFaceHeader(faceIdx_)->spaceSize);
+      }
+      continue;
+    } else {
+      bool  kernPairPresent = false;
+      FIX16 kern            = 0;
+      g2                    = font_->translate(ch.unicode());
+      if (normalKerning_) {
+        while (font_->ligKern(faceIdx_, g1, &g2, &kern, &kernPairPresent)) {
+          // Got a ligature
+          g1 = g2;
+          if (iter == textToDraw_.end()) break;
+          ch = *iter++;
+          if ((ch == '\n') || (ch == ' ')) {
+            iter--;
+            break;
+          }
+        }
+      }
+
+      if (font_->getGlyph(faceIdx_, g2, i2, b2)) {
+        if (g1 != NO_GLYPH_CODE) {
+          if ((!kernPairPresent) && opticalKerning_) {
+            kern = computeAutoKerning(b1, b2, i1, i2);
+          }
+
+          FIX16 advance = i1->advance;
+          if (advance == 0) (advance = i1->bitmapWidth + 1) << 6;
+
+          wordLength_ += ((advance + kern + 32) >> 6); // - glyphInfo->horizontalOffset;
+          word_.push_back(OneGlyph({.bitmap = b1, .glyphInfo = i1, .kern = kern}));
+          startOfLine = false;
+        }
+        g1 = g2;
+        i1 = i2;
+        b1 = b2;
+      }
+    }
+  } while (iter != textToDraw_.end());
+
+#if 0
   IBMFDefs::BitmapPtr    b1, b2;
   IBMFDefs::GlyphInfoPtr i1, i2;
   IBMFDefs::GlyphCode    g1, g2;
@@ -282,7 +346,7 @@ void DrawingSpace::drawScreen(QPainter *painter) {
         bitmap    = bypassBitmap_;
         glyphInfo = bypassGlyphInfo_;
       } else {
-        if (!font_->getGlyph(faceIdx_, glyphCode, glyphInfo, &bitmap)) {
+        if (!font_->getGlyph(faceIdx_, glyphCode, glyphInfo, bitmap)) {
           continue;
         }
       }
@@ -316,7 +380,7 @@ void DrawingSpace::drawScreen(QPainter *painter) {
               bitmap    = bypassBitmap_;
               glyphInfo = bypassGlyphInfo_;
             } else {
-              if (!font_->getGlyph(faceIdx_, glyphCode, glyphInfo, &bitmap)) {
+              if (!font_->getGlyph(faceIdx_, glyphCode, glyphInfo, bitmap)) {
                 continue;
               }
             }
@@ -345,7 +409,8 @@ void DrawingSpace::drawScreen(QPainter *painter) {
     wordLength_ += ((advance + kerning + 32) >> 6); // - glyphInfo->horizontalOffset;
     word_.push_back(OneGlyph({.bitmap = bitmap, .glyphInfo = glyphInfo, .kern = kerning}));
     startOfLine = false;
-  }
+}
+#endif
 
   if (word_.size() != 0) paintWord(painter, lineHeight);
 }

@@ -280,10 +280,9 @@ auto IBMFTTFImport::loadTTF(FreeType &ft, FontParametersPtr fontParameters) -> b
                 GlyphCode nextGlyphCode        = toGlyphCode(ligature.nextChar);
                 GlyphCode replacementGlyphCode = toGlyphCode(ligature.replacement);
                 if ((nextGlyphCode != NO_GLYPH_CODE) && (replacementGlyphCode != NO_GLYPH_CODE)) {
-                  GlyphLigStepPtr glyphLigStep = GlyphLigStepPtr(
-                      new GlyphLigStep(GlyphLigStep{.nextGlyphCode        = nextGlyphCode,
-                                                    .replacementGlyphCode = replacementGlyphCode}));
-                  glyphLigKern->ligSteps.push_back(glyphLigStep);
+                  glyphLigKern->ligSteps.push_back(
+                      GlyphLigStep{.nextGlyphCode        = nextGlyphCode,
+                                   .replacementGlyphCode = replacementGlyphCode});
                 }
               }
             }
@@ -308,9 +307,8 @@ auto IBMFTTFImport::loadTTF(FreeType &ft, FontParametersPtr fontParameters) -> b
                     auto kern = static_cast<FIX16>(akerning.x);
 
                     if (kern != 0) {
-                      GlyphKernStepPtr glyphKernStep = GlyphKernStepPtr(new GlyphKernStep(
-                          GlyphKernStep{.nextGlyphCode = glyphCode2, .kern = kern}));
-                      glyphLigKern->kernSteps.push_back(glyphKernStep);
+                      glyphLigKern->kernSteps.push_back(
+                          GlyphKernStep{.nextGlyphCode = glyphCode2, .kern = kern});
                     }
                   }
                 }
@@ -334,7 +332,7 @@ auto IBMFTTFImport::loadTTF(FreeType &ft, FontParametersPtr fontParameters) -> b
                 .mainCode        = glyphCode  // maybe changed below when searching for composites
             }));
 
-            face->glyphs.push_back(glyphInfo);
+            face->glyphs.push_back(std::move(glyphInfo));
           } else {
             QMessageBox::critical(
                 nullptr, "Internal error!",

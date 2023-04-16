@@ -66,7 +66,7 @@ void KerningRenderer::paintEvent(QPaintEvent *event) {
 int KerningRenderer::putGlyph(IBMFDefs::GlyphCode code, IBMFDefs::Pos atPos) {
   IBMFDefs::BitmapPtr    glyphBitmap;
   IBMFDefs::GlyphInfoPtr glyphInfo;
-  font_->getGlyph(faceIdx_, code, glyphInfo, &glyphBitmap);
+  font_->getGlyph(faceIdx_, code, glyphInfo, glyphBitmap);
 
   if (glyphInfo != nullptr) {
     int outRow = atPos.y - glyphInfo->verticalOffset;

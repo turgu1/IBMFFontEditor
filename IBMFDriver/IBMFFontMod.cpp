@@ -126,8 +126,8 @@ bool IBMFFontMod::load() {
     if (header->ligKernStepCount > 0) {
       face->ligKernSteps.reserve(header->ligKernStepCount);
       for (int j = 0; j < header->ligKernStepCount; j++) {
-        LigKernStepPtr step = LigKernStepPtr(new LigKernStep);
-        memcpy(step.get(), &memory_[idx], sizeof(LigKernStep));
+        LigKernStep step;
+        memcpy(&step, &memory_[idx], sizeof(LigKernStep));
 
         face->ligKernSteps.push_back(step);
 
@@ -141,23 +141,21 @@ bool IBMFFontMod::load() {
       if (face->glyphs[glyphCode]->ligKernPgmIndex != 255) {
         int lk_idx = face->glyphs[glyphCode]->ligKernPgmIndex;
         if (lk_idx < header->ligKernStepCount) {
-          if ((face->ligKernSteps[lk_idx]->b.goTo.isAGoTo) &&
-              (face->ligKernSteps[lk_idx]->b.kern.isAKern)) {
-            lk_idx = face->ligKernSteps[lk_idx]->b.goTo.displacement;
+          if ((face->ligKernSteps[lk_idx].b.goTo.isAGoTo) &&
+              (face->ligKernSteps[lk_idx].b.kern.isAKern)) {
+            lk_idx = face->ligKernSteps[lk_idx].b.goTo.displacement;
           }
           do {
-            if (face->ligKernSteps[lk_idx]->b.kern.isAKern) { // true = kern, false = ligature
-              GlyphKernStepPtr step = GlyphKernStepPtr(new GlyphKernStep);
-              step->nextGlyphCode   = face->ligKernSteps[lk_idx]->a.data.nextGlyphCode;
-              step->kern            = face->ligKernSteps[lk_idx]->b.kern.kerningValue;
-              glk->kernSteps.push_back(step);
+            if (face->ligKernSteps[lk_idx].b.kern.isAKern) { // true = kern, false = ligature
+              glk->kernSteps.push_back(
+                  GlyphKernStep{.nextGlyphCode = face->ligKernSteps[lk_idx].a.data.nextGlyphCode,
+                                .kern          = face->ligKernSteps[lk_idx].b.kern.kerningValue});
             } else {
-              GlyphLigStepPtr step       = GlyphLigStepPtr(new GlyphLigStep);
-              step->nextGlyphCode        = face->ligKernSteps[lk_idx]->a.data.nextGlyphCode;
-              step->replacementGlyphCode = face->ligKernSteps[lk_idx]->b.repl.replGlyphCode;
-              glk->ligSteps.push_back(step);
+              glk->ligSteps.push_back(GlyphLigStep{
+                  .nextGlyphCode        = face->ligKernSteps[lk_idx].a.data.nextGlyphCode,
+                  .replacementGlyphCode = face->ligKernSteps[lk_idx].b.repl.replGlyphCode});
             }
-          } while (!face->ligKernSteps[lk_idx++]->a.data.stop);
+          } while (!face->ligKernSteps[lk_idx++].a.data.stop);
         }
       }
       face->glyphsLigKern.push_back(glk);
@@ -305,7 +303,7 @@ auto IBMFFontMod::save(QDataStream &out) -> bool {
 
     int ligKernCount = 0;
     for (auto ligKern : face->ligKernSteps) {
-      WRITE(ligKern.get(), sizeof(LigKernStep));
+      WRITE(&ligKern, sizeof(LigKernStep));
       ligKernCount += 1;
     }
 
@@ -325,17 +323,27 @@ auto IBMFFontMod::saveFaceHeader(int faceIndex, FaceHeader &face_header) -> bool
   return false;
 }
 
-auto IBMFFontMod::saveGlyph(int faceIndex, int glyphCode, GlyphInfo *newGlyphInfo,
-                            BitmapPtr new_bitmap) -> bool {
-  if ((faceIndex < preamble_.faceCount) && (glyphCode < faces_[faceIndex]->header->glyphCount)) {
+auto IBMFFontMod::saveGlyph(int faceIndex, int glyphCode, GlyphInfoPtr newGlyphInfo,
+                            BitmapPtr newBitmap) -> bool {
 
-    int glyphIndex                         = glyphCode;
-
-    *faces_[faceIndex]->glyphs[glyphIndex] = *newGlyphInfo;
-    faces_[faceIndex]->bitmaps[glyphIndex] = new_bitmap;
-    return true;
+  if ((faceIndex >= preamble_.faceCount) || (glyphCode < 0) ||
+      (glyphCode >= faces_[faceIndex]->header->glyphCount)) {
+    return false;
   }
-  return false;
+
+  faces_[faceIndex]->glyphs[glyphCode]  = newGlyphInfo;
+  faces_[faceIndex]->bitmaps[glyphCode] = newBitmap;
+  return true;
+}
+
+auto IBMFFontMod::saveGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKernPtr glyphLigKern)
+    -> bool {
+  if ((faceIndex >= preamble_.faceCount) || (glyphCode < 0) ||
+      (glyphCode >= faces_[faceIndex]->header->glyphCount)) {
+    return false;
+  }
+
+  faces_[faceIndex]->glyphsLigKern[glyphCode] = glyphLigKern;
 }
 
 /// @brief Search Ligature and Kerning table
@@ -363,6 +371,13 @@ auto IBMFFontMod::ligKern(int faceIndex, const GlyphCode glyphCode1, GlyphCode *
 
   *kern            = 0;
   *kernPairPresent = false;
+
+  if ((faceIndex >= preamble_.faceCount) || (glyphCode1 < 0) ||
+      (glyphCode1 >= faces_[faceIndex]->header->glyphCount) || (*glyphCode2 < 0) ||
+      (*glyphCode2 >= faces_[faceIndex]->header->glyphCount)) {
+    return false;
+  }
+
   //
   const GlyphLigSteps  &ligSteps  = faces_[faceIndex]->glyphsLigKern[glyphCode1]->ligSteps;
   const GlyphKernSteps &kernSteps = faces_[faceIndex]->glyphsLigKern[glyphCode1]->kernSteps;
@@ -378,15 +393,15 @@ auto IBMFFontMod::ligKern(int faceIndex, const GlyphCode glyphCode1, GlyphCode *
   bool first = true;
 
   for (auto &ligStep : ligSteps) {
-    if (ligStep->nextGlyphCode == code) {
-      *glyphCode2 = ligStep->replacementGlyphCode;
+    if (ligStep.nextGlyphCode == code /* *glyphCode2 */) {
+      *glyphCode2 = ligStep.replacementGlyphCode;
       return true;
     }
   }
 
   for (auto &kernStep : kernSteps) {
-    if (kernStep->nextGlyphCode == code) {
-      FIX16 k = kernStep->kern;
+    if (kernStep.nextGlyphCode == code) {
+      FIX16 k = kernStep.kern;
       if (k & 0x2000) k |= 0xC000;
       *kern            = k;
       *kernPairPresent = true;
@@ -396,31 +411,31 @@ auto IBMFFontMod::ligKern(int faceIndex, const GlyphCode glyphCode1, GlyphCode *
   return false;
 }
 
-auto IBMFFontMod::getGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKernPtr *glyphLigKern) const
+auto IBMFFontMod::getGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKernPtr &glyphLigKern) const
     -> bool {
-  if (faceIndex >= preamble_.faceCount) {
-    return false;
-  }
-  if (glyphCode >= faces_[faceIndex]->header->glyphCount) {
+
+  if ((faceIndex >= preamble_.faceCount) || (glyphCode < 0) ||
+      (glyphCode >= faces_[faceIndex]->header->glyphCount)) {
     return false;
   }
 
-  *glyphLigKern = faces_[faceIndex]->glyphsLigKern[glyphCode];
+  glyphLigKern = std::make_shared<GlyphLigKern>(*faces_[faceIndex]->glyphsLigKern[glyphCode]);
 
   return true;
 }
 
 auto IBMFFontMod::getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyph_info,
-                           BitmapPtr *bitmap) const -> bool {
-  if (faceIndex >= preamble_.faceCount) return false;
-  if (glyphCode > faces_[faceIndex]->header->glyphCount) {
+                           BitmapPtr &bitmap) const -> bool {
+
+  if ((faceIndex >= preamble_.faceCount) || (glyphCode < 0) ||
+      (glyphCode >= faces_[faceIndex]->header->glyphCount)) {
     return false;
   }
 
   int glyphIndex = glyphCode;
 
-  glyph_info     = faces_[faceIndex]->glyphs[glyphIndex];
-  *bitmap        = faces_[faceIndex]->bitmaps[glyphIndex];
+  glyph_info     = std::make_shared<GlyphInfo>(*faces_[faceIndex]->glyphs[glyphIndex]);
+  bitmap         = std::make_shared<Bitmap>(*faces_[faceIndex]->bitmaps[glyphIndex]);
 
   return true;
 }
@@ -450,11 +465,11 @@ auto IBMFFontMod::convertToOneBit(const Bitmap &bitmapHeightBits, BitmapPtr *bit
 // search to find if a part of the already prepared list contains the same
 // steps as per the pgm received as a parameter. If so, the index of the
 // similar list of steps is returned, else -1
-auto IBMFFontMod::findList(std::vector<LigKernStepPtr> &pgm,
-                           std::vector<LigKernStepPtr> &list) const -> int {
+auto IBMFFontMod::findList(std::vector<LigKernStep> &pgm, std::vector<LigKernStep> &list) const
+    -> int {
 
-  auto pred = [](const LigKernStepPtr &e1, const LigKernStepPtr &e2) -> bool {
-    return (e1->a.whole.val == e2->a.whole.val) && (e1->b.whole.val == e2->b.whole.val);
+  auto pred = [](const LigKernStep &e1, const LigKernStep &e2) -> bool {
+    return (e1.a.whole.val == e2.a.whole.val) && (e1.b.whole.val == e2.b.whole.val);
   };
 
   auto it = std::search(list.begin(), list.end(), pgm.begin(), pgm.end(), pred);
@@ -482,8 +497,8 @@ auto IBMFFontMod::prepareLigKernVectors() -> bool {
     // Working list for glyphs pgm vector reconstruction
     // = -1 if a glyph's Lig/Kern pgm is empty
     // < -1 if it has been relocated
-    std::vector<int>            glyphsPgmIndexes(face->header->glyphCount, -1);
-    std::vector<LigKernStepPtr> glyphPgm;
+    std::vector<int>         glyphsPgmIndexes(face->header->glyphCount, -1);
+    std::vector<LigKernStep> glyphPgm;
 
     // ----- Retrieves all ligature and kerning in a single list -----
     //
@@ -496,39 +511,29 @@ auto IBMFFontMod::prepareLigKernVectors() -> bool {
 
     int glyphIdx = 0;
     for (int glyphIdx = 0; glyphIdx < face->header->glyphCount; glyphIdx++) {
-      //      for (int glyphIdx = face->header->glyphCount - 1; glyphIdx >= 0;
-      //      glyphIdx--) {
 
-      LigKernStepPtr lks = nullptr;
-
-      auto lSteps        = face->glyphsLigKern[glyphIdx]->ligSteps;
-      auto kSteps        = face->glyphsLigKern[glyphIdx]->kernSteps;
+      auto &lSteps = face->glyphsLigKern[glyphIdx]->ligSteps;
+      auto &kSteps = face->glyphsLigKern[glyphIdx]->kernSteps;
 
       glyphPgm.clear();
       glyphPgm.reserve(lSteps.size() + kSteps.size());
 
-      // clang-format off
-        for (auto &lStep : lSteps) {
-          lks = LigKernStepPtr(new LigKernStep({
-            .a = {.data = {.nextGlyphCode = lStep->nextGlyphCode, .stop = false}},
-            .b = {.repl = {.replGlyphCode = lStep->replacementGlyphCode, .isAKern = false}}
-          }));
-          glyphPgm.push_back(lks);
-        }
+      for (auto &lStep : lSteps) {
+        glyphPgm.push_back(LigKernStep{
+            .a = {.data = {.nextGlyphCode = lStep.nextGlyphCode, .stop = false}},
+            .b = {.repl = {.replGlyphCode = lStep.replacementGlyphCode, .isAKern = false}}});
+      }
 
-        for (auto &kStep : kSteps) {
-          lks = LigKernStepPtr(new LigKernStep({
-            .a = { .data = {.nextGlyphCode = kStep->nextGlyphCode, .stop = false}},
-            .b = {.kern = {.kerningValue = (FIX14)kStep->kern, .isAGoTo = false, .isAKern = true}}
-          }));
-          glyphPgm.push_back(lks);
-        }
-      // clang-format on
+      for (auto &kStep : kSteps) {
+        glyphPgm.push_back(LigKernStep{
+            .a = {.data = {.nextGlyphCode = kStep.nextGlyphCode, .stop = false}},
+            .b = {.kern = {.kerningValue = (FIX14)kStep.kern, .isAGoTo = false, .isAKern = true}}});
+      }
 
       if (glyphPgm.size() == 0) {
         glyphsPgmIndexes[glyphIdx] = -1; // empty list
-      } else if (lks != nullptr) {
-        lks->a.data.stop = true;
+      } else {
+        glyphPgm[glyphPgm.size() - 1].a.data.stop = true;
         int sameIdx; // Idx of the equivalent pgm if found (-1 otherwise)
         //           Must start at 2 as cannot have a sameIdx equal to 0 or 1:
         //           Cannot negate 0, and -1 is reserved for a null pgm in
@@ -545,11 +550,6 @@ auto IBMFFontMod::prepareLigKernVectors() -> bool {
           glyphsPgmIndexes[glyphIdx] = index;
           std::move(glyphPgm.begin(), glyphPgm.end(), std::back_inserter(lkSteps));
         }
-      } else {
-        QMessageBox::warning(nullptr, "Logic error",
-                             "There is a logic error in the prepareLigKernVectors() method -> "
-                             "lks not expected to be null!!");
-        return false;
       }
     }
 
@@ -578,11 +578,11 @@ auto IBMFFontMod::prepareLigKernVectors() -> bool {
 
     for (auto idx = overflowList.rbegin(); idx != overflowList.rend(); idx++) {
       // std::cout << *idx << " treatment: " << std::endl;
-      LigKernStepPtr ligKernStep = LigKernStepPtr(new LigKernStep);
-      memset(ligKernStep.get(), 0, sizeof(LigKernStep));
-      ligKernStep->b.goTo.isAKern      = true;
-      ligKernStep->b.goTo.isAGoTo      = true;
-      ligKernStep->b.goTo.displacement = (*idx + spaceRequired);
+      LigKernStep ligKernStep;
+      memset(&ligKernStep, 0, sizeof(LigKernStep));
+      ligKernStep.b.goTo.isAKern      = true;
+      ligKernStep.b.goTo.isAGoTo      = true;
+      ligKernStep.b.goTo.displacement = (*idx + spaceRequired);
 
       // std::cout << "Added goto at location " << *idx << " to point at location "
       //           << (*idx + spaceRequired) << std::endl;
