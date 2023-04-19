@@ -839,7 +839,7 @@
              <enum>QFrame::Panel</enum>
             </property>
             <property name="rowCount">
-             <number>9</number>
+             <number>10</number>
             </property>
             <property name="columnCount">
              <number>2</number>
@@ -850,6 +850,7 @@
             <attribute name="verticalHeaderVisible">
              <bool>false</bool>
             </attribute>
+            <row/>
             <row/>
             <row/>
             <row/>
@@ -918,6 +919,11 @@
             <item row="8" column="0">
              <property name="text">
               <string>First is Black</string>
+             </property>
+            </item>
+            <item row="9" column="0">
+             <property name="text">
+              <string>Main GlyphCode</string>
              </property>
             </item>
            </widget>

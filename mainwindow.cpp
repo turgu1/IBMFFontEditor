@@ -396,6 +396,7 @@ void MainWindow::glyphWasChanged(bool initialLoad) {
   glyphInfo->advance                 = getValue(ui->characterMetrics, 6, 1).toFloat() * 64.0;
   glyphInfo->rleMetrics.dynF         = getValue(ui->characterMetrics, 7, 1).toUInt();
   glyphInfo->rleMetrics.firstIsBlack = getValue(ui->characterMetrics, 8, 1).toUInt();
+  glyphInfo->mainCode                = getValue(ui->characterMetrics, 9, 1).toUInt();
 
   drawingSpace_->setBypassGlyph(ibmfGlyphCode_, bitmap, glyphInfo, ibmfGlyphLigKern_);
 
@@ -711,6 +712,7 @@ void MainWindow::saveGlyph() {
     glyphInfo->advance                 = getValue(ui->characterMetrics, 6, 1).toFloat() * 64.0;
     glyphInfo->rleMetrics.dynF         = getValue(ui->characterMetrics, 7, 1).toUInt();
     glyphInfo->rleMetrics.firstIsBlack = getValue(ui->characterMetrics, 8, 1).toUInt();
+    glyphInfo->mainCode                = getValue(ui->characterMetrics, 9, 1).toUInt();
 
     ibmfFont_->saveGlyph(ibmfFaceIdx_, ibmfGlyphCode_, glyphInfo, theBitmap, ibmfGlyphLigKern_);
     glyphChanged_ = false;
@@ -757,6 +759,7 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
       putFix16Value(ui->characterMetrics, 6, 1, (float)glyphInfo->advance / 64.0);
       putValue(ui->characterMetrics, 7, 1, glyphInfo->rleMetrics.dynF, false);
       putValue(ui->characterMetrics, 8, 1, glyphInfo->rleMetrics.firstIsBlack, false);
+      putValue(ui->characterMetrics, 9, 1, glyphInfo->mainCode, false);
 
       centerScrollBarPos();
       bitmapRenderer_->clearAndLoadBitmap(*bitmap, *ibmfFaceHeader_, *glyphInfo);
