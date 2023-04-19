@@ -33,10 +33,11 @@ using namespace IBMFDefs;
 class IBMFFontMod {
 public:
   struct Face {
-    FaceHeaderPtr                header;
-    std::vector<GlyphInfoPtr>    glyphs;
-    std::vector<BitmapPtr>       bitmaps;
-    std::vector<GlyphLigKernPtr> glyphsLigKern; // Specific to each glyph
+    FaceHeaderPtr                   header;
+    std::vector<GlyphInfoPtr>       glyphs;       // Not used with BAKCUP format
+    std::vector<GlyphBackupInfoPtr> glyphsBackup; // Only used with BACKUP format
+    std::vector<BitmapPtr>          bitmaps;
+    std::vector<GlyphLigKernPtr>    glyphsLigKern; // Specific to each glyph
 
     // used ontly at save and load time
     std::vector<RLEBitmapPtr> compressedBitmaps; // Todo: maybe unused at the end
@@ -45,19 +46,35 @@ public:
     std::vector<LigKernStep> ligKernSteps; // The complete list of lig/kerns
   };
 
-  typedef std::unique_ptr<Face> FacePtr;
+  typedef std::shared_ptr<Face> FacePtr;
 
   IBMFFontMod(uint8_t *memoryFont, uint32_t size) : memory_(memoryFont), memoryLength_(size) {
     initialized_ = load();
     lastError_   = 0;
   }
 
-  // The following constructor is used ONLY for importing other font formats.
+  // The following constructor is used ONLY for importing other font formats
+  // or to create a BACKUP font format.
   // A specific load method must then be used to retrieve the font information
   // and populate the structure from that foreign format.
   IBMFFontMod() : memory_(nullptr), memoryLength_(0) {}
 
   ~IBMFFontMod() { clear(); }
+
+  static auto createBackup() -> IBMFFontMod * {
+    IBMFFontMod *font = new IBMFFontMod();
+    // clang-format off
+    font->preamble_ = Preamble{
+        .marker    = {'I', 'B', 'M', 'F'},
+        .faceCount = 0,
+        .bits      = {.version = IBMF_VERSION, .fontFormat = FontFormat::BACKUP}
+    };
+    // clang-format on
+    font->initialized_ = true;
+    font->lastError_   = 0;
+
+    return font;
+  }
 
   auto clear() -> void;
 
@@ -81,15 +98,17 @@ public:
     return chCodes;
   }
 
+  auto findFace(uint8_t pointSize) -> FacePtr;
+  auto findGlyphIndex(FacePtr face, char32_t codePoint) -> int;
+
   auto ligKern(int faceIndex, const GlyphCode glyphCode1, GlyphCode *glyphCode2, FIX16 *kern,
-               bool *kernPairPresent) const -> bool;
-  auto getGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKernPtr &glyphLigKern) const -> bool;
-  auto getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyph_info, BitmapPtr &bitmap) const
-      -> bool;
+               bool *kernPairPresent, GlyphLigKernPtr bypassLigKern = nullptr) const -> bool;
+  auto getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyph_info, BitmapPtr &bitmap,
+                GlyphLigKernPtr &glyphLigKern) const -> bool;
   auto saveFaceHeader(int faceIndex, FaceHeader &face_header) -> bool;
-  auto saveGlyph(int faceIndex, int glyphCode, GlyphInfoPtr newGlyphInfo, BitmapPtr newBitmap)
-      -> bool;
-  auto saveGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKernPtr glyphLigKern) -> bool;
+  // The font parameter is only used with the BACKUP format
+  auto saveGlyph(int faceIndex, int glyphCode, GlyphInfoPtr newGlyphInfo, BitmapPtr newBitmap,
+                 GlyphLigKernPtr glyphLigKern, IBMFFontMod *font = nullptr) -> bool;
   auto convertToOneBit(const Bitmap &bitmapHeightBits, BitmapPtr *bitmapOneBit) -> bool;
   auto save(QDataStream &out) -> bool;
   auto translate(char32_t codePoint) const -> GlyphCode;
@@ -106,8 +125,6 @@ protected:
   std::vector<FacePtr>         faces_;
 
 private:
-  static constexpr uint8_t MAX_GLYPH_COUNT = 254; // Index Value 0xFE and 0xFF are reserved
-
   bool initialized_;
 
   std::vector<uint32_t> faceOffsets_;

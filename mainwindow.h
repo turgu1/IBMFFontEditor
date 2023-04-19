@@ -38,6 +38,8 @@ protected:
   void closeEvent(QCloseEvent *event);
   void resizeEvent(QResizeEvent *event);
   void paintEvent(QPaintEvent *even);
+  void keyPressEvent(QKeyEvent *event);
+  bool eventFilter(QObject *watched, QEvent *event);
 
 private slots:
   void on_actionOpen_triggered();
@@ -72,14 +74,14 @@ private slots:
   void on_pixelSizeCombo_currentIndexChanged(int index);
   void on_normalKernCheckBox_toggled(bool checked);
   void on_autoKernCheckBox_toggled(bool checked);
-
   void on_actionProofing_Tool_triggered();
-
   void on_actionC_h_File_triggered();
-
   void on_zoomToFitButton_clicked();
-
   void on_actionImportHexFont_triggered();
+  void on_copyButton_clicked();
+  void on_pasteButton_clicked();
+  void someSelection(bool some);
+  //  void rendererKeyPressed(QKeyEvent *event);
 
 private:
   const int MAX_RECENT_FILES = 10;
@@ -110,6 +112,8 @@ private:
   IBMFDefs::Preamble        ibmfPreamble_;
   IBMFDefs::FaceHeaderPtr   ibmfFaceHeader_{nullptr};
   IBMFDefs::GlyphLigKernPtr ibmfGlyphLigKern_{nullptr};
+
+  IBMFDefs::BitmapPtr selection_{nullptr};
 
   int              ibmfFaceIdx_{0};
   int              ibmfGlyphCode_{0};

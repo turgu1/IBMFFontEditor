@@ -520,22 +520,6 @@
             </spacer>
            </item>
            <item>
-            <widget class="ActionButton" name="clearButton">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>50</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>Clear</string>
-             </property>
-            </widget>
-           </item>
-           <item>
             <widget class="ActionButton" name="copyButton">
              <property name="minimumSize">
               <size>
@@ -560,19 +544,6 @@
               <string>Paste</string>
              </property>
             </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer_3">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
            </item>
           </layout>
          </item>
@@ -955,7 +926,7 @@
         </widget>
         <widget class="QTabWidget" name="tabs">
          <property name="currentIndex">
-          <number>0</number>
+          <number>2</number>
          </property>
          <widget class="QWidget" name="tab_2">
           <attribute name="title">

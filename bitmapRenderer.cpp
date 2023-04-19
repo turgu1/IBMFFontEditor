@@ -1,5 +1,6 @@
 #include "bitmapRenderer.h"
 
+#include <QGuiApplication>
 #include <QMessageBox>
 
 #include "qwidget.h"
@@ -45,6 +46,8 @@ void BitmapRenderer::clearAndEmit(bool repaint_after) {
   clearBitmap();
   if (repaint_after) update();
   emit bitmapCleared();
+  selectionCompleted_ = selectionStarted_ = false;
+  emit someSelection(false);
 }
 
 void BitmapRenderer::setPixelSize(int pixel_size) {
@@ -128,6 +131,21 @@ void BitmapRenderer::paintEvent(QPaintEvent * /* event */) {
 
       painter.setPen(QPen(QBrush(QColorConstants::Blue), 1));
       painter.drawLine(QPoint(advCol, descenderRow), QPoint(advCol, topRow));
+
+      if (selectionStarted_ || selectionCompleted_) {
+        int top    = (selectionStartPos_.y() - bitmapOffsetPos_.y()) * pixelSize_;
+        int left   = (selectionStartPos_.x() - bitmapOffsetPos_.x()) * pixelSize_;
+        int bottom = (selectionEndPos_.y() - bitmapOffsetPos_.y() + 1) * pixelSize_;
+        int right  = (selectionEndPos_.x() - bitmapOffsetPos_.x() + 1) * pixelSize_;
+
+        painter.setPen(QPen(QBrush(QColorConstants::DarkCyan), 1));
+        painter.setBrush(QBrush(QColorConstants::DarkCyan));
+
+        painter.drawRect(left, top - 2, right - left + 1, 2);
+        painter.drawRect(left, bottom, right - left + 1, 2);
+        painter.drawRect(left - 2, top, 2, bottom - top + 1);
+        painter.drawRect(right, top, 2, bottom - top + 1);
+      }
     }
 
     painter.setPen(QPen(QBrush(QColorConstants::LightGray), 1));
@@ -161,33 +179,120 @@ void BitmapRenderer::paintPixel(PixelType pixelType, QPoint atPos) {
 
 void BitmapRenderer::mousePressEvent(QMouseEvent *event) {
   if (editable_) {
-    lastPos_ = QPoint(bitmapOffsetPos_.x() + event->pos().x() / pixelSize_,
-                      bitmapOffsetPos_.y() + event->pos().y() / pixelSize_);
-    if ((lastPos_.x() < bitmapWidth) && (lastPos_.y() < bitmapHeight)) {
-      int       idx = lastPos_.y() * bitmapWidth + lastPos_.x();
-      PixelType newPixelType;
-      if (displayBitmap_[idx] == PixelType::BLACK) {
-        newPixelType = PixelType::WHITE;
-        wasBlack_    = false;
-      } else {
-        newPixelType = PixelType::BLACK;
-        wasBlack_    = true;
+    if (QGuiApplication::keyboardModifiers().testFlag(Qt::ControlModifier)) {
+
+      // This is the start of a rectangle selection
+
+      selectionStartPos_ = QPoint(bitmapOffsetPos_.x() + event->pos().x() / pixelSize_,
+                                  bitmapOffsetPos_.y() + event->pos().y() / pixelSize_);
+      if ((selectionStartPos_.x() < bitmapWidth) && (selectionStartPos_.y() < bitmapHeight)) {
+        selectionEndPos_    = selectionStartPos_;
+        selectionStarted_   = true;
+        selectionCompleted_ = false;
+        update();
       }
-      undoStack_->push(new SetPixelCommand(this, newPixelType, lastPos_));
+    } else {
+      lastPos_ = QPoint(bitmapOffsetPos_.x() + event->pos().x() / pixelSize_,
+                        bitmapOffsetPos_.y() + event->pos().y() / pixelSize_);
+      if ((lastPos_.x() < bitmapWidth) && (lastPos_.y() < bitmapHeight)) {
+        int       idx = lastPos_.y() * bitmapWidth + lastPos_.x();
+        PixelType newPixelType;
+        if (displayBitmap_[idx] == PixelType::BLACK) {
+          newPixelType = PixelType::WHITE;
+          wasBlack_    = false;
+        } else {
+          newPixelType = PixelType::BLACK;
+          wasBlack_    = true;
+        }
+        undoStack_->push(new SetPixelCommand(this, newPixelType, lastPos_));
+      }
     }
+    setFocus();
+  }
+}
+
+void BitmapRenderer::mouseReleaseEvent(QMouseEvent *event) {
+  if (QGuiApplication::keyboardModifiers().testFlag(Qt::ControlModifier) && selectionStarted_) {
+    selectionCompleted_ = true;
+    selectionStarted_   = false;
+    emit someSelection(true);
+    setFocus();
   }
 }
 
 void BitmapRenderer::mouseMoveEvent(QMouseEvent *event) {
   if (editable_) {
-    QPoint pos = QPoint(bitmapOffsetPos_.x() + event->pos().x() / pixelSize_,
-                        bitmapOffsetPos_.y() + event->pos().y() / pixelSize_);
-    if ((pos.x() < bitmapWidth) && (pos.y() < bitmapHeight) &&
-        ((pos.x() != lastPos_.x()) || (pos.y() != lastPos_.y()))) {
-      PixelType newPixelType = wasBlack_ ? PixelType::BLACK : PixelType::WHITE;
-      lastPos_               = pos;
-      undoStack_->push(new SetPixelCommand(this, newPixelType, lastPos_));
+    if (QGuiApplication::keyboardModifiers().testFlag(Qt::ControlModifier) && selectionStarted_) {
+
+      // This is the mouse moving for a rectangle selection
+
+      QPoint oldPos    = selectionEndPos_;
+      selectionEndPos_ = QPoint(bitmapOffsetPos_.x() + event->pos().x() / pixelSize_,
+                                bitmapOffsetPos_.y() + event->pos().y() / pixelSize_);
+      if ((selectionStartPos_.x() >= bitmapWidth) || (selectionStartPos_.y() >= bitmapHeight)) {
+        selectionEndPos_ = oldPos;
+      } else {
+        update();
+      }
+    } else {
+      QPoint pos = QPoint(bitmapOffsetPos_.x() + event->pos().x() / pixelSize_,
+                          bitmapOffsetPos_.y() + event->pos().y() / pixelSize_);
+      if ((pos.x() < bitmapWidth) && (pos.y() < bitmapHeight) &&
+          ((pos.x() != lastPos_.x()) || (pos.y() != lastPos_.y()))) {
+        PixelType newPixelType = wasBlack_ ? PixelType::BLACK : PixelType::WHITE;
+        lastPos_               = pos;
+        undoStack_->push(new SetPixelCommand(this, newPixelType, lastPos_));
+      }
     }
+    setFocus();
+  }
+}
+
+auto BitmapRenderer::getSelection(QRect *atLocation) const -> IBMFDefs::BitmapPtr {
+  QRect atLoc;
+  if (atLocation != nullptr) {
+    atLoc = *atLocation;
+  } else if (selectionCompleted_) {
+    atLoc = QRect(selectionStartPos_, selectionEndPos_);
+  } else {
+    return nullptr;
+  }
+
+  auto bitmap = std::make_shared<IBMFDefs::Bitmap>();
+  bitmap->pixels.reserve(atLoc.width() * atLoc.height());
+  for (int row = atLoc.top(); row <= atLoc.bottom(); row++) {
+    for (int col = atLoc.left(); col <= atLoc.right(); col++) {
+      bitmap->pixels.push_back(displayBitmap_[(row * bitmapWidth) + col]);
+    }
+  }
+  bitmap->dim = IBMFDefs::Dim(atLoc.width(), atLoc.height());
+  return bitmap;
+}
+
+auto BitmapRenderer::getSelectionLocation() -> QPoint * {
+  return (selectionCompleted_) ? &selectionStartPos_ : nullptr;
+}
+
+auto BitmapRenderer::pasteSelection(IBMFDefs::BitmapPtr selection, QPoint *atPos) -> void {
+  if (selectionCompleted_) {
+    QRect atLoc;
+    if (atPos != nullptr) {
+      atLoc = QRect(atPos->x(), atPos->y(), selection->dim.width, selection->dim.height);
+
+    } else {
+      atLoc = QRect(selectionStartPos_.x(), selectionStartPos_.y(), selection->dim.width,
+                    selection->dim.height);
+    }
+
+    int idx = 0;
+
+    for (int row = atLoc.top(); row <= atLoc.bottom(); row++) {
+      for (int col = atLoc.left(); col <= atLoc.right(); col++) {
+        paintPixel((selection->pixels[idx++] == 0) ? PixelType::WHITE : PixelType::BLACK,
+                   QPoint(col, row));
+      }
+    }
+    update();
   }
 }
 
@@ -235,7 +340,6 @@ void BitmapRenderer::loadBitmap(const IBMFDefs::Bitmap &bitmap) {
   }
 
   bitmapChanged_ = false;
-
   update();
 }
 
@@ -318,4 +422,19 @@ cont4:
   *bitmap = theBitmap;
 
   return true;
+}
+
+void BitmapRenderer::keyPressEvent(QKeyEvent *event) {
+  //  if (editable_ && !selectionStarted_) {
+  //    switch (event->key()) {
+  //      case Qt::Key_Left:
+  //      case Qt::Key_Right:
+  //      case Qt::Key_Copy:
+  //      case Qt::Key_Paste:
+  //        emit keyPressed(event);
+  //        break;
+  //      default:
+  //        break;
+  //    }
+  //  }
 }

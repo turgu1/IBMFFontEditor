@@ -22,7 +22,7 @@ public:
   void setFont(IBMFFontModPtr font);
   void setFaceIdx(int faceIdx);
   void setBypassGlyph(IBMFDefs::GlyphCode glyphCode, IBMFDefs::BitmapPtr bitmap,
-                      IBMFDefs::GlyphInfoPtr glyphInfo);
+                      IBMFDefs::GlyphInfoPtr glyphInfo, GlyphLigKernPtr glyphLigKern);
 
 signals:
 
@@ -49,9 +49,10 @@ private:
   QSize          requiredSize_{QSize(0, 0)};
   QPoint         pos_{QPoint(0, 0)};
 
-  IBMFDefs::GlyphCode    bypassGlyphCode_{IBMFDefs::NO_GLYPH_CODE};
-  IBMFDefs::BitmapPtr    bypassBitmap_{nullptr};
-  IBMFDefs::GlyphInfoPtr bypassGlyphInfo_{nullptr};
+  IBMFDefs::GlyphCode       bypassGlyphCode_{IBMFDefs::NO_GLYPH_CODE};
+  IBMFDefs::BitmapPtr       bypassBitmap_{nullptr};
+  IBMFDefs::GlyphInfoPtr    bypassGlyphInfo_{nullptr};
+  IBMFDefs::GlyphLigKernPtr bypassGlyphLigKern_{nullptr};
 
   auto computeAutoKerning(const BitmapPtr b1, const BitmapPtr b2, const GlyphInfoPtr i1,
                           const GlyphInfoPtr i2) const -> FIX16;

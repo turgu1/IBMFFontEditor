@@ -23,6 +23,8 @@ set(PROJECT_SOURCES
         bitmapRenderer.h
         setPixelCommand.h
         setPixelCommand.cpp
+        pasteSelectionCommand.cpp
+        pasteSelectionCommand.h
         actionButton.cpp
         actionButton.h
         IBMFDriver/IBMFFontMod.cpp

@@ -17,6 +17,7 @@ void IBMFFontMod::clear() {
       bitmap->clear();
     }
     face->glyphs.clear();
+    face->glyphsBackup.clear();
     face->bitmaps.clear();
     face->compressedBitmaps.clear();
     face->glyphsLigKern.clear();
@@ -236,31 +237,61 @@ auto IBMFFontMod::save(QDataStream &out) -> bool {
     std::vector<uint8_t>  *poolData    = new std::vector<uint8_t>();
     std::vector<uint32_t> *poolIndexes = new std::vector<uint32_t>();
 
-    for (auto &glyph : face->glyphs) {
-      if (face->bitmaps[idx]->dim.width == 0) {
-        glyph->rleMetrics.dynF         = 14;
-        glyph->rleMetrics.firstIsBlack = false;
-        glyph->packetLength            = 0;
-        poolIndexes->push_back(0);
-        idx += 1;
-      } else {
-        RLEGenerator *gen = new RLEGenerator;
-        if (!gen->encodeBitmap(face->bitmaps[idx++])) {
-          poolData->clear();
-          delete poolData;
-          poolIndexes->clear();
-          delete poolIndexes;
+    if (preamble_.bits.fontFormat == FontFormat::BACKUP) {
+      for (auto &glyph : face->glyphsBackup) {
+        if (face->bitmaps[idx]->dim.width == 0) {
+          glyph->rleMetrics.dynF         = 14;
+          glyph->rleMetrics.firstIsBlack = false;
+          glyph->packetLength            = 0;
+          poolIndexes->push_back(0);
+          idx += 1;
+        } else {
+          RLEGenerator *gen = new RLEGenerator;
+          if (!gen->encodeBitmap(face->bitmaps[idx++])) {
+            poolData->clear();
+            delete poolData;
+            poolIndexes->clear();
+            delete poolIndexes;
 
-          lastError_ = 3;
-          return false;
+            lastError_ = 3;
+            return false;
+          }
+          glyph->rleMetrics.dynF         = gen->getDynF();
+          glyph->rleMetrics.firstIsBlack = gen->getFirstIsBlack();
+          auto data                      = gen->getData();
+          glyph->packetLength            = data->size();
+          poolIndexes->push_back(poolData->size());
+          copy(data->begin(), data->end(), std::back_inserter(*poolData));
+          delete gen;
         }
-        glyph->rleMetrics.dynF         = gen->getDynF();
-        glyph->rleMetrics.firstIsBlack = gen->getFirstIsBlack();
-        auto data                      = gen->getData();
-        glyph->packetLength            = data->size();
-        poolIndexes->push_back(poolData->size());
-        copy(data->begin(), data->end(), std::back_inserter(*poolData));
-        delete gen;
+      }
+    } else {
+      for (auto &glyph : face->glyphs) {
+        if (face->bitmaps[idx]->dim.width == 0) {
+          glyph->rleMetrics.dynF         = 14;
+          glyph->rleMetrics.firstIsBlack = false;
+          glyph->packetLength            = 0;
+          poolIndexes->push_back(0);
+          idx += 1;
+        } else {
+          RLEGenerator *gen = new RLEGenerator;
+          if (!gen->encodeBitmap(face->bitmaps[idx++])) {
+            poolData->clear();
+            delete poolData;
+            poolIndexes->clear();
+            delete poolIndexes;
+
+            lastError_ = 3;
+            return false;
+          }
+          glyph->rleMetrics.dynF         = gen->getDynF();
+          glyph->rleMetrics.firstIsBlack = gen->getFirstIsBlack();
+          auto data                      = gen->getData();
+          glyph->packetLength            = data->size();
+          poolIndexes->push_back(poolData->size());
+          copy(data->begin(), data->end(), std::back_inserter(*poolData));
+          delete gen;
+        }
       }
     }
 
@@ -277,9 +308,16 @@ auto IBMFFontMod::save(QDataStream &out) -> bool {
       WRITE2(&idx, sizeof(uint32_t));
     }
 
-    for (auto &glyph : face->glyphs) {
-      WRITE2(glyph.get(), sizeof(GlyphInfo));
-      glyphCount++;
+    if (preamble_.bits.fontFormat == FontFormat::BACKUP) {
+      for (auto &glyph : face->glyphsBackup) {
+        WRITE2(glyph.get(), sizeof(GlyphBackupInfo));
+        glyphCount++;
+      }
+    } else {
+      for (auto &glyph : face->glyphs) {
+        WRITE2(glyph.get(), sizeof(GlyphInfo));
+        glyphCount++;
+      }
     }
 
     if (glyphCount != face->header->glyphCount) {
@@ -323,27 +361,74 @@ auto IBMFFontMod::saveFaceHeader(int faceIndex, FaceHeader &face_header) -> bool
   return false;
 }
 
-auto IBMFFontMod::saveGlyph(int faceIndex, int glyphCode, GlyphInfoPtr newGlyphInfo,
-                            BitmapPtr newBitmap) -> bool {
+auto IBMFFontMod::findFace(uint8_t pointSize) -> FacePtr {
 
-  if ((faceIndex >= preamble_.faceCount) || (glyphCode < 0) ||
-      (glyphCode >= faces_[faceIndex]->header->glyphCount)) {
-    return false;
+  for (auto &face : faces_) {
+    if (face->header->pointSize == pointSize) return face;
   }
-
-  faces_[faceIndex]->glyphs[glyphCode]  = newGlyphInfo;
-  faces_[faceIndex]->bitmaps[glyphCode] = newBitmap;
-  return true;
+  return nullptr;
 }
 
-auto IBMFFontMod::saveGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKernPtr glyphLigKern)
+auto IBMFFontMod::findGlyphIndex(FacePtr face, char32_t codePoint) -> int {
+
+  int idx = 0;
+  for (auto &glyph : face->glyphsBackup) {
+    if (glyph->codePoint == codePoint) return idx;
+    idx++;
+  }
+  return -1;
+}
+
+auto IBMFFontMod::saveGlyph(int faceIndex, int glyphCode, GlyphInfoPtr newGlyphInfo,
+                            BitmapPtr newBitmap, GlyphLigKernPtr glyphLigKern, IBMFFontMod *font)
     -> bool {
-  if ((faceIndex >= preamble_.faceCount) || (glyphCode < 0) ||
-      (glyphCode >= faces_[faceIndex]->header->glyphCount)) {
-    return false;
+
+  if (preamble_.bits.fontFormat == FontFormat::BACKUP) {
+    FaceHeaderPtr fontFaceHeader = font->getFaceHeader(faceIndex);
+    FacePtr       face           = findFace(fontFaceHeader->pointSize);
+    if (face == nullptr) {
+      FaceHeaderPtr backupFaceHeader = std::make_shared<FaceHeader>(*fontFaceHeader);
+      backupFaceHeader->glyphCount   = 0;
+      face                           = std::make_shared<Face>();
+      face->header                   = backupFaceHeader;
+      faces_.push_back(face);
+      preamble_.faceCount += 1;
+    }
+    GlyphBackupInfoPtr glyphBackupInfo = GlyphBackupInfoPtr(
+        new GlyphBackupInfo{.bitmapWidth      = newGlyphInfo->bitmapWidth,
+                            .bitmapHeight     = newGlyphInfo->bitmapHeight,
+                            .horizontalOffset = newGlyphInfo->horizontalOffset,
+                            .verticalOffset   = newGlyphInfo->verticalOffset,
+                            .packetLength     = newGlyphInfo->packetLength,
+                            .advance          = newGlyphInfo->advance,
+                            .rleMetrics       = newGlyphInfo->rleMetrics,
+                            .ligKernPgmIndex  = newGlyphInfo->ligKernPgmIndex,
+                            .mainCodePoint    = font->getUTF32(newGlyphInfo->mainCode),
+                            .codePoint        = font->getUTF32(glyphCode)});
+
+    int idx = findGlyphIndex(face, glyphBackupInfo->codePoint);
+    if (idx != -1) {
+      face->glyphsBackup[idx]  = glyphBackupInfo;
+      face->bitmaps[idx]       = newBitmap;
+      face->glyphsLigKern[idx] = glyphLigKern;
+    } else {
+      face->glyphsBackup.push_back(glyphBackupInfo);
+      face->bitmaps.push_back(newBitmap);
+      face->glyphsLigKern.push_back(glyphLigKern);
+      face->header->glyphCount += 1;
+    }
+  } else {
+    if ((faceIndex >= preamble_.faceCount) || (glyphCode < 0) ||
+        (glyphCode >= faces_[faceIndex]->header->glyphCount)) {
+      return false;
+    }
+
+    faces_[faceIndex]->glyphs[glyphCode]        = newGlyphInfo;
+    faces_[faceIndex]->bitmaps[glyphCode]       = newBitmap;
+    faces_[faceIndex]->glyphsLigKern[glyphCode] = glyphLigKern;
   }
 
-  faces_[faceIndex]->glyphsLigKern[glyphCode] = glyphLigKern;
+  return true;
 }
 
 /// @brief Search Ligature and Kerning table
@@ -367,7 +452,8 @@ auto IBMFFontMod::saveGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKernPtr
 /// @return True if a ligature was found, false otherwise.
 ///
 auto IBMFFontMod::ligKern(int faceIndex, const GlyphCode glyphCode1, GlyphCode *glyphCode2,
-                          FIX16 *kern, bool *kernPairPresent) const -> bool {
+                          FIX16 *kern, bool *kernPairPresent, GlyphLigKernPtr bypassLigKern) const
+    -> bool {
 
   *kern            = 0;
   *kernPairPresent = false;
@@ -379,10 +465,18 @@ auto IBMFFontMod::ligKern(int faceIndex, const GlyphCode glyphCode1, GlyphCode *
   }
 
   //
-  const GlyphLigSteps  &ligSteps  = faces_[faceIndex]->glyphsLigKern[glyphCode1]->ligSteps;
-  const GlyphKernSteps &kernSteps = faces_[faceIndex]->glyphsLigKern[glyphCode1]->kernSteps;
+  GlyphLigSteps  *ligSteps;
+  GlyphKernSteps *kernSteps;
 
-  if ((ligSteps.size() == 0) && (kernSteps.size() == 0)) {
+  if (bypassLigKern == nullptr) {
+    ligSteps  = &faces_[faceIndex]->glyphsLigKern[glyphCode1]->ligSteps;
+    kernSteps = &faces_[faceIndex]->glyphsLigKern[glyphCode1]->kernSteps;
+  } else {
+    ligSteps  = &bypassLigKern->ligSteps;
+    kernSteps = &bypassLigKern->kernSteps;
+  }
+
+  if ((ligSteps->size() == 0) && (kernSteps->size() == 0)) {
     return false;
   }
 
@@ -392,14 +486,14 @@ auto IBMFFontMod::ligKern(int faceIndex, const GlyphCode glyphCode1, GlyphCode *
   }
   bool first = true;
 
-  for (auto &ligStep : ligSteps) {
-    if (ligStep.nextGlyphCode == code /* *glyphCode2 */) {
+  for (auto &ligStep : *ligSteps) {
+    if (ligStep.nextGlyphCode == *glyphCode2) {
       *glyphCode2 = ligStep.replacementGlyphCode;
       return true;
     }
   }
 
-  for (auto &kernStep : kernSteps) {
+  for (auto &kernStep : *kernSteps) {
     if (kernStep.nextGlyphCode == code) {
       FIX16 k = kernStep.kern;
       if (k & 0x2000) k |= 0xC000;
@@ -411,21 +505,8 @@ auto IBMFFontMod::ligKern(int faceIndex, const GlyphCode glyphCode1, GlyphCode *
   return false;
 }
 
-auto IBMFFontMod::getGlyphLigKern(int faceIndex, int glyphCode, GlyphLigKernPtr &glyphLigKern) const
-    -> bool {
-
-  if ((faceIndex >= preamble_.faceCount) || (glyphCode < 0) ||
-      (glyphCode >= faces_[faceIndex]->header->glyphCount)) {
-    return false;
-  }
-
-  glyphLigKern = std::make_shared<GlyphLigKern>(*faces_[faceIndex]->glyphsLigKern[glyphCode]);
-
-  return true;
-}
-
 auto IBMFFontMod::getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyph_info,
-                           BitmapPtr &bitmap) const -> bool {
+                           BitmapPtr &bitmap, GlyphLigKernPtr &glyphLigKern) const -> bool {
 
   if ((faceIndex >= preamble_.faceCount) || (glyphCode < 0) ||
       (glyphCode >= faces_[faceIndex]->header->glyphCount)) {
@@ -436,6 +517,7 @@ auto IBMFFontMod::getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyph_inf
 
   glyph_info     = std::make_shared<GlyphInfo>(*faces_[faceIndex]->glyphs[glyphIndex]);
   bitmap         = std::make_shared<Bitmap>(*faces_[faceIndex]->bitmaps[glyphIndex]);
+  glyphLigKern   = std::make_shared<GlyphLigKern>(*faces_[faceIndex]->glyphsLigKern[glyphCode]);
 
   return true;
 }

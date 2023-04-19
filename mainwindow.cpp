@@ -16,6 +16,7 @@
 #include "blocksDialog.h"
 #include "fix16Delegate.h"
 #include "hexFontParameterDialog.h"
+#include "pasteSelectionCommand.h"
 #include "ttfFontParameterDialog.h"
 
 //#define TRACE(str) std::cout << str << std::endl;
@@ -54,6 +55,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
   QObject::connect(bitmapRenderer_, &BitmapRenderer::bitmapHasChanged, this,
                    &MainWindow::bitmapChanged);
+  QObject::connect(bitmapRenderer_, &BitmapRenderer::someSelection, this,
+                   &MainWindow::someSelection);
+  //  QObject::connect(bitmapRenderer_, &BitmapRenderer::keyPressed, this,
+  //                   &MainWindow::rendererKeyPressed);
 
   smallGlyph_ = new BitmapRenderer(ui->smallGlyphPreview, 2, true, undoStack_);
   ui->smallGlyphPreview->layout()->addWidget(smallGlyph_);
@@ -183,9 +188,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
   TRACE("Show...");
 
-  ui->clearButton->setVisible(false);
-  ui->copyButton->setVisible(false);
-  ui->pasteButton->setVisible(false);
+  // ui->copyButton->setEnabled(false);
+  ui->pasteButton->setEnabled(false);
 
   ui->actionSave->setEnabled(false);
   ui->actionSaveBackup->setEnabled(false);
@@ -193,6 +197,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
   ui->menuExport->setEnabled(true);
 
   show();
+  qApp->installEventFilter(this);
+  grabKeyboard();
 }
 
 MainWindow::~MainWindow() {
@@ -391,7 +397,7 @@ void MainWindow::glyphWasChanged(bool initialLoad) {
   glyphInfo->rleMetrics.dynF         = getValue(ui->characterMetrics, 7, 1).toUInt();
   glyphInfo->rleMetrics.firstIsBlack = getValue(ui->characterMetrics, 8, 1).toUInt();
 
-  drawingSpace_->setBypassGlyph(ibmfGlyphCode_, bitmap, glyphInfo);
+  drawingSpace_->setBypassGlyph(ibmfGlyphCode_, bitmap, glyphInfo, ibmfGlyphLigKern_);
 
   if (!initialLoad) glyphChanged_ = true;
 }
@@ -431,6 +437,7 @@ bool MainWindow::saveFont(bool askToConfirmName) {
     static QRegularExpression extension("\\.ibmf$");
     match = extension.match(currentFilePath_);
   }
+  releaseKeyboard();
   if (match.hasMatch()) {
     // QMessageBox::information(this, "match:", match.captured());
     QString newExt   = "_" + QDateTime::currentDateTimeUtc().toString("yyyyMMdd_hhmmss") + ".ibmf";
@@ -444,6 +451,7 @@ bool MainWindow::saveFont(bool askToConfirmName) {
   } else {
     newFilePath = QFileDialog::getSaveFileName(this, "Save NEW IBMF Font File", "*.ibmf");
   }
+  grabKeyboard();
   if (newFilePath.isEmpty()) {
     return false;
   } else {
@@ -527,7 +535,6 @@ bool MainWindow::checkFontChanged() {
 }
 
 void MainWindow::newFontLoaded(QString filePath) {
-  updateCharactersList();
   currentFilePath_ = filePath;
   adjustRecentsForCurrentFile();
   fontChanged_ = false;
@@ -541,8 +548,10 @@ void MainWindow::on_actionOpen_triggered() {
 
   QSettings settings("ibmf", "IBMFEditor");
 
+  releaseKeyboard();
   QString filePath = QFileDialog::getOpenFileName(
       this, "Open IBMF Font File", settings.value("ibmfFolder").toString(), "*.ibmf");
+  grabKeyboard();
 
   if (!filePath.isEmpty()) {
     file.setFileName(filePath);
@@ -674,6 +683,7 @@ bool MainWindow::loadFace(uint8_t faceIdx) {
 
     ibmfFaceIdx_   = faceIdx;
 
+    updateCharactersList();
     loadGlyph(ibmfGlyphCode_);
   } else {
     return false;
@@ -702,8 +712,7 @@ void MainWindow::saveGlyph() {
     glyphInfo->rleMetrics.dynF         = getValue(ui->characterMetrics, 7, 1).toUInt();
     glyphInfo->rleMetrics.firstIsBlack = getValue(ui->characterMetrics, 8, 1).toUInt();
 
-    ibmfFont_->saveGlyph(ibmfFaceIdx_, ibmfGlyphCode_, glyphInfo, theBitmap);
-    ibmfFont_->saveGlyphLigKern(ibmfFaceIdx_, ibmfGlyphCode_, ibmfGlyphLigKern_);
+    ibmfFont_->saveGlyph(ibmfFaceIdx_, ibmfGlyphCode_, glyphInfo, theBitmap, ibmfGlyphLigKern_);
     glyphChanged_ = false;
   }
 
@@ -733,7 +742,7 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
     IBMFDefs::GlyphInfoPtr glyphInfo;
     IBMFDefs::BitmapPtr    bitmap;
 
-    if (ibmfFont_->getGlyph(ibmfFaceIdx_, glyphCode, glyphInfo, bitmap)) {
+    if (ibmfFont_->getGlyph(ibmfFaceIdx_, glyphCode, glyphInfo, bitmap, ibmfGlyphLigKern_)) {
       ibmfGlyphCode_  = glyphCode;
 
       glyphChanged_   = false;
@@ -757,26 +766,24 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
       ui->ligTable->clearContents();
       ui->kernTable->clearContents();
 
-      if (ibmfFont_->getGlyphLigKern(ibmfFaceIdx_, ibmfGlyphCode_, ibmfGlyphLigKern_)) {
-        ui->ligTable->setRowCount(ibmfGlyphLigKern_->ligSteps.size());
-        for (int i = 0; i < ibmfGlyphLigKern_->ligSteps.size(); i++) {
-          putValue(ui->ligTable, i, 0,
-                   QChar(ibmfFont_->getUTF32(ibmfGlyphLigKern_->ligSteps[i].nextGlyphCode)));
-          putValue(ui->ligTable, i, 1,
-                   QChar(ibmfFont_->getUTF32(ibmfGlyphLigKern_->ligSteps[i].replacementGlyphCode)));
-          int      code      = ibmfGlyphLigKern_->ligSteps[i].nextGlyphCode;
-          char32_t codePoint = ibmfFont_->getUTF32(code);
-          ui->ligTable->item(i, 0)->setToolTip(
-              QString("%1: U+%2").arg(code).arg(codePoint, 4, 16, QChar('0')));
-          code      = ibmfGlyphLigKern_->ligSteps[i].replacementGlyphCode;
-          codePoint = ibmfFont_->getUTF32(code);
-          ui->ligTable->item(i, 1)->setToolTip(
-              QString("%1: U+%2").arg(code).arg(codePoint, 4, 16, QChar('0')));
-          ui->ligTable->item(i, 0)->setTextAlignment(Qt::AlignCenter);
-          ui->ligTable->item(i, 1)->setTextAlignment(Qt::AlignCenter);
-        }
-        populateKernTable();
+      ui->ligTable->setRowCount(ibmfGlyphLigKern_->ligSteps.size());
+      for (int i = 0; i < ibmfGlyphLigKern_->ligSteps.size(); i++) {
+        putValue(ui->ligTable, i, 0,
+                 QChar(ibmfFont_->getUTF32(ibmfGlyphLigKern_->ligSteps[i].nextGlyphCode)));
+        putValue(ui->ligTable, i, 1,
+                 QChar(ibmfFont_->getUTF32(ibmfGlyphLigKern_->ligSteps[i].replacementGlyphCode)));
+        int      code      = ibmfGlyphLigKern_->ligSteps[i].nextGlyphCode;
+        char32_t codePoint = ibmfFont_->getUTF32(code);
+        ui->ligTable->item(i, 0)->setToolTip(
+            QString("%1: U+%2").arg(code).arg(codePoint, 4, 16, QChar('0')));
+        code      = ibmfGlyphLigKern_->ligSteps[i].replacementGlyphCode;
+        codePoint = ibmfFont_->getUTF32(code);
+        ui->ligTable->item(i, 1)->setToolTip(
+            QString("%1: U+%2").arg(code).arg(codePoint, 4, 16, QChar('0')));
+        ui->ligTable->item(i, 0)->setTextAlignment(Qt::AlignCenter);
+        ui->ligTable->item(i, 1)->setTextAlignment(Qt::AlignCenter);
       }
+      populateKernTable();
 
       ui->charactersList->setCurrentCell(glyphCode / 5, glyphCode % 5);
 
@@ -1136,6 +1143,7 @@ void MainWindow::on_editKerningButton_clicked() {
     model->save(ibmfGlyphLigKern_->kernSteps);
     populateKernTable();
     ui->kernTable->update();
+    drawingSpace_->update();
     glyphChanged_ = true;
   }
 }
@@ -1169,8 +1177,11 @@ void MainWindow::on_actionC_h_File_triggered() {
   if (ibmfFont_ != nullptr) {
     if (!checkFontChanged()) return;
 
+    releaseKeyboard();
     QString inFilePath = QFileDialog::getOpenFileName(this, "IBMF Font File to Read From",
                                                       currentFilePath_, "*.ibmf");
+    grabKeyboard();
+
     if (!inFilePath.isEmpty()) {
 
       QFileInfo                 info     = QFileInfo(inFilePath);
@@ -1185,8 +1196,10 @@ void MainWindow::on_actionC_h_File_triggered() {
 
       QString headerFilePath = info.absolutePath() + "/" + baseName + ".h";
 
+      releaseKeyboard();
       QString newFilePath =
           QFileDialog::getSaveFileName(this, "Save C Header Font File", headerFilePath, "*.h");
+      grabKeyboard();
 
       if (!newFilePath.isEmpty()) {
         info                  = QFileInfo(newFilePath);
@@ -1314,4 +1327,54 @@ void MainWindow::on_actionImportHexFont_triggered() {
       }
     }
   }
+}
+
+void MainWindow::on_copyButton_clicked() { selection_ = bitmapRenderer_->getSelection(); }
+
+void MainWindow::on_pasteButton_clicked() {
+  if (selection_ != nullptr) {
+    QPoint *atLocation = bitmapRenderer_->getSelectionLocation();
+    if (atLocation != nullptr) {
+      QRect rect =
+          QRect(atLocation->x(), atLocation->y(), selection_->dim.width, selection_->dim.height);
+      auto undoSelection = bitmapRenderer_->getSelection(&rect);
+      undoStack_->push(
+          new PasteSelectionCommand(bitmapRenderer_, selection_, undoSelection, *atLocation));
+    }
+  }
+}
+
+void MainWindow::someSelection(bool some) {
+  ui->copyButton->setEnabled(some);
+  ui->pasteButton->setEnabled(some && (selection_ != nullptr));
+}
+
+void MainWindow::keyPressEvent(QKeyEvent *event) {
+  switch (event->key()) {
+    case Qt::Key_Left:
+      on_leftButton_clicked();
+      break;
+    case Qt::Key_Right:
+      on_rightButton_clicked();
+      break;
+    case Qt::Key_Copy:
+      on_copyButton_clicked();
+      break;
+    case Qt::Key_Paste:
+      on_pasteButton_clicked();
+      break;
+    default:
+      break;
+  }
+}
+
+bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
+  if (watched == ui->plainTextEdit) {
+    if (event->type() == QEvent::FocusOut) {
+      grabKeyboard();
+    } else if (event->type() == QEvent::FocusIn) {
+      releaseKeyboard();
+    }
+  }
+  return false;
 }

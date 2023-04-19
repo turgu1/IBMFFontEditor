@@ -12,6 +12,8 @@
 //
 // The IBMF font files have the current format:
 //
+// 1. LATIN and UTF32 formats:
+//
 //  At Offset 0:
 //  +--------------------+
 //  |                    |  Preamble (6 bytes)
@@ -23,7 +25,7 @@
 //  |                    |  FaceHeader offset vector 
 //  |                    |  (32 bit offset for each face)
 //  +--------------------+
-//  |                    |  For FontFormat 1 (FontFormat::UTF32) only: the table that contains corresponding 
+//  |                    |  For FontFormat 1 (FontFormat::UTF32 only): the table that contains corresponding
 //  |                    |  values between Unicode CodePoints and their internal GlyphCode.
 //  |                    |  (content already well aligned to 32 bits frontiers)
 //  +--------------------+
@@ -46,7 +48,85 @@
 //  |                    |  (No alignement, all bytes)|
 //  |                    |                            |
 //  +--------------------+                            |
-//  |                    |  Filler (32bits padding)   | <- Take into account both
+//  |                    |  Filler (32bits padding)   | <- Takes into account both
+//  +--------------------+                            |    GlyphsInfo and PixelsPool
+//  |                    |                            |
+//  |                    |  LigKerSteps               |
+//  |                    |  (2 x 16 bits each step)   |
+//  |                    |                            |
+//  +--------------------+               <------------+
+//             .
+//             .
+//             .
+//
+// 2. BACKUP Format:
+//
+// The BACKUP format is used to keep a copy of glyphs that have been modified by hand.
+// This is to allow for the retrieval of changes made when there is a need to
+// re-import a font.
+//
+// Only one backup per glyph is kept in the backup *font*.
+//
+// It is used by the application as another instance of an IBMF font.
+//
+// The application is responsible of opening and saving the backup file and to call the
+// saveGlyph() method when it is required to save a glyph. The importBackup
+// method can be used to retrieve glyphs present in the backup file to incorporate
+// them in the current opened ibmf font. Care must be taken by the application to insure
+// synchronisation of both opened file to be of the same imported font.
+//
+// When importing the backup glyphs to the current ibmf font, only the glyphs present in the
+// ibmf font will be updated.
+//
+// Basically:
+//
+// - The number of faces may be different from the ibmf font as it contains only the
+//   faces for which a glyph has been modified
+// - In the FaceHeader, the glyphCount can be different for each face present as it
+//   reflects the number of modified glyphs present in this backup
+// - The GlyphInfo is replaced with GlyphBackupInfo that contains the codePoint
+//   associated with the glyph.
+// - The information kept for a glyph that was modified are: The pixels bitmap, the
+//   glyphInfo metrics and the lig/kern table.
+//
+// - The createBackup() class method must be called to generate a new backup file if none
+//   is available. A new instance of the backup *font* will then be generated without any
+//   face in it.
+// - The saveGlyph() method is called to save a glyph information to the backup instance.
+// - The save() method is called to save the backup *font* to disk.
+// - The load() method is called to load a backup  *font* from disk.
+//
+//  At Offset 0:
+//  +--------------------+
+//  |                    |  Preamble (6 bytes)
+//  |                    |
+//  +--------------------+
+//  |                    |  Pixel sizes (one byte per face pt size present padded to 32 bits
+//  |                    |  from the start) (not used by this driver)
+//  +--------------------+
+//  |                    |  FaceHeader offset vector
+//  |                    |  (32 bit offset for each face)
+//  +--------------------+
+//
+//  +--------------------+               <------------+
+//  |                    |  FaceHeader                |
+//  |                    |  (32 bits aligned)         |
+//  |                    |                            |
+//  +--------------------+                            |
+//  |                    |  Glyphs' pixels indexes    |
+//  |                    |  in the Pixels Pool        |
+//  |                    |  (32bits each)             |
+//  +--------------------+                            |
+//  |                    |  GlyphsBackupInfo          |
+//  |                    |  Array (16 bits aligned)   |
+//  |                    |                            |  Repeat for
+//  +--------------------+                            |> each face
+//  |                    |                            |  part of the
+//  |                    |  Pixels Pool               |  font
+//  |                    |  (No alignement, all bytes)|
+//  |                    |                            |
+//  +--------------------+                            |
+//  |                    |  Filler (32bits padding)   | <- Takes into account both
 //  +--------------------+                            |    GlyphsInfo and PixelsPool
 //  |                    |                            |
 //  |                    |  LigKerSteps               |
@@ -68,8 +148,7 @@ const constexpr int DEBUG = DEBUG_IBMF;
 const constexpr int DEBUG = 0;
 #endif
 
-const constexpr uint8_t IBMF_VERSION    = 4;
-const constexpr uint8_t MAX_GLYPH_COUNT = 254; // Index Value 0xFE and 0xFF are reserved
+const constexpr uint8_t IBMF_VERSION = 4;
 
 // The followings have to be adjusted depending on the screen
 // software/hardware/firmware' pixels polarity/color/shading/gray-scale
@@ -88,7 +167,7 @@ const constexpr uint8_t WHITE_ONE_BIT    = 0;
 const constexpr uint8_t BLACK_EIGHT_BITS = 0xFF;
 const constexpr uint8_t WHITE_EIGHT_BITS = 0x00;
 
-enum FontFormat : uint8_t { LATIN = 0, UTF32 = 1, UNKNOWN = 7 };
+enum FontFormat : uint8_t { LATIN = 0, UTF32 = 1, BACKUP = 7 };
 enum class PixelResolution : uint8_t { ONE_BIT, EIGHT_BITS };
 
 const constexpr PixelResolution resolution = PixelResolution::EIGHT_BITS;
@@ -170,7 +249,7 @@ struct FaceHeader {
   FIX16    slantCorrection;  // When an italic face
   uint8_t  descenderHeight;  // The height of the descending below the origin
   uint8_t  spaceSize;        // Size of a space character in pixels
-  uint16_t glyphCount;       // Must be the same for all face
+  uint16_t glyphCount;       // Must be the same for all face (Except for BACKUP format)
   uint16_t ligKernStepCount; // Length of the Ligature/Kerning table
   uint32_t pixelsPoolSize;   // Size of the Pixels Pool
 };
@@ -377,6 +456,21 @@ struct GlyphInfo {
 };
 
 typedef std::shared_ptr<GlyphInfo> GlyphInfoPtr;
+
+struct GlyphBackupInfo {
+  uint8_t    bitmapWidth;      // Width of bitmap once decompressed
+  uint8_t    bitmapHeight;     // Height of bitmap once decompressed
+  int8_t     horizontalOffset; // Horizontal offset from the orign
+  int8_t     verticalOffset;   // Vertical offset from the origin
+  uint16_t   packetLength;     // Length of the compressed bitmap
+  FIX16      advance;          // Normal advance to the next glyph position in line
+  RLEMetrics rleMetrics;       // RLE Compression information
+  uint8_t    ligKernPgmIndex;  // = 255 if none, Index in the ligature/kern array
+  char32_t   mainCodePoint;    // Main composite (or not) codePoint for kerning matching algo
+  char32_t   codePoint;        // CodePoint associated with the glyph (for BACKUP Format only)
+};
+
+typedef std::shared_ptr<GlyphBackupInfo> GlyphBackupInfoPtr;
 
 // clang-format off
 // 
