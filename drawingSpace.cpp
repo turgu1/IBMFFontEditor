@@ -44,7 +44,7 @@ auto DrawingSpace::computeAutoKerning(const IBMFDefs::BitmapPtr b1, const IBMFDe
   for (int row = 0; row < b1->dim.height; row++) {
     for (int col = 0; col < b1->dim.width; col++, idx++) {
       if (b1->pixels[idx] != 0) {
-        int buffIdx     = ((pos.y() - voff + row) * buffWidth) + (pos.x() + hoff + col);
+        int buffIdx     = ((pos.y() - voff + row) * buffWidth) + (pos.x() - hoff + col);
         buffer[buffIdx] = 1;
       }
     }
@@ -55,7 +55,7 @@ auto DrawingSpace::computeAutoKerning(const IBMFDefs::BitmapPtr b1, const IBMFDe
 
   pos.setX(pos.x() + advance);
 
-  int max = advance - 1;
+  int max = advance + hoff;
   while (max > 0) {
     int voff = i2->verticalOffset;
     int hoff = i2->horizontalOffset;
@@ -63,7 +63,7 @@ auto DrawingSpace::computeAutoKerning(const IBMFDefs::BitmapPtr b1, const IBMFDe
     for (int col = 0; col < b2->dim.width; col++) {
       for (int row = 0; row < b2->dim.height; row++) {
         if (b2->pixels[row * b2->dim.width + col] != 0) {
-          int buffIdx = ((pos.y() - voff + row) * buffWidth) + (pos.x() + hoff + col);
+          int buffIdx = ((pos.y() - voff + row) * buffWidth) + (pos.x() - hoff + col);
           if (buffer[buffIdx] == 1) {
             buffer[buffIdx] = 2;
             goto end;
@@ -118,7 +118,7 @@ end:
   //
 
   delete[] buffer;
-  return (max > 0) ? ((kerning + KERNING_SIZE + 1) << 6) : 0;
+  return (max >= 0) ? ((kerning + KERNING_SIZE + 1) << 6) : 0;
 }
 
 void DrawingSpace::setFont(IBMFFontModPtr font) {
@@ -180,7 +180,13 @@ void DrawingSpace::paintWord(QPainter *painter, int lineHeight) {
     }
   }
 
+  // std::cout << "paintWord()" << std::endl;
+
   for (auto &ch : word_) {
+
+    // std::cout << "Position:" << pos_.x();
+    // std::cout << " CH kern:" << ch.kern / 64 << " adv:" << ch.glyphInfo->advance / 64
+    //           << " hoff:" << +ch.glyphInfo->horizontalOffset << std::endl;
 
     int diff = ((ch.kern + (ch.kern < 0 ? -32 : 32)) / 64);
     pos_.setX(pos_.x() + diff);
@@ -196,13 +202,15 @@ void DrawingSpace::paintWord(QPainter *painter, int lineHeight) {
       pos_.setX(0);
     }
 
+    // std::cout << "Drawing at pos:" << pos_.x() - hoff << std::endl;
+
     if (painter != nullptr) {
       int idx = 0;
       if (pixelSize_ == 1) {
         for (int row = 0; row < ch.bitmap->dim.height; row++) {
           for (int col = 0; col < ch.bitmap->dim.width; col++, idx++) {
             if (ch.bitmap->pixels[idx] != 0) {
-              painter->drawPoint(QPoint(10 + (pos_.x() + hoff + col), pos_.y() - voff + row));
+              painter->drawPoint(QPoint(10 + (pos_.x() - hoff + col), pos_.y() - voff + row));
             }
           }
         }
@@ -210,7 +218,7 @@ void DrawingSpace::paintWord(QPainter *painter, int lineHeight) {
         for (int row = 0; row < ch.bitmap->dim.height; row++) {
           for (int col = 0; col < ch.bitmap->dim.width; col++, idx++) {
             if (ch.bitmap->pixels[idx] != 0) {
-              rect = QRect(10 + (pos_.x() + hoff + col) * pixelSize_,
+              rect = QRect(10 + (pos_.x() - hoff + col) * pixelSize_,
                            (pos_.y() - voff + row) * pixelSize_, pixelSize_, pixelSize_);
 
               painter->drawRect(rect);
