@@ -1,5 +1,6 @@
 #include "drawingSpace.h"
 
+#include <array>
 #include <iostream>
 
 #include <QPainter>
@@ -23,11 +24,106 @@ void DrawingSpace::setBypassGlyph(IBMFDefs::GlyphCode glyphCode, IBMFDefs::Bitma
   update();
 }
 
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+
 auto DrawingSpace::computeAutoKerning(const IBMFDefs::BitmapPtr b1, const IBMFDefs::BitmapPtr b2,
                                       const IBMFDefs::GlyphInfoPtr i1,
                                       const IBMFDefs::GlyphInfoPtr i2) const -> FIX16 {
-  int kerning     = 0;
+  int kerning = 0;
 
+#if CONVEX_HULL
+  static std::array<int8_t, 32> distLeft;
+  static std::array<int8_t, 32> distRight;
+
+  distLeft.fill(-1);
+  distRight.fill(-1);
+
+  int8_t origin = MAX(i1->verticalOffset, i2->verticalOffset);
+
+  // start positions in each dist arrays
+  int8_t distIdxLeft  = origin - i1->verticalOffset;
+  int8_t distIdxRight = origin - i2->verticalOffset;
+
+  // idx and length in each bitmaps
+  int8_t firstIdxLeft  = origin - i2->verticalOffset;
+  int8_t firstIdxRight = origin - i1->verticalOffset;
+  int8_t length        = MIN((i1->bitmapHeight - firstIdxLeft), (i2->bitmapHeight - firstIdxRight));
+
+  // hight of significant parts of dist arrays
+  int8_t hight = origin + MAX((i1->bitmapHeight - i1->verticalOffset),
+                              (i2->bitmapHeight - i2->verticalOffset));
+
+  if (length <= 0) return 0; // The two glyphs don't have pixels on the same vicinity
+
+  int idx = 0;
+  for (uint8_t i = distIdxLeft; i < i1->bitmapHeight + distIdxLeft; i++, idx += i1->bitmapWidth) {
+    distLeft[i] = 0;
+    for (int col = i1->bitmapWidth - 1; col >= 0; col--) {
+      if (b1->pixels[idx + col]) break;
+      distLeft[i] += 1;
+    }
+    // if (distLeft[i] > i1->bitmapWidth) distLeft[i] = -1;
+  }
+
+  idx = 0;
+  for (uint8_t i = distIdxRight; i < i2->bitmapHeight + distIdxRight; i++, idx += i2->bitmapWidth) {
+    distRight[i] = 0;
+    for (int col = 0; col < i2->bitmapWidth; col++) {
+      if (b2->pixels[idx + col]) break;
+      distRight[i] += 1;
+    }
+    // if (distRight[i] > i1->bitmapWidth) distRight[i] = -1;
+  }
+
+  auto val   = [distLeft](int idx) -> int { return 0; };
+
+  bool first = false;
+  bool next  = false;
+  std::cout << "Computed left-right distances (origin:" << +origin << ", length:" << +length
+            << ", hight:" << +hight << "):" << std::endl;
+  for (int i = 0; i < hight; i++) {
+    next = first;
+    std::cout << "  ";
+    if (distLeft[i] != -1) {
+      std::cout << +distLeft[i];
+      first = true;
+      if (next) {
+        std::cout << " (" << val(i - 1) << ")";
+      }
+    } else
+      std::cout << " ";
+    std::cout << ", ";
+    if (distRight[i] != -1)
+      std::cout << +distRight[i];
+    else
+      std::cout << " ";
+    std::cout << std::endl;
+  }
+  FIX16 result = 0;
+
+  // find convex corner locations
+
+  int cornerIdx    = distIdxLeft;
+  int potentialIdx = -1;
+  std::cout << "First corner: " << cornerIdx << std::endl;
+  for (uint8_t i = distIdxLeft + 1; i < i1->bitmapHeight + distIdxLeft; i++) {
+    if (distLeft[i] < distLeft[i - 1])
+      potentialIdx = i;
+    else if ((distLeft[i] == distLeft[i - 1]) && (potentialIdx != -1)) {
+      cornerIdx    = potentialIdx;
+      potentialIdx = -1;
+      std::cout << "(1) Corner at: " << cornerIdx << std::endl;
+    } else if ((distLeft[i] > distLeft[i - 1]) && (potentialIdx == -1) && (cornerIdx != (i - 1))) {
+      cornerIdx = i - 1;
+      std::cout << "(2) Corner at: " << cornerIdx << std::endl;
+    }
+  }
+  if (cornerIdx != (i1->bitmapHeight + distIdxLeft - 1)) {
+    std::cout << "Corner at: " << (i1->bitmapHeight + distIdxLeft - 1) << std::endl;
+  }
+
+#else
   int buffWidth   = (font_->getFaceHeader(faceIdx_)->emSize >> 6) * 2;
   int buffHeight  = font_->getFaceHeader(faceIdx_)->lineHeight * 2;
 
@@ -118,7 +214,10 @@ end:
   //
 
   delete[] buffer;
-  return (max >= 0) ? ((kerning + KERNING_SIZE + 1) << 6) : 0;
+  FIX16 result = (max >= 0) ? ((kerning + KERNING_SIZE + 1) << 6) : 0;
+#endif
+
+  return result;
 }
 
 void DrawingSpace::setFont(IBMFFontModPtr font) {
@@ -316,15 +415,15 @@ void DrawingSpace::drawScreen(QPainter *painter) {
   }
 
 #else
-  IBMFDefs::BitmapPtr       b1, b2;
-  IBMFDefs::GlyphInfoPtr    i1, i2;
-  IBMFDefs::GlyphCode       g1, g2;
+  IBMFDefs::BitmapPtr b1, b2;
+  IBMFDefs::GlyphInfoPtr i1, i2;
+  IBMFDefs::GlyphCode g1, g2;
   IBMFDefs::GlyphLigKernPtr k1, k2;
 
   for (auto &ch : textToDraw_) {
-    IBMFDefs::BitmapPtr       bitmap;
-    IBMFDefs::GlyphInfoPtr    glyphInfo;
-    IBMFDefs::GlyphCode       glyphCode;
+    IBMFDefs::BitmapPtr bitmap;
+    IBMFDefs::GlyphInfoPtr glyphInfo;
+    IBMFDefs::GlyphCode glyphCode;
     IBMFDefs::GlyphLigKernPtr ligKerns;
 
     if (ch == '\n') {
@@ -334,7 +433,7 @@ void DrawingSpace::drawScreen(QPainter *painter) {
       pos_.setY(pos_.y() + lineHeight);
       pos_.setX(0);
       startOfLine = true;
-      first       = true;
+      first = true;
       continue;
     } else if (ch == ' ') {
       if (word_.size() > 0) {
@@ -351,9 +450,9 @@ void DrawingSpace::drawScreen(QPainter *painter) {
       // taken instead of the same glyphCode present in the font that was still not
       // updated
       if ((bypassGlyphCode_ != IBMFDefs::NO_GLYPH_CODE) && (glyphCode == bypassGlyphCode_)) {
-        bitmap    = bypassBitmap_;
+        bitmap = bypassBitmap_;
         glyphInfo = bypassGlyphInfo_;
-        ligKerns  = bypassGlyphLigKern_;
+        ligKerns = bypassGlyphLigKern_;
       } else {
         if (!font_->getGlyph(faceIdx_, glyphCode, glyphInfo, bitmap, ligKerns)) {
           continue;
@@ -366,7 +465,7 @@ void DrawingSpace::drawScreen(QPainter *painter) {
     //    }
 
     FIX16 kerning = 0;
-    bool  kernPairPresent;
+    bool kernPairPresent;
 
     if (opticalKerning_ || normalKerning_) {
       if (!first) {
@@ -381,16 +480,16 @@ void DrawingSpace::drawScreen(QPainter *painter) {
 
         if (normalKerning_) {
           IBMFDefs::GlyphCode code = g2;
-          FIX16               kern;
+          FIX16 kern;
           while (font_->ligKern(faceIdx_, g1, &code, &kern, &kernPairPresent, k1))
             ;
           if (code != g2) {
             word_.pop_back();
             glyphCode = g2 = code;
             if ((bypassGlyphCode_ != IBMFDefs::NO_GLYPH_CODE) && (glyphCode == bypassGlyphCode_)) {
-              bitmap    = bypassBitmap_;
+              bitmap = bypassBitmap_;
               glyphInfo = bypassGlyphInfo_;
-              ligKerns  = bypassGlyphLigKern_;
+              ligKerns = bypassGlyphLigKern_;
             } else {
               if (!font_->getGlyph(faceIdx_, glyphCode, glyphInfo, bitmap, ligKerns)) {
                 continue;
@@ -410,10 +509,10 @@ void DrawingSpace::drawScreen(QPainter *painter) {
         // std::cout << kerning << " " << std::endl;
       } else {
         first = false;
-        b2    = bitmap;
-        i2    = glyphInfo;
-        g2    = glyphCode;
-        k2    = ligKerns;
+        b2 = bitmap;
+        i2 = glyphInfo;
+        g2 = glyphCode;
+        k2 = ligKerns;
       }
     }
 

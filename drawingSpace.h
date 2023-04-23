@@ -6,7 +6,7 @@
 
 #include "IBMFDriver/IBMFFontMod.hpp"
 
-#define AUTO_KERNING 0
+#define CONVEX_HULL  0
 #define KERNING_SIZE 1
 
 class DrawingSpace : public QWidget {
