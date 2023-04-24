@@ -39,6 +39,7 @@ public:
   auto getSelection(QRect *atLocation = nullptr) const -> IBMFDefs::BitmapPtr;
   auto pasteSelection(IBMFDefs::BitmapPtr selection, QPoint *atPos) -> void;
   auto getSelectionLocation() -> QPoint *;
+  auto getOriginPos() -> QPoint { return glyphOriginPos_; }
 
 public slots:
   void clearAndLoadBitmap(const IBMFDefs::Bitmap &bitmap, const IBMFDefs::FaceHeader &faceHeader,

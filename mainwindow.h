@@ -83,6 +83,8 @@ private slots:
   void someSelection(bool some);
   //  void rendererKeyPressed(QKeyEvent *event);
 
+  void on_pasteMainButton_clicked();
+
 private:
   const int MAX_RECENT_FILES = 10;
 

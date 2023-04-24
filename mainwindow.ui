@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1197</width>
+    <width>1325</width>
     <height>884</height>
    </rect>
   </property>
@@ -542,6 +542,19 @@
              </property>
              <property name="text">
               <string>Paste</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="ActionButton" name="pasteMainButton">
+             <property name="minimumSize">
+              <size>
+               <width>50</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Paste Main</string>
              </property>
             </widget>
            </item>
@@ -1311,8 +1324,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1197</width>
-     <height>30</height>
+     <width>1325</width>
+     <height>19</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
