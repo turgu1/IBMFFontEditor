@@ -64,8 +64,6 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
     memset(distLeft.get(), -1, hight);
     memset(distRight.get(), -1, hight);
 
-    if (length <= 0) return 0; // The two glyphs don't have pixels on the same vicinity
-
     // distLeft is receiving the right distance in pixels of the first black pixel on each
     // line of the character
     int idx = 0;
