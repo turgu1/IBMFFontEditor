@@ -52,7 +52,7 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
   int8_t length        = MIN((i1->bitmapHeight - firstIdxLeft), (i2->bitmapHeight - firstIdxRight));
   int8_t firstIdx      = MAX(firstIdxLeft, firstIdxRight);
 
-  if (length > 0) {
+  if (length > 0) { // Length <= 0 means that there is no alignment between the characters
     // hight of significant parts of dist arrays
     int8_t hight = origin + MAX((i1->bitmapHeight - i1->verticalOffset),
                                 (i2->bitmapHeight - i2->verticalOffset));
@@ -66,6 +66,8 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
 
     if (length <= 0) return 0; // The two glyphs don't have pixels on the same vicinity
 
+    // distLeft is receiving the right distance in pixels of the first black pixel on each
+    // line of the character
     int idx = 0;
     for (uint8_t i = distIdxLeft; i < i1->bitmapHeight + distIdxLeft; i++, idx += i1->bitmapWidth) {
       distLeft[i] = 0;
@@ -75,6 +77,8 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
       }
     }
 
+    // distRight is receiving the left distance in pixels of the first black pixel on each
+    // line of the character
     idx = 0;
     for (uint8_t i = distIdxRight; i < i2->bitmapHeight + distIdxRight;
          i++, idx += i2->bitmapWidth) {
@@ -87,11 +91,15 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
 
     // find convex corner locations and adjust distances
 
-    if (i1->bitmapHeight >= 3) {
+    // Right Side Convex Hull for the character at left
+    if (i1->bitmapHeight >= 3) { // 1 and 2 line characters don't need adjustment
+
+      // Compute the cross product of 3 points. If negative, the angle is convex
       auto crossLeft = [distLeft](int i, int j, int k) -> int {
         return (distLeft[j] - distLeft[i]) * (k - i) - (j - i) * (distLeft[k] - distLeft[i]);
       };
 
+      // Adjusts distances to get a line between two vertices of the Convex Hull
       auto adjustLeft = [distLeft](int i, int j) {
         if ((j - i) > 1) {
           if ((distLeft[j] - distLeft[i]) == 0) {
@@ -107,6 +115,8 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
         }
       };
 
+      // Find vertices using the cross product and adjust the distances
+      // to get the right portion of the Convex Hull polygon.
       int i = distIdxLeft;
       int j = i + 1;
       while (j < i1->bitmapHeight + distIdxLeft) {
@@ -128,11 +138,16 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
       }
     }
 
-    if (i2->bitmapHeight >= 3) {
+    // Left side Convex Hull for the character at right
+
+    if (i2->bitmapHeight >= 3) { // 1 and 2 line characters don't need adjustment
+
+      // Compute the cross product of 3 points. If negative, the angle is convex.
       auto crossRight = [distRight](int i, int j, int k) -> int {
         return (distRight[j] - distRight[i]) * (k - i) - (j - i) * (distRight[k] - distRight[i]);
       };
 
+      // Adjusts distances to get a line between two vertices of the Convex Hull
       auto adjustRight = [distRight](int i, int j) {
         if ((j - i) > 1) {
           if ((distRight[j] - distRight[i]) == 0) {
@@ -148,6 +163,8 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
         }
       };
 
+      // Find vertices using the cross product and adjust the distances
+      // to get the right left portion of the Convex Hull polygon.
       int i = distIdxRight;
       int j = i + 1;
       while (j < i2->bitmapHeight + distIdxRight) {
@@ -191,6 +208,9 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
     }
 #endif
 
+    // Now, compute the smallest distance that exists between
+    // the two characters. Pixels on each line are checked as well
+    // as angled pixels (on the lines above and below)
     kerning = 999;
     for (int i = firstIdx; i < firstIdx + length; i++) {
       int dist = distLeft[i] + distRight[i];
@@ -213,6 +233,10 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
       int dist = distLeft[lastIdx] + distRight[lastIdx + 1];
       if (dist < kerning) kerning = dist;
     }
+
+    // Adjust the resulting kerning value, considering the targetted KERNING_SIZE (the space to have
+    // between characters), the size of the character and the normal distance that will be used by
+    // the writing algorithm
     kerning = (-MIN(kerning - KERNING_SIZE, i2->bitmapWidth)) - normal_distance;
 
     //} else {
@@ -354,6 +378,7 @@ void DrawingSpace::paintWord(QPainter *painter, int lineHeight) {
 
   // std::cout << "paintWord()" << std::endl;
 
+  bool firstChar = true;
   for (auto &ch : word_) {
 
     // std::cout << "Position:" << pos_.x();
@@ -364,7 +389,12 @@ void DrawingSpace::paintWord(QPainter *painter, int lineHeight) {
     pos_.setX(pos_.x() + diff);
 
     int voff = ch.glyphInfo->verticalOffset;
-    int hoff = ch.glyphInfo->horizontalOffset;
+
+    // The first character of a word must not use the horizontalOffset.
+    // Also, there is a need to remove the effect on the advance param (hoff2),
+    // see at the end of the loop.
+    int hoff  = firstChar ? 0 : ch.glyphInfo->horizontalOffset;
+    int hoff2 = firstChar ? -ch.glyphInfo->horizontalOffset : 0;
 
     int advance = (ch.glyphInfo->advance + 32) >> 6;
     if (advance == 0) advance = ch.glyphInfo->bitmapWidth + 1;
@@ -400,8 +430,17 @@ void DrawingSpace::paintWord(QPainter *painter, int lineHeight) {
       }
     }
 
-    pos_.setX(pos_.x() + advance);
+    pos_.setX(pos_.x() + advance - hoff2);
+    firstChar = false;
   }
+
+  // Adjustment for the last character of a word. This is to get equal spaces between characters.
+
+  auto &ch = word_.at(word_.size() - 1);
+  pos_.setX(pos_.x() - (((ch.glyphInfo->advance + 32) >> 6) + ch.glyphInfo->horizontalOffset -
+                        ch.bitmap->dim.width));
+
+  // Prepare for next word.
   word_.clear();
   wordLength_ = 0;
 }
