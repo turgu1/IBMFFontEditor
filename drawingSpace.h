@@ -6,7 +6,7 @@
 
 #include "IBMFDriver/IBMFFontMod.hpp"
 
-#define CONVEX_HULL  0
+#define CONVEX_HULL  1
 #define KERNING_SIZE 1
 
 class DrawingSpace : public QWidget {
@@ -16,7 +16,7 @@ public:
   void drawScreen(QPainter *painter);
 
   void setText(QString text);
-  void setAutoKerning(bool value);
+  void setOpticalKerning(bool value);
   void setNormalKerning(bool value);
   void setPixelSize(int value);
   void setFont(IBMFFontModPtr font);
@@ -54,8 +54,8 @@ private:
   IBMFDefs::GlyphInfoPtr    bypassGlyphInfo_{nullptr};
   IBMFDefs::GlyphLigKernPtr bypassGlyphLigKern_{nullptr};
 
-  auto computeAutoKerning(const BitmapPtr b1, const BitmapPtr b2, const GlyphInfoPtr i1,
-                          const GlyphInfoPtr i2) const -> FIX16;
+  auto computeOpticalKerning(const BitmapPtr b1, const BitmapPtr b2, const GlyphInfoPtr i1,
+                             const GlyphInfoPtr i2) const -> FIX16;
   auto paintWord(QPainter *painter, int lineHeight) -> void;
   auto computeSize() -> void;
 };

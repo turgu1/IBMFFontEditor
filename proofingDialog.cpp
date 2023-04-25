@@ -43,16 +43,20 @@ ProofingDialog::ProofingDialog(IBMFFontModPtr font, int faceIdx, QWidget *parent
   }
 }
 
-void ProofingDialog::setText(QString text) { drawingSpace_->setText(text); }
+void ProofingDialog::setText(QString text) {
+  drawingSpace_->setText(text);
+}
 
-ProofingDialog::~ProofingDialog() { delete ui; }
+ProofingDialog::~ProofingDialog() {
+  delete ui;
+}
 
 void ProofingDialog::on_pixelSizeCombo_currentIndexChanged(int index) {
   drawingSpace_->setPixelSize(index + 1);
 }
 
 void ProofingDialog::on_autoKernCheckBox_toggled(bool checked) {
-  drawingSpace_->setAutoKerning(checked);
+  drawingSpace_->setOpticalKerning(checked);
 }
 
 void ProofingDialog::on_normalKernCheckBox_toggled(bool checked) {
@@ -110,7 +114,7 @@ void ProofingDialog::writeSettings() {
   QSettings settings("ibmf", "IBMFEditor");
 
   settings.beginGroup("ProofingDialog");
-  settings.setValue("ProofingAutoKern", ui->autoKernCheckBox->isChecked());
+  settings.setValue("ProofingOpticalKern", ui->autoKernCheckBox->isChecked());
   settings.setValue("ProofingNormalKern", ui->normalKernCheckBox->isChecked());
   settings.setValue("ProofingPixelSize", ui->pixelSizeCombo->currentIndex());
   settings.setValue("ProofingPattern", ui->patternCombo->currentIndex());
@@ -121,13 +125,17 @@ void ProofingDialog::readSettings() {
   QSettings settings("ibmf", "IBMFEditor");
 
   settings.beginGroup("ProofingDialog");
-  ui->autoKernCheckBox->setChecked(settings.value("ProofingAutoKern").toBool());
+  ui->autoKernCheckBox->setChecked(settings.value("ProofingOpticalKern").toBool());
   ui->normalKernCheckBox->setChecked(settings.value("ProofingNormalKern").toBool());
   ui->pixelSizeCombo->setCurrentIndex(settings.value("ProofingPixelSize").toInt());
   ui->patternCombo->setCurrentIndex(settings.value("ProofingPattern").toInt());
   settings.endGroup();
 }
 
-void ProofingDialog::closeEvent(QCloseEvent *event) { writeSettings(); }
+void ProofingDialog::closeEvent(QCloseEvent *event) {
+  writeSettings();
+}
 
-void ProofingDialog::on_buttonBox_clicked(QAbstractButton *button) { writeSettings(); }
+void ProofingDialog::on_buttonBox_clicked(QAbstractButton *button) {
+  writeSettings();
+}

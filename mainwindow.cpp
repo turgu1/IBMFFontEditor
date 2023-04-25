@@ -307,7 +307,7 @@ void MainWindow::writeSettings() {
   settings.setValue("FaceCharsSplitter", ui->FaceCharsSplitter->saveState());
   settings.setValue("RightFrame", ui->rightFrame->saveState());
   settings.setValue("ProofingText", ui->plainTextEdit->toPlainText());
-  settings.setValue("ProofingAutoKern", ui->autoKernCheckBox->isChecked());
+  settings.setValue("ProofingOpticalKern", ui->autoKernCheckBox->isChecked());
   settings.setValue("ProofingNormalKern", ui->normalKernCheckBox->isChecked());
   settings.setValue("ProofingPixelSize", ui->pixelSizeCombo->currentIndex());
   settings.endGroup();
@@ -340,7 +340,7 @@ void MainWindow::readSettings() {
   if (!rightFrameState.isEmpty()) { ui->rightFrame->restoreState(rightFrameState); }
 
   ui->plainTextEdit->setPlainText(settings.value("ProofingText").toString());
-  ui->autoKernCheckBox->setChecked(settings.value("ProofingAutoKern").toBool());
+  ui->autoKernCheckBox->setChecked(settings.value("ProofingOpticalKern").toBool());
   ui->normalKernCheckBox->setChecked(settings.value("ProofingNormalKern").toBool());
   ui->pixelSizeCombo->setCurrentIndex(settings.value("ProofingPixelSize").toInt());
   settings.endGroup();
@@ -1162,7 +1162,7 @@ void MainWindow::on_normalKernCheckBox_toggled(bool checked) {
 }
 
 void MainWindow::on_autoKernCheckBox_toggled(bool checked) {
-  drawingSpace_->setAutoKerning(checked);
+  drawingSpace_->setOpticalKerning(checked);
 }
 
 void MainWindow::on_actionProofing_Tool_triggered() {

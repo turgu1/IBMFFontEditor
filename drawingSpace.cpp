@@ -27,17 +27,18 @@ void DrawingSpace::setBypassGlyph(IBMFDefs::GlyphCode glyphCode, IBMFDefs::Bitma
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-auto DrawingSpace::computeAutoKerning(const IBMFDefs::BitmapPtr b1, const IBMFDefs::BitmapPtr b2,
-                                      const IBMFDefs::GlyphInfoPtr i1,
-                                      const IBMFDefs::GlyphInfoPtr i2) const -> FIX16 {
+auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBMFDefs::BitmapPtr b2,
+                                         const IBMFDefs::GlyphInfoPtr i1,
+                                         const IBMFDefs::GlyphInfoPtr i2) const -> FIX16 {
   int kerning = 0;
 
 #if CONVEX_HULL
-  static std::array<int8_t, 32> distLeft;
-  static std::array<int8_t, 32> distRight;
+  FIX16 result1 = 0;
 
-  distLeft.fill(-1);
-  distRight.fill(-1);
+  int normal_distance =
+      i1->horizontalOffset + ((i1->advance + 32) >> 6) - i1->bitmapWidth - i2->horizontalOffset;
+
+  // std::cout << "Normal distance:" << normal_distance << std::endl;
 
   int8_t origin = MAX(i1->verticalOffset, i2->verticalOffset);
 
@@ -45,79 +46,184 @@ auto DrawingSpace::computeAutoKerning(const IBMFDefs::BitmapPtr b1, const IBMFDe
   int8_t distIdxLeft  = origin - i1->verticalOffset;
   int8_t distIdxRight = origin - i2->verticalOffset;
 
-  // idx and length in each bitmaps
+  // idx and length in each bitmaps to compare
   int8_t firstIdxLeft  = origin - i2->verticalOffset;
   int8_t firstIdxRight = origin - i1->verticalOffset;
   int8_t length        = MIN((i1->bitmapHeight - firstIdxLeft), (i2->bitmapHeight - firstIdxRight));
+  int8_t firstIdx      = MAX(firstIdxLeft, firstIdxRight);
 
-  // hight of significant parts of dist arrays
-  int8_t hight = origin + MAX((i1->bitmapHeight - i1->verticalOffset),
-                              (i2->bitmapHeight - i2->verticalOffset));
+  if (length > 0) {
+    // hight of significant parts of dist arrays
+    int8_t hight = origin + MAX((i1->bitmapHeight - i1->verticalOffset),
+                                (i2->bitmapHeight - i2->verticalOffset));
 
-  if (length <= 0) return 0; // The two glyphs don't have pixels on the same vicinity
+    // distance computation for left and right characters
+    auto distLeft  = std::shared_ptr<int8_t[]>(new int8_t[hight]);
+    auto distRight = std::shared_ptr<int8_t[]>(new int8_t[hight]);
 
-  int idx = 0;
-  for (uint8_t i = distIdxLeft; i < i1->bitmapHeight + distIdxLeft; i++, idx += i1->bitmapWidth) {
-    distLeft[i] = 0;
-    for (int col = i1->bitmapWidth - 1; col >= 0; col--) {
-      if (b1->pixels[idx + col]) break;
-      distLeft[i] += 1;
+    memset(distLeft.get(), -1, hight);
+    memset(distRight.get(), -1, hight);
+
+    if (length <= 0) return 0; // The two glyphs don't have pixels on the same vicinity
+
+    int idx = 0;
+    for (uint8_t i = distIdxLeft; i < i1->bitmapHeight + distIdxLeft; i++, idx += i1->bitmapWidth) {
+      distLeft[i] = 0;
+      for (int col = i1->bitmapWidth - 1; col >= 0; col--) {
+        if (b1->pixels[idx + col]) break;
+        distLeft[i] += 1;
+      }
     }
-    // if (distLeft[i] > i1->bitmapWidth) distLeft[i] = -1;
-  }
 
-  idx = 0;
-  for (uint8_t i = distIdxRight; i < i2->bitmapHeight + distIdxRight; i++, idx += i2->bitmapWidth) {
-    distRight[i] = 0;
-    for (int col = 0; col < i2->bitmapWidth; col++) {
-      if (b2->pixels[idx + col]) break;
-      distRight[i] += 1;
+    idx = 0;
+    for (uint8_t i = distIdxRight; i < i2->bitmapHeight + distIdxRight;
+         i++, idx += i2->bitmapWidth) {
+      distRight[i] = 0;
+      for (int col = 0; col < i2->bitmapWidth; col++) {
+        if (b2->pixels[idx + col]) break;
+        distRight[i] += 1;
+      }
     }
-    // if (distRight[i] > i1->bitmapWidth) distRight[i] = -1;
-  }
 
-  auto val = [distLeft](int idx) -> int { return 0; };
+    // find convex corner locations and adjust distances
 
-  bool first = false;
-  bool next  = false;
-  std::cout << "Computed left-right distances (origin:" << +origin << ", length:" << +length
-            << ", hight:" << +hight << "):" << std::endl;
-  for (int i = 0; i < hight; i++) {
-    next = first;
-    std::cout << "  ";
-    if (distLeft[i] != -1) {
-      std::cout << +distLeft[i];
-      first = true;
-      if (next) { std::cout << " (" << val(i - 1) << ")"; }
-    } else std::cout << " ";
-    std::cout << ", ";
-    if (distRight[i] != -1) std::cout << +distRight[i];
-    else std::cout << " ";
-    std::cout << std::endl;
-  }
-  FIX16 result = 0;
+    if (i1->bitmapHeight >= 3) {
+      auto crossLeft = [distLeft](int i, int j, int k) -> int {
+        return (distLeft[j] - distLeft[i]) * (k - i) - (j - i) * (distLeft[k] - distLeft[i]);
+      };
 
-  // find convex corner locations
+      auto adjustLeft = [distLeft](int i, int j) {
+        if ((j - i) > 1) {
+          if ((distLeft[j] - distLeft[i]) == 0) {
+            for (int k = i + 1; k < j; k++) { distLeft[k] = distLeft[i]; }
+          } else {
+            float slope = float(distLeft[j] - distLeft[i]) / float(j - i);
+            float v     = distLeft[i];
+            for (int k = i + 1; k < j; k++) {
+              v += slope;
+              distLeft[k] = v; // + 0.5;
+            }
+          }
+        }
+      };
 
-  int cornerIdx    = distIdxLeft;
-  int potentialIdx = -1;
-  std::cout << "First corner: " << cornerIdx << std::endl;
-  for (uint8_t i = distIdxLeft + 1; i < i1->bitmapHeight + distIdxLeft; i++) {
-    if (distLeft[i] < distLeft[i - 1]) potentialIdx = i;
-    else if ((distLeft[i] == distLeft[i - 1]) && (potentialIdx != -1)) {
-      cornerIdx    = potentialIdx;
-      potentialIdx = -1;
-      std::cout << "(1) Corner at: " << cornerIdx << std::endl;
-    } else if ((distLeft[i] > distLeft[i - 1]) && (potentialIdx == -1) && (cornerIdx != (i - 1))) {
-      cornerIdx = i - 1;
-      std::cout << "(2) Corner at: " << cornerIdx << std::endl;
+      int i = distIdxLeft;
+      int j = i + 1;
+      while (j < i1->bitmapHeight + distIdxLeft) {
+        bool found = true;
+        for (int k = j + 1; k < i1->bitmapHeight + distIdxLeft; k++) {
+          int val = crossLeft(i, j, k);
+          if (val >= 0) {
+            found = false;
+            break;
+          }
+        }
+        if (found) {
+          adjustLeft(i, j);
+          i = j;
+          j = i + 1;
+        } else {
+          j += 1;
+        }
+      }
     }
+
+    if (i2->bitmapHeight >= 3) {
+      auto crossRight = [distRight](int i, int j, int k) -> int {
+        return (distRight[j] - distRight[i]) * (k - i) - (j - i) * (distRight[k] - distRight[i]);
+      };
+
+      auto adjustRight = [distRight](int i, int j) {
+        if ((j - i) > 1) {
+          if ((distRight[j] - distRight[i]) == 0) {
+            for (int k = i + 1; k < j; k++) { distRight[k] = distRight[i]; }
+          } else {
+            float slope = float(distRight[j] - distRight[i]) / float(j - i);
+            float v     = distRight[i];
+            for (int k = i + 1; k < j; k++) {
+              v += slope;
+              distRight[k] = v; // + 0.5;
+            }
+          }
+        }
+      };
+
+      int i = distIdxRight;
+      int j = i + 1;
+      while (j < i2->bitmapHeight + distIdxRight) {
+        bool found = true;
+        for (int k = j + 1; k < i2->bitmapHeight + distIdxRight; k++) {
+          int val = crossRight(i, j, k);
+          if (val >= 0) {
+            found = false;
+            break;
+          }
+        }
+        if (found) {
+          adjustRight(i, j);
+          i = j;
+          j = i + 1;
+        } else {
+          j += 1;
+        }
+      }
+    }
+
+#if 0
+    std::cout << "Computed left-right convex hulls (origin:" << +origin << "firstIdx:" << +firstIdx
+              << ", length:" << +length << ", hight:" << +hight << "):" << std::endl;
+    for (int i = 0; i < hight; i++) {
+      std::cout << "  ";
+      if (distLeft[i] != -1) {
+        std::cout << +distLeft[i];
+      } else {
+        std::cout << " ";
+      }
+
+      std::cout << ", ";
+
+      if (distRight[i] != -1) {
+        std::cout << +distRight[i];
+      } else {
+        std::cout << " ";
+      }
+      std::cout << std::endl;
+    }
+#endif
+
+    kerning = 999;
+    for (int i = firstIdx; i < firstIdx + length; i++) {
+      int dist = distLeft[i] + distRight[i];
+      if (dist < kerning) kerning = dist;
+      if ((i > 0) && (distLeft[i - 1] != -1)) {
+        int dist = distLeft[i - 1] + distRight[i];
+        if (dist < kerning) kerning = dist;
+      }
+      if ((i < (hight - 1)) && (distLeft[i + 1] != -1)) {
+        int dist = distLeft[i + 1] + distRight[i];
+        if (dist < kerning) kerning = dist;
+      }
+    }
+    if ((firstIdx > 0) && (distRight[firstIdx - 1] != -1)) {
+      int dist = distLeft[firstIdx] + distRight[firstIdx - 1];
+      if (dist < kerning) kerning = dist;
+    }
+    int lastIdx = firstIdx + length - 1;
+    if ((lastIdx < (hight - 1)) && (distRight[lastIdx + 1] != -1)) {
+      int dist = distLeft[lastIdx] + distRight[lastIdx + 1];
+      if (dist < kerning) kerning = dist;
+    }
+    kerning = (-MIN(kerning - KERNING_SIZE, i2->bitmapWidth)) - normal_distance;
+
+    //} else {
+    //  std::cout << "No common lines between glyphs." << std::endl;
   }
-  if (cornerIdx != (i1->bitmapHeight + distIdxLeft - 1)) {
-    std::cout << "Corner at: " << (i1->bitmapHeight + distIdxLeft - 1) << std::endl;
-  }
+
+  // std::cout << "Kerning value: " << kerning << std::endl;
+  result1 = kerning << 6;
 
 #else
+  kerning        = 0;
   int buffWidth  = (font_->getFaceHeader(faceIdx_)->emSize >> 6) * 2;
   int buffHeight = font_->getFaceHeader(faceIdx_)->lineHeight * 2;
 
@@ -170,35 +276,6 @@ auto DrawingSpace::computeAutoKerning(const IBMFDefs::BitmapPtr b1, const IBMFDe
       }
     }
 
-    //    std::cout << '+';
-    //    for (int col = 0; col < buffWidth; col++) {
-    //      std::cout << '-';
-    //    }
-    //    std::cout << '+' << std::endl;
-
-    //    for (int row = 0; row < buffHeight; row++) {
-    //      std::cout << '|';
-    //      for (int col = 0; col < buffWidth; col++) {
-    //        int  buffIdx = (row * buffWidth) + col;
-    //        char ch      = ' ';
-    //        if (buffer[buffIdx] == 1) {
-    //          ch = 'X';
-    //        } else if (buffer[buffIdx] == 2) {
-    //          ch = '*';
-    //        } else if (buffer[buffIdx] == 3) {
-    //          ch = '?';
-    //        }
-    //        std::cout << ch;
-    //      }
-    //      std::cout << '|' << std::endl;
-    //    }
-
-    //    std::cout << '+';
-    //    for (int col = 0; col < buffWidth; col++) {
-    //      std::cout << '-';
-    //    }
-    //    std::cout << '+' << std::endl;
-
     pos.setX(pos.x() - 1);
     kerning -= 1;
     max -= 1;
@@ -208,10 +285,12 @@ end:
   //
 
   delete[] buffer;
-  FIX16 result = (max >= 0) ? ((kerning + KERNING_SIZE + 1) << 6) : 0;
+  FIX16 result2 = (max >= 0) ? ((kerning + KERNING_SIZE + 1) << 6) : 0;
 #endif
 
-  return result;
+  // std::cout << "Convex Hull: " << (result1 / 64) << " Other: " << (result2 / 64) << std::endl;
+
+  return result1;
 }
 
 void DrawingSpace::setFont(IBMFFontModPtr font) {
@@ -231,7 +310,7 @@ void DrawingSpace::setText(QString text) {
   computeSize();
 }
 
-void DrawingSpace::setAutoKerning(bool value) {
+void DrawingSpace::setOpticalKerning(bool value) {
   opticalKerning_ = value;
   computeSize();
 }
@@ -363,7 +442,7 @@ void DrawingSpace::drawScreen(QPainter *painter) {
   while (true) {
     if (g1 != NO_GLYPH_CODE) {
       if ((!kernPairPresent) && opticalKerning_ && (g2 != NO_GLYPH_CODE)) {
-        kern = computeAutoKerning(b1, b2, i1, i2);
+        kern = computeOpticalKerning(b1, b2, i1, i2);
       }
 
       FIX16 advance = i1->advance;
@@ -488,7 +567,9 @@ void DrawingSpace::drawScreen(QPainter *painter) {
           kerning = float(kern);
         }
 
-        if ((!kernPairPresent) && opticalKerning_) { kerning = computeAutoKerning(b1, b2, i1, i2); }
+        if ((!kernPairPresent) && opticalKerning_) {
+          kerning = computeOpticalKerning(b1, b2, i1, i2);
+        }
 
         // std::cout << kerning << " " << std::endl;
       } else {
