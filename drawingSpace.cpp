@@ -1,6 +1,7 @@
 #include "drawingSpace.h"
 
 #include <array>
+#include <cmath>
 #include <iostream>
 
 #include <QPainter>
@@ -24,15 +25,24 @@ void DrawingSpace::setBypassGlyph(IBMFDefs::GlyphCode glyphCode, IBMFDefs::Bitma
   update();
 }
 
+typedef int32_t FIX32;
+
+#define FRACT_BITS          10
+#define FIXED_POINT_ONE     (1 << FRACT_BITS)
+#define MAKE_INT_FIXED(x)   ((x) << FRACT_BITS)
+#define MAKE_FLOAT_FIXED(x) ((FIX32) ((x) *FIXED_POINT_ONE))
+#define MAKE_FIXED_INT(x)   ((x) >> FRACT_BITS)
+#define MAKE_FIXED_FLOAT(x) (((float) (x)) / FIXED_POINT_ONE)
+
+#define FIXED_MULT(x, y) ((x) * (y) >> FRACT_BITS)
+#define FIXED_DIV(x, y)  (((x) << FRACT_BITS) / (y))
+
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBMFDefs::BitmapPtr b2,
                                          const IBMFDefs::GlyphInfoPtr i1,
                                          const IBMFDefs::GlyphInfoPtr i2) const -> FIX16 {
-  int kerning = 0;
-
-#if CONVEX_HULL
   FIX16 result1 = 0;
 
   int normal_distance =
@@ -52,17 +62,20 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
   int8_t length        = MIN((i1->bitmapHeight - firstIdxLeft), (i2->bitmapHeight - firstIdxRight));
   int8_t firstIdx      = MAX(firstIdxLeft, firstIdxRight);
 
+  FIX32 kerning = 0;
   if (length > 0) { // Length <= 0 means that there is no alignment between the characters
     // hight of significant parts of dist arrays
     int8_t hight = origin + MAX((i1->bitmapHeight - i1->verticalOffset),
                                 (i2->bitmapHeight - i2->verticalOffset));
 
     // distance computation for left and right characters
-    auto distLeft  = std::shared_ptr<int8_t[]>(new int8_t[hight]);
-    auto distRight = std::shared_ptr<int8_t[]>(new int8_t[hight]);
+    auto distLeft  = std::shared_ptr<FIX32[]>(new FIX32[hight]);
+    auto distRight = std::shared_ptr<FIX32[]>(new FIX32[hight]);
 
-    memset(distLeft.get(), -1, hight);
-    memset(distRight.get(), -1, hight);
+    for (int i = 0; i < hight; i++) {
+      distLeft[i]  = MAKE_FLOAT_FIXED(-1.0);
+      distRight[i] = MAKE_FLOAT_FIXED(-1.0);
+    }
 
     // distLeft is receiving the right distance in pixels of the first black pixel on each
     // line of the character
@@ -71,7 +84,7 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
       distLeft[i] = 0;
       for (int col = i1->bitmapWidth - 1; col >= 0; col--) {
         if (b1->pixels[idx + col]) break;
-        distLeft[i] += 1;
+        distLeft[i] += FIXED_POINT_ONE;
       }
     }
 
@@ -83,7 +96,7 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
       distRight[i] = 0;
       for (int col = 0; col < i2->bitmapWidth; col++) {
         if (b2->pixels[idx + col]) break;
-        distRight[i] += 1;
+        distRight[i] += FIXED_POINT_ONE;
       }
     }
 
@@ -93,21 +106,22 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
     if (i1->bitmapHeight >= 3) { // 1 and 2 line characters don't need adjustment
 
       // Compute the cross product of 3 points. If negative, the angle is convex
-      auto crossLeft = [distLeft](int i, int j, int k) -> int {
-        return (distLeft[j] - distLeft[i]) * (k - i) - (j - i) * (distLeft[k] - distLeft[i]);
+      auto crossLeft = [distLeft](int i, int j, int k) -> FIX32 {
+        return FIXED_MULT((distLeft[j] - distLeft[i]), MAKE_INT_FIXED(k - i)) -
+               FIXED_MULT(MAKE_INT_FIXED(j - i), (distLeft[k] - distLeft[i]));
       };
 
       // Adjusts distances to get a line between two vertices of the Convex Hull
       auto adjustLeft = [distLeft](int i, int j) {
         if ((j - i) > 1) {
-          if ((distLeft[j] - distLeft[i]) == 0) {
+          if (abs(distLeft[j] - distLeft[i]) <= MAKE_FLOAT_FIXED(0.01)) {
             for (int k = i + 1; k < j; k++) { distLeft[k] = distLeft[i]; }
           } else {
-            float slope = float(distLeft[j] - distLeft[i]) / float(j - i);
-            float v     = distLeft[i];
+            FIX32 slope = FIXED_DIV((distLeft[j] - distLeft[i]), MAKE_INT_FIXED(j - i));
+            FIX32 v     = distLeft[i];
             for (int k = i + 1; k < j; k++) {
               v += slope;
-              distLeft[k] = v + 0.5;
+              distLeft[k] = v;
             }
           }
         }
@@ -117,10 +131,10 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
       // to get the right portion of the Convex Hull polygon.
       int i = distIdxLeft;
       int j = i + 1;
-      while (j < i1->bitmapHeight + distIdxLeft) {
+      while (j < (i1->bitmapHeight + distIdxLeft)) {
         bool found = true;
         for (int k = j + 1; k < i1->bitmapHeight + distIdxLeft; k++) {
-          int val = crossLeft(i, j, k);
+          FIX32 val = crossLeft(i, j, k);
           if (val >= 0) {
             found = false;
             break;
@@ -141,21 +155,22 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
     if (i2->bitmapHeight >= 3) { // 1 and 2 line characters don't need adjustment
 
       // Compute the cross product of 3 points. If negative, the angle is convex.
-      auto crossRight = [distRight](int i, int j, int k) -> int {
-        return (distRight[j] - distRight[i]) * (k - i) - (j - i) * (distRight[k] - distRight[i]);
+      auto crossRight = [distRight](int i, int j, int k) -> FIX32 {
+        return FIXED_MULT((distRight[j] - distRight[i]), MAKE_INT_FIXED(k - i)) -
+               FIXED_MULT(MAKE_INT_FIXED(j - i), (distRight[k] - distRight[i]));
       };
 
       // Adjusts distances to get a line between two vertices of the Convex Hull
       auto adjustRight = [distRight](int i, int j) {
         if ((j - i) > 1) {
-          if ((distRight[j] - distRight[i]) == 0) {
+          if (abs(distRight[j] - distRight[i]) <= MAKE_FLOAT_FIXED(0.01)) {
             for (int k = i + 1; k < j; k++) { distRight[k] = distRight[i]; }
           } else {
-            float slope = float(distRight[j] - distRight[i]) / float(j - i);
-            float v     = distRight[i];
+            FIX32 slope = FIXED_DIV((distRight[j] - distRight[i]), MAKE_INT_FIXED(j - i));
+            FIX32 v     = distRight[i];
             for (int k = i + 1; k < j; k++) {
               v += slope;
-              distRight[k] = v + 0.5;
+              distRight[k] = v;
             }
           }
         }
@@ -165,10 +180,10 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
       // to get the left portion of the Convex Hull polygon.
       int i = distIdxRight;
       int j = i + 1;
-      while (j < i2->bitmapHeight + distIdxRight) {
+      while (j < (i2->bitmapHeight + distIdxRight)) {
         bool found = true;
         for (int k = j + 1; k < i2->bitmapHeight + distIdxRight; k++) {
-          int val = crossRight(i, j, k);
+          FIX32 val = crossRight(i, j, k);
           if (val >= 0) {
             found = false;
             break;
@@ -189,16 +204,16 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
               << ", length:" << +length << ", hight:" << +hight << "):" << std::endl;
     for (int i = 0; i < hight; i++) {
       std::cout << "  ";
-      if (distLeft[i] != -1) {
-        std::cout << +distLeft[i];
+      if (distLeft[i] != MAKE_FLOAT_FIXED(-1)) {
+        std::cout << MAKE_FIXED_FLOAT(distLeft[i]);
       } else {
         std::cout << " ";
       }
 
       std::cout << ", ";
 
-      if (distRight[i] != -1) {
-        std::cout << +distRight[i];
+      if (distRight[i] != MAKE_FLOAT_FIXED(-1)) {
+        std::cout << MAKE_FIXED_FLOAT(distRight[i]);
       } else {
         std::cout << " ";
       }
@@ -209,106 +224,40 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
     // Now, compute the smallest distance that exists between
     // the two characters. Pixels on each line are checked as well
     // as angled pixels (on the lines above and below)
-    kerning = 999;
+    kerning = MAKE_INT_FIXED(999);
+    FIX32 dist;
     for (int i = firstIdx; i < firstIdx + length; i++) {
-      int dist = distLeft[i] + distRight[i];
+      dist = distLeft[i] + distRight[i];
       if (dist < kerning) kerning = dist;
-      if ((i > 0) && (distLeft[i - 1] != -1)) {
-        int dist = distLeft[i - 1] + distRight[i];
+      if ((i > 0) && (distLeft[i - 1] >= 0)) {
+        dist = distLeft[i - 1] + distRight[i];
         if (dist < kerning) kerning = dist;
       }
-      if ((i < (hight - 1)) && (distLeft[i + 1] != -1)) {
-        int dist = distLeft[i + 1] + distRight[i];
+      if ((i < (hight - 1)) && (distLeft[i + 1] >= 0)) {
+        dist = distLeft[i + 1] + distRight[i];
         if (dist < kerning) kerning = dist;
       }
     }
-    if ((firstIdx > 0) && (distRight[firstIdx - 1] != -1)) {
-      int dist = distLeft[firstIdx] + distRight[firstIdx - 1];
+    if ((firstIdx > 0) && (distRight[firstIdx - 1] >= 0)) {
+      dist = distLeft[firstIdx] + distRight[firstIdx - 1];
       if (dist < kerning) kerning = dist;
     }
     int lastIdx = firstIdx + length - 1;
-    if ((lastIdx < (hight - 1)) && (distRight[lastIdx + 1] != -1)) {
-      int dist = distLeft[lastIdx] + distRight[lastIdx + 1];
+    if ((lastIdx < (hight - 1)) && (distRight[lastIdx + 1] >= 0)) {
+      dist = distLeft[lastIdx] + distRight[lastIdx + 1];
       if (dist < kerning) kerning = dist;
     }
+
+    // std::cout << "Minimal distance: " << MAKE_FIXED_FLOAT(kerning) << std::endl;
 
     // Adjust the resulting kerning value, considering the targetted KERNING_SIZE (the space to have
     // between characters), the size of the character and the normal distance that will be used by
     // the writing algorithm
-    kerning = (-MIN(kerning - KERNING_SIZE, i2->bitmapWidth)) - normal_distance;
-
-    //} else {
-    //  std::cout << "No common lines between glyphs." << std::endl;
+    kerning = (-MIN(kerning - MAKE_INT_FIXED(KERNING_SIZE), MAKE_INT_FIXED(i2->bitmapWidth))) -
+              MAKE_INT_FIXED(normal_distance);
   }
 
-  // std::cout << "Kerning value: " << kerning << std::endl;
-  result1 = kerning << 6;
-
-#else
-  kerning        = 0;
-  int buffWidth  = (font_->getFaceHeader(faceIdx_)->emSize >> 6) * 2;
-  int buffHeight = font_->getFaceHeader(faceIdx_)->lineHeight * 2;
-
-  uint8_t *buffer = new uint8_t[buffWidth * buffHeight];
-
-  memset(buffer, 0, buffWidth * buffHeight);
-
-  QPoint pos = QPoint(5, (buffHeight / 3) * 2); //  This is the origin
-
-  int voff = i1->verticalOffset;
-  int hoff = i1->horizontalOffset;
-
-  int idx = 0;
-  for (int row = 0; row < b1->dim.height; row++) {
-    for (int col = 0; col < b1->dim.width; col++, idx++) {
-      if (b1->pixels[idx] != 0) {
-        int buffIdx     = ((pos.y() - voff + row) * buffWidth) + (pos.x() - hoff + col);
-        buffer[buffIdx] = 1;
-      }
-    }
-  }
-
-  int advance = ((i1->advance + 32) >> 6);
-  if (advance == 0) advance = i1->bitmapWidth + 1;
-
-  pos.setX(pos.x() + advance);
-
-  int max = advance; // + hoff;
-  while (max > 0) {
-    int voff = i2->verticalOffset;
-    int hoff = i2->horizontalOffset;
-
-    for (int col = 0; col < b2->dim.width; col++) {
-      for (int row = 0; row < b2->dim.height; row++) {
-        if (b2->pixels[row * b2->dim.width + col] != 0) {
-          int buffIdx = ((pos.y() - voff + row) * buffWidth) + (pos.x() - hoff + col);
-          if (buffer[buffIdx] == 1) {
-            buffer[buffIdx] = 2;
-            goto end;
-          } else if (buffer[buffIdx - buffWidth] == 1) {
-            buffer[buffIdx - buffWidth] = 2;
-            goto end;
-          } else if (buffer[buffIdx + buffWidth] == 1) {
-            buffer[buffIdx + buffWidth] = 2;
-            goto end;
-          } else {
-            buffer[buffIdx] = 3;
-          }
-        }
-      }
-    }
-
-    pos.setX(pos.x() - 1);
-    kerning -= 1;
-    max -= 1;
-  }
-
-end:
-  //
-
-  delete[] buffer;
-  FIX16 result2 = (max >= 0) ? ((kerning + KERNING_SIZE + 1) << 6) : 0;
-#endif
+  result1 = kerning >> 4; // Convert to FIX16
 
   // std::cout << "Convex Hull: " << (result1 / 64) << " Other: " << (result2 / 64) << std::endl;
 
@@ -525,15 +474,15 @@ void DrawingSpace::drawScreen(QPainter *painter) {
   }
 
 #else
-  IBMFDefs::BitmapPtr b1, b2;
-  IBMFDefs::GlyphInfoPtr i1, i2;
-  IBMFDefs::GlyphCode g1, g2;
+  IBMFDefs::BitmapPtr       b1, b2;
+  IBMFDefs::GlyphInfoPtr    i1, i2;
+  IBMFDefs::GlyphCode       g1, g2;
   IBMFDefs::GlyphLigKernPtr k1, k2;
 
   for (auto &ch : textToDraw_) {
-    IBMFDefs::BitmapPtr bitmap;
-    IBMFDefs::GlyphInfoPtr glyphInfo;
-    IBMFDefs::GlyphCode glyphCode;
+    IBMFDefs::BitmapPtr       bitmap;
+    IBMFDefs::GlyphInfoPtr    glyphInfo;
+    IBMFDefs::GlyphCode       glyphCode;
     IBMFDefs::GlyphLigKernPtr ligKerns;
 
     if (ch == '\n') {
@@ -541,7 +490,7 @@ void DrawingSpace::drawScreen(QPainter *painter) {
       pos_.setY(pos_.y() + lineHeight);
       pos_.setX(0);
       startOfLine = true;
-      first = true;
+      first       = true;
       continue;
     } else if (ch == ' ') {
       if (word_.size() > 0) {
@@ -556,9 +505,9 @@ void DrawingSpace::drawScreen(QPainter *painter) {
       // taken instead of the same glyphCode present in the font that was still not
       // updated
       if ((bypassGlyphCode_ != IBMFDefs::NO_GLYPH_CODE) && (glyphCode == bypassGlyphCode_)) {
-        bitmap = bypassBitmap_;
+        bitmap    = bypassBitmap_;
         glyphInfo = bypassGlyphInfo_;
-        ligKerns = bypassGlyphLigKern_;
+        ligKerns  = bypassGlyphLigKern_;
       } else {
         if (!font_->getGlyph(faceIdx_, glyphCode, glyphInfo, bitmap, ligKerns)) { continue; }
       }
@@ -569,7 +518,7 @@ void DrawingSpace::drawScreen(QPainter *painter) {
     //    }
 
     FIX16 kerning = 0;
-    bool kernPairPresent;
+    bool  kernPairPresent;
 
     if (opticalKerning_ || normalKerning_) {
       if (!first) {
@@ -584,16 +533,16 @@ void DrawingSpace::drawScreen(QPainter *painter) {
 
         if (normalKerning_) {
           IBMFDefs::GlyphCode code = g2;
-          FIX16 kern;
+          FIX16               kern;
           while (font_->ligKern(faceIdx_, g1, &code, &kern, &kernPairPresent, k1))
             ;
           if (code != g2) {
             word_.pop_back();
             glyphCode = g2 = code;
             if ((bypassGlyphCode_ != IBMFDefs::NO_GLYPH_CODE) && (glyphCode == bypassGlyphCode_)) {
-              bitmap = bypassBitmap_;
+              bitmap    = bypassBitmap_;
               glyphInfo = bypassGlyphInfo_;
-              ligKerns = bypassGlyphLigKern_;
+              ligKerns  = bypassGlyphLigKern_;
             } else {
               if (!font_->getGlyph(faceIdx_, glyphCode, glyphInfo, bitmap, ligKerns)) { continue; }
             }
@@ -611,10 +560,10 @@ void DrawingSpace::drawScreen(QPainter *painter) {
         // std::cout << kerning << " " << std::endl;
       } else {
         first = false;
-        b2 = bitmap;
-        i2 = glyphInfo;
-        g2 = glyphCode;
-        k2 = ligKerns;
+        b2    = bitmap;
+        i2    = glyphInfo;
+        g2    = glyphCode;
+        k2    = ligKerns;
       }
     }
 
