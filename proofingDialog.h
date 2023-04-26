@@ -158,6 +158,8 @@ const constexpr char *proofingTexts[] = {
     "Victor jagt zwölf Boxkämpfer quer über den großen Sylter Deich. (\"Victor chases twelve "
     "boxers "
     "across the Great Levee of Sylt.\")\n"
+    "\nGreek:\n"
+    "Ξεσκεπάζω τὴν ψυχοφθόρα βδελυγμία. (\"I uncover the soul-destroying abomination.\")\n"
     "\nIcelandic:\n"
     "Kæmi ný öxi hér, ykist þjófum nú bæði víl og ádrepa. (\"If a new axe were here, thieves would "
     "feel increasing deterrence and punishment.\")\n"

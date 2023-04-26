@@ -107,7 +107,7 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
             float v     = distLeft[i];
             for (int k = i + 1; k < j; k++) {
               v += slope;
-              distLeft[k] = v; // + 0.5;
+              distLeft[k] = v + 0.5;
             }
           }
         }
@@ -155,14 +155,14 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
             float v     = distRight[i];
             for (int k = i + 1; k < j; k++) {
               v += slope;
-              distRight[k] = v; // + 0.5;
+              distRight[k] = v + 0.5;
             }
           }
         }
       };
 
       // Find vertices using the cross product and adjust the distances
-      // to get the right left portion of the Convex Hull polygon.
+      // to get the left portion of the Convex Hull polygon.
       int i = distIdxRight;
       int j = i + 1;
       while (j < i2->bitmapHeight + distIdxRight) {

@@ -19,8 +19,8 @@ using namespace IBMFDefs;
 #define DEBUG 0
 
 #if DEBUG
-  #include <iomanip>
-  #include <iostream>
+#include <iomanip>
+#include <iostream>
 #endif
 
 /**
@@ -103,7 +103,7 @@ public:
 
   auto ligKern(int faceIndex, const GlyphCode glyphCode1, GlyphCode *glyphCode2, FIX16 *kern,
                bool *kernPairPresent, GlyphLigKernPtr bypassLigKern = nullptr) const -> bool;
-  auto getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyph_info, BitmapPtr &bitmap,
+  auto getGlyph(int faceIndex, int glyphCode, GlyphInfoPtr &glyphInfo, BitmapPtr &bitmap,
                 GlyphLigKernPtr &glyphLigKern) const -> bool;
   auto saveFaceHeader(int faceIndex, FaceHeader &face_header) -> bool;
   // The font parameter is only used with the BACKUP format
