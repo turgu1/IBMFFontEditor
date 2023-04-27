@@ -1325,7 +1325,7 @@
      <x>0</x>
      <y>0</y>
      <width>1325</width>
-     <height>19</height>
+     <height>30</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -1369,9 +1369,19 @@
    </widget>
    <widget class="QMenu" name="menuProofing">
     <property name="title">
-     <string>Proofing</string>
+     <string>Tools</string>
     </property>
     <addaction name="actionProofing_Tool"/>
+    <addaction name="separator"/>
+    <addaction name="separator"/>
+    <addaction name="actionImport_Modifications_File"/>
+    <addaction name="actionInitialize_Modifications_File"/>
+    <addaction name="separator"/>
+    <addaction name="actionDump_Font_Content"/>
+    <addaction name="actionDump_Modif_Content"/>
+    <addaction name="separator"/>
+    <addaction name="actionDump_Font_Content_With_Glyphs_Bitmap"/>
+    <addaction name="actionDump_Modif_Content_With_Glyphs_Bitmap"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="editMenu"/>
@@ -1436,6 +1446,36 @@
   <action name="actionImportHexFont">
    <property name="text">
     <string>GNU  Unicode Hex Font ...</string>
+   </property>
+  </action>
+  <action name="actionImport_Modifications_File">
+   <property name="text">
+    <string>Import Modifications File</string>
+   </property>
+  </action>
+  <action name="actionInitialize_Modifications_File">
+   <property name="text">
+    <string>Initialize Modifications File</string>
+   </property>
+  </action>
+  <action name="actionDump_Font_Content">
+   <property name="text">
+    <string>Dump Font Content</string>
+   </property>
+  </action>
+  <action name="actionDump_Modif_Content">
+   <property name="text">
+    <string>Dump Modif Content</string>
+   </property>
+  </action>
+  <action name="actionDump_Font_Content_With_Glyphs_Bitmap">
+   <property name="text">
+    <string>Dump Font Content With Glyphs Bitmap</string>
+   </property>
+  </action>
+  <action name="actionDump_Modif_Content_With_Glyphs_Bitmap">
+   <property name="text">
+    <string>Dump Modif Content With Glyphs Bitmap</string>
    </property>
   </action>
  </widget>

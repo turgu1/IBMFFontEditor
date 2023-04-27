@@ -84,7 +84,7 @@
 //   faces for which a glyph has been modified
 // - In the FaceHeader, the glyphCount can be different for each face present as it
 //   reflects the number of modified glyphs present in this backup
-// - The GlyphInfo is replaced with GlyphBackupInfo that contains the codePoint
+// - The GlyphInfo is replaced with BackupGlyphInfo that contains the codePoint
 //   associated with the glyph.
 // - The information kept for a glyph that was modified are: The pixels bitmap, the
 //   glyphInfo metrics and the lig/kern table.
@@ -314,32 +314,6 @@ typedef PixelPoolIndex (*GlyphsPixelPoolIndexesTempPtr)[]; // One for each glyph
 //
 // -----
 //
-// Here is the original LigKern table entry format (4 bytes). Byte 1, 3 and 4 have
-// two different meanings as show below (a big-endian format...):
-//
-//           Byte 1                   Byte 2
-// +------------------------+------------------------+
-// |        whole           |                        |
-// +------------------------+       Next Char        +
-// |Stop| nextStepRelative  |                        |
-// +------------------------+------------------------+
-//
-//
-//           Byte 3                   Byte 4
-// +------------------------+------------------------+
-// |Kern|       | a | b | c |    Replacement Char    |  <- isAKern (Kern in the diagram) is false
-// +------------------------+------------------------+
-// |isKern|Displacement High|    Displacement Low    |  <- isAKern is true
-// +------------------------+------------------------+
-//
-// The following fields are not used/replaced in this application:
-//
-//    - nextStepRelative
-//    - Ops a, b, and c
-//    - whole can be reduced to one GoTo bit
-//
-// ----
-//
 // Here is the optimized version considering larger characters table
 // and that some fields are not being used (BEWARE: a little-endian format):
 //
@@ -367,41 +341,6 @@ typedef PixelPoolIndex (*GlyphsPixelPoolIndexesTempPtr)[]; // One for each glyph
 //
 // clang-format on
 
-#define ORIGINAL_FORMAT 0
-#if ORIGINAL_FORMAT
-union SkipByte {
-  uint8_t whole : 8;
-  struct {
-    uint8_t nextStepRelative : 7;
-    bool    stop             : 1;
-  } s;
-};
-
-union OpCodeByte {
-  struct {
-    bool    c_op    : 1;
-    bool    b_op    : 1;
-    uint8_t a_op    : 5;
-    bool    isAKern : 1;
-  } op;
-  struct {
-    uint8_t displHigh : 7;
-    bool    isAKern   : 1;
-  } d;
-};
-
-union RemainderByte {
-  GlyphCode replacementChar : 8;
-  uint8_t   displLow        : 8; // Ligature: replacement char code, kern: displacement
-};
-
-struct LigKernStep {
-  SkipByte      skip;
-  GlyphCode     nextGlyphCode;
-  OpCodeByte    opCode;
-  RemainderByte remainder;
-};
-#else
 union Nxt {
   struct {
     GlyphCode nextGlyphCode : 15;
@@ -411,6 +350,7 @@ union Nxt {
     uint16_t val;
   } whole;
 };
+
 union ReplDisp {
   struct {
     GlyphCode replGlyphCode : 15;
@@ -435,7 +375,6 @@ struct LigKernStep {
   Nxt      a;
   ReplDisp b;
 };
-#endif
 
 struct RLEMetrics {
   uint8_t dynF         : 4;
@@ -457,7 +396,7 @@ struct GlyphInfo {
 
 typedef std::shared_ptr<GlyphInfo> GlyphInfoPtr;
 
-struct GlyphBackupInfo {
+struct BackupGlyphInfo {
   uint8_t    bitmapWidth;      // Width of bitmap once decompressed
   uint8_t    bitmapHeight;     // Height of bitmap once decompressed
   int8_t     horizontalOffset; // Horizontal offset from the orign
@@ -465,12 +404,13 @@ struct GlyphBackupInfo {
   uint16_t   packetLength;     // Length of the compressed bitmap
   FIX16      advance;          // Normal advance to the next glyph position in line
   RLEMetrics rleMetrics;       // RLE Compression information
-  uint8_t    ligKernPgmIndex;  // = 255 if none, Index in the ligature/kern array
-  char32_t   mainCodePoint;    // Main composite (or not) codePoint for kerning matching algo
-  char32_t   codePoint;        // CodePoint associated with the glyph (for BACKUP Format only)
+  int16_t    ligCount;
+  int16_t    kernCount;
+  char32_t   mainCodePoint; // Main composite (or not) codePoint for kerning matching algo
+  char32_t   codePoint;     // CodePoint associated with the glyph (for BACKUP Format only)
 };
 
-typedef std::shared_ptr<GlyphBackupInfo> GlyphBackupInfoPtr;
+typedef std::shared_ptr<BackupGlyphInfo> BackupGlyphInfoPtr;
 
 // clang-format off
 // 
@@ -550,6 +490,26 @@ struct GlyphLigKern {
   GlyphKernSteps kernSteps;
 };
 typedef std::shared_ptr<GlyphLigKern> GlyphLigKernPtr;
+
+#pragma pack(push, 1)
+struct BackupGlyphKernStep {
+  char32_t nextCodePoint;
+  FIX16    kern;
+};
+typedef std::vector<BackupGlyphKernStep> BackupGlyphKernSteps;
+
+struct BackupGlyphLigStep {
+  char32_t nextCodePoint;
+  char32_t replacementCodePoint;
+};
+typedef std::vector<BackupGlyphLigStep> BackupGlyphLigSteps;
+
+struct BackupGlyphLigKern {
+  BackupGlyphLigSteps  ligSteps;
+  BackupGlyphKernSteps kernSteps;
+};
+typedef std::shared_ptr<BackupGlyphLigKern> BackupGlyphLigKernPtr;
+#pragma pack(pop)
 
 // These are the structure required to create a new font
 // from some parameters. For now, it is used to create UTF32

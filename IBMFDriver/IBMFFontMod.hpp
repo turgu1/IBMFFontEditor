@@ -19,9 +19,13 @@ using namespace IBMFDefs;
 #define DEBUG 0
 
 #if DEBUG
-#include <iomanip>
-#include <iostream>
+  #include <iomanip>
+  #include <iostream>
 #endif
+
+class IBMFFontMod;
+
+typedef std::shared_ptr<IBMFFontMod> IBMFFontModPtr;
 
 /**
  * @brief Access to a IBMF font.
@@ -33,17 +37,19 @@ using namespace IBMFDefs;
 class IBMFFontMod {
 public:
   struct Face {
-    FaceHeaderPtr                   header;
-    std::vector<GlyphInfoPtr>       glyphs;       // Not used with BAKCUP format
-    std::vector<GlyphBackupInfoPtr> glyphsBackup; // Only used with BACKUP format
-    std::vector<BitmapPtr>          bitmaps;
-    std::vector<GlyphLigKernPtr>    glyphsLigKern; // Specific to each glyph
-
+    FaceHeaderPtr                header;
+    std::vector<GlyphInfoPtr>    glyphs; // Not used with BAKCUP format
+    std::vector<BitmapPtr>       bitmaps;
+    std::vector<GlyphLigKernPtr> glyphsLigKern; // Specific to each glyph
     // used ontly at save and load time
     std::vector<RLEBitmapPtr> compressedBitmaps; // Todo: maybe unused at the end
 
     // used only at save time
     std::vector<LigKernStep> ligKernSteps; // The complete list of lig/kerns
+
+    // Only used with BACKUP format
+    std::vector<BackupGlyphInfoPtr>    backupGlyphs;
+    std::vector<BackupGlyphLigKernPtr> backupGlyphsLigKern;
   };
 
   typedef std::shared_ptr<Face> FacePtr;
@@ -61,8 +67,8 @@ public:
 
   ~IBMFFontMod() { clear(); }
 
-  static auto createBackup() -> IBMFFontMod * {
-    IBMFFontMod *font = new IBMFFontMod();
+  static auto createBackup() -> IBMFFontModPtr {
+    IBMFFontModPtr font = IBMFFontModPtr(new IBMFFontMod());
     // clang-format off
     font->preamble_ = Preamble{
         .marker    = {'I', 'B', 'M', 'F'},
@@ -79,14 +85,16 @@ public:
   auto clear() -> void;
 
   inline auto getPreamble() const -> Preamble { return preamble_; }
+  inline auto getFontFormat() const -> FontFormat { return preamble_.bits.fontFormat; }
   inline auto isInitialized() const -> bool { return initialized_; }
   inline auto getLastError() const -> int { return lastError_; }
   inline auto getLineHeight(int faceIdx) const -> int {
-    return faceIdx < preamble_.faceCount ? faces_[faceIdx]->header->lineHeight : 0;
+    return ((faceIdx >= 0) && (faceIdx < preamble_.faceCount)) ? faces_[faceIdx]->header->lineHeight
+                                                               : 0;
   }
 
   inline auto getFaceHeader(int faceIdx) const -> const FaceHeaderPtr {
-    return faces_[faceIdx]->header;
+    return ((faceIdx >= 0) && (faceIdx < preamble_.faceCount)) ? faces_[faceIdx]->header : nullptr;
   }
 
   inline auto characterCodes() const -> const CharCodes * {
@@ -108,12 +116,22 @@ public:
   auto saveFaceHeader(int faceIndex, FaceHeader &face_header) -> bool;
   // The font parameter is only used with the BACKUP format
   auto saveGlyph(int faceIndex, int glyphCode, GlyphInfoPtr newGlyphInfo, BitmapPtr newBitmap,
-                 GlyphLigKernPtr glyphLigKern, IBMFFontMod *font = nullptr) -> bool;
+                 GlyphLigKernPtr glyphLigKern, IBMFFontModPtr font = nullptr) -> bool;
   auto convertToOneBit(const Bitmap &bitmapHeightBits, BitmapPtr *bitmapOneBit) -> bool;
   auto save(QDataStream &out) -> bool;
   auto translate(char32_t codePoint) const -> GlyphCode;
   auto getUTF32(GlyphCode glyphCode) const -> char32_t;
   auto toGlyphCode(char32_t codePoint) const -> GlyphCode;
+
+  auto showBitmap(const BitmapPtr bitmap) const -> void;
+  auto showBackupLigKerns(BackupGlyphLigKernPtr lk) const -> void;
+  auto showLigKerns(GlyphLigKernPtr lk) const -> void;
+  auto showBackupGlyphInfo(GlyphCode i, const BackupGlyphInfoPtr g) const -> void;
+  auto showGlyphInfo(GlyphCode i, const GlyphInfoPtr g) const -> void;
+  auto showFace(FacePtr face, bool withBitmaps) const -> void;
+  auto showCodePointBundles(int firstIdx, int count) const -> void;
+  auto showPlanes() const -> void;
+  auto showFont(bool withBitmaps = false) const -> void;
 
 protected:
   static constexpr uint8_t IBMF_VERSION = 4;
@@ -138,5 +156,3 @@ private:
   auto prepareLigKernVectors() -> bool;
   auto load() -> bool;
 };
-
-typedef std::shared_ptr<IBMFFontMod> IBMFFontModPtr;

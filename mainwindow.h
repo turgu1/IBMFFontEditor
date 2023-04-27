@@ -85,6 +85,14 @@ private slots:
 
   void on_pasteMainButton_clicked();
 
+  void on_actionDump_Font_Content_triggered();
+
+  void on_actionDump_Modif_Content_triggered();
+
+  void on_actionDump_Font_Content_With_Glyphs_Bitmap_triggered();
+
+  void on_actionDump_Modif_Content_With_Glyphs_Bitmap_triggered();
+
 private:
   const int MAX_RECENT_FILES = 10;
 
@@ -111,6 +119,7 @@ private:
   DrawingSpace *drawingSpace_;
 
   IBMFFontModPtr            ibmfFont_{nullptr};
+  IBMFFontModPtr            ibmfBackup_{nullptr};
   IBMFDefs::Preamble        ibmfPreamble_;
   IBMFDefs::FaceHeaderPtr   ibmfFaceHeader_{nullptr};
   IBMFDefs::GlyphLigKernPtr ibmfGlyphLigKern_{nullptr};
@@ -131,6 +140,7 @@ private:
   bool     checkFontChanged();
   bool     saveFont(bool askToConfirmName);
   void     newFontLoaded(QString filePath);
+  bool     openFont(QString filePath);
   bool     loadFont(QFile &file);
   bool     loadFace(uint8_t faceIdx);
   void     saveFace();
