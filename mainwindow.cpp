@@ -17,6 +17,7 @@
 #include "fix16Delegate.h"
 #include "hexFontParameterDialog.h"
 #include "pasteSelectionCommand.h"
+#include "showResultDialog.h"
 #include "ttfFontParameterDialog.h"
 
 //#define TRACE(str) std::cout << str << std::endl;
@@ -1458,36 +1459,169 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
 }
 
 void MainWindow::on_pasteMainButton_clicked() {
-  IBMFDefs::GlyphInfoPtr    glyphInfo;
-  IBMFDefs::BitmapPtr       selection;
-  IBMFDefs::GlyphLigKernPtr ligKern;
+  if ((ibmfFont_ != nullptr) && ibmfFont_->isInitialized()) {
+    IBMFDefs::GlyphInfoPtr    glyphInfo;
+    IBMFDefs::BitmapPtr       selection;
+    IBMFDefs::GlyphLigKernPtr ligKern;
 
-  int mainCode = getValue(ui->characterMetrics, 9, 1).toUInt();
-  // int hOffset  = getValue(ui->characterMetrics, 2, 1).toInt();
+    int mainCode = getValue(ui->characterMetrics, 9, 1).toUInt();
+    // int hOffset  = getValue(ui->characterMetrics, 2, 1).toInt();
 
-  if (ibmfFont_->getGlyph(ibmfFaceIdx_, mainCode, glyphInfo, selection, ligKern)) {
-    QPoint origin     = bitmapRenderer_->getOriginPos();
-    QPoint atLocation = QPoint(origin.x() - glyphInfo->horizontalOffset,
-                               origin.y() - glyphInfo->verticalOffset - 1);
-    QRect rect = QRect(atLocation.x(), atLocation.y(), selection->dim.width, selection->dim.height);
-    auto  undoSelection = bitmapRenderer_->getSelection(&rect);
-    undoStack_->push(
-        new PasteSelectionCommand(bitmapRenderer_, selection, undoSelection, atLocation));
+    if (ibmfFont_->getGlyph(ibmfFaceIdx_, mainCode, glyphInfo, selection, ligKern)) {
+      QPoint origin     = bitmapRenderer_->getOriginPos();
+      QPoint atLocation = QPoint(origin.x() - glyphInfo->horizontalOffset,
+                                 origin.y() - glyphInfo->verticalOffset - 1);
+      QRect  rect =
+          QRect(atLocation.x(), atLocation.y(), selection->dim.width, selection->dim.height);
+      auto undoSelection = bitmapRenderer_->getSelection(&rect);
+      undoStack_->push(
+          new PasteSelectionCommand(bitmapRenderer_, selection, undoSelection, atLocation));
+    }
   }
 }
 
 void MainWindow::on_actionDump_Font_Content_triggered() {
-  if (ibmfFont_ != nullptr) ibmfFont_->showFont();
+  if ((ibmfFont_ != nullptr) && ibmfFont_->isInitialized()) {
+    QString     result;
+    QTextStream resultStream(&result);
+    QFileInfo   fi(currentFilePath_);
+
+    ibmfFont_->showFont(resultStream, fi.baseName());
+
+    releaseKeyboard();
+    ShowResultDialog *resultDialog =
+        new ShowResultDialog("Dump of font" + fi.baseName(), fi.baseName(), result);
+    resultDialog->exec();
+    grabKeyboard();
+  }
 }
 
 void MainWindow::on_actionDump_Modif_Content_triggered() {
-  if (ibmfBackup_ != nullptr) ibmfBackup_->showFont();
+  if ((ibmfBackup_ != nullptr) && ibmfBackup_->isInitialized()) {
+    QString     result;
+    QFileInfo   fi(currentFilePath_);
+    QTextStream resultStream(&result);
+
+    ibmfBackup_->showFont(resultStream, fi.baseName());
+
+    releaseKeyboard();
+    ShowResultDialog *resultDialog = new ShowResultDialog(
+        "Dump of font modifications of " + fi.baseName(), fi.baseName(), result);
+    resultDialog->exec();
+    grabKeyboard();
+  }
 }
 
 void MainWindow::on_actionDump_Font_Content_With_Glyphs_Bitmap_triggered() {
-  if (ibmfFont_ != nullptr) ibmfFont_->showFont(true);
+  if ((ibmfFont_ != nullptr) && ibmfFont_->isInitialized()) {
+    QString     result;
+    QFileInfo   fi(currentFilePath_);
+    QTextStream resultStream(&result);
+    ibmfFont_->showFont(resultStream, fi.baseName(), true);
+
+    releaseKeyboard();
+    ShowResultDialog *resultDialog =
+        new ShowResultDialog("Dump of font" + fi.baseName(), fi.baseName(), result);
+    resultDialog->exec();
+    grabKeyboard();
+  }
 }
 
 void MainWindow::on_actionDump_Modif_Content_With_Glyphs_Bitmap_triggered() {
-  if (ibmfBackup_ != nullptr) ibmfBackup_->showFont(true);
+  if ((ibmfBackup_ != nullptr) && ibmfBackup_->isInitialized()) {
+    QString     result;
+    QFileInfo   fi(currentFilePath_);
+    QTextStream resultStream(&result);
+    ibmfBackup_->showFont(resultStream, fi.baseName(), true);
+
+    releaseKeyboard();
+    ShowResultDialog *resultDialog = new ShowResultDialog(
+        "Dump of font modifications of " + fi.baseName(), fi.baseName(), result);
+    resultDialog->exec();
+    grabKeyboard();
+  }
+}
+
+void MainWindow::on_actionImport_Modifications_File_triggered() {
+
+  if ((ibmfFont_ != nullptr) && ibmfFont_->isInitialized() && checkFontChanged()) {
+    releaseKeyboard();
+    QString inFilePath = QFileDialog::getOpenFileName(
+        this, "IBMF Font Modifications File to Read From", currentFilePath_, "*.ibmf_mods");
+    grabKeyboard();
+
+    if (!inFilePath.isEmpty()) {
+      QFile file;
+      file.setFileName(inFilePath);
+      if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::warning(this, "Warning",
+                             "Unable to open IBMF Modifications File " + inFilePath);
+      } else {
+        QByteArray content = file.readAll();
+        file.close();
+        auto backup = IBMFFontModPtr(new IBMFFontMod((uint8_t *)content.data(), content.size()));
+        if (backup->isInitialized()) {
+          if (backup->getFontFormat() == FontFormat::BACKUP) {
+            int rejected, accepted, acceptedWithModif;
+            ibmfFont_->importModificationsFrom(backup, accepted, rejected, acceptedWithModif);
+            QMessageBox::information(
+                this, "Import Completed",
+                QString("Total Number of characters imported: {}\nNumber imported "
+                        "with modifications: {}\nNumber rejected: {}")
+                    .arg(accepted, acceptedWithModif, rejected));
+            fontChanged_ = true;
+          } else {
+            QMessageBox::warning(
+                this, "Warning",
+                "File is not of an appropriate Font Modifications File Format:\n\n" + inFilePath);
+          }
+        } else {
+          QMessageBox::warning(this, "Warning",
+                               "Font Modifications File content error:\n\n" + inFilePath);
+        }
+      }
+    }
+  }
+}
+
+void MainWindow::on_actionBuild_Modifications_File_triggered() {
+
+  if ((ibmfFont_ != nullptr) && ibmfFont_->isInitialized() && checkFontChanged()) {
+    releaseKeyboard();
+    QString inFilePath = QFileDialog::getOpenFileName(this, "Original IBMF Font File to Read From",
+                                                      currentFilePath_, "*.ibmf");
+    grabKeyboard();
+
+    if (!inFilePath.isEmpty()) {
+      QFile file;
+      file.setFileName(inFilePath);
+      if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::warning(this, "Warning", "Unable to open IBMF Font File " + inFilePath);
+      } else {
+        QByteArray content = file.readAll();
+        file.close();
+        auto fromFont = IBMFFontModPtr(new IBMFFontMod((uint8_t *)content.data(), content.size()));
+        if (fromFont->isInitialized()) {
+          if (fromFont->getFontFormat() == FontFormat::UTF32) {
+            int modifCount;
+            ibmfBackup_ = ibmfFont_->buildModificationsFrom(fromFont, ibmfFont_, modifCount);
+            if (ibmfBackup_ != nullptr) {
+              QMessageBox::information(
+                  this, "Build Font Modifications Completed",
+                  QString("Total Number of modified characters: {}").arg(modifCount));
+              fontChanged_ = true;
+            } else {
+              QMessageBox::critical(this, "Critical", "Unable to build Modification Font File!");
+            }
+          } else {
+            QMessageBox::warning(this, "Warning",
+                                 "File is not of an appropriate Font File Format:\n\n" +
+                                     inFilePath);
+          }
+        } else {
+          QMessageBox::warning(this, "Warning", "Font File content error:\n\n" + inFilePath);
+        }
+      }
+    }
+  }
 }

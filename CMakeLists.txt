@@ -48,6 +48,9 @@ set(PROJECT_SOURCES
         hexFontParameterDialog.h
         hexFontParameterDialog.cpp
         hexFontParameterDialog.ui
+        showResultDialog.cpp
+        showResultDialog.h
+        showResultDialog.ui
         freeType.h
         freeType.cpp
         characterViewer.cpp

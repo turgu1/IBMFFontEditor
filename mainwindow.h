@@ -82,16 +82,13 @@ private slots:
   void on_pasteButton_clicked();
   void someSelection(bool some);
   //  void rendererKeyPressed(QKeyEvent *event);
-
   void on_pasteMainButton_clicked();
-
   void on_actionDump_Font_Content_triggered();
-
   void on_actionDump_Modif_Content_triggered();
-
   void on_actionDump_Font_Content_With_Glyphs_Bitmap_triggered();
-
   void on_actionDump_Modif_Content_With_Glyphs_Bitmap_triggered();
+  void on_actionImport_Modifications_File_triggered();
+  void on_actionBuild_Modifications_File_triggered();
 
 private:
   const int MAX_RECENT_FILES = 10;

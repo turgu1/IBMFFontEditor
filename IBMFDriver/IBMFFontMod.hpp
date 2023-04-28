@@ -11,6 +11,7 @@
 using namespace IBMFDefs;
 
 #include <QDataStream>
+#include <QTextStream>
 
 #include "../Kerning/kerningModel.h"
 #include "RLEExtractor.hpp"
@@ -123,15 +124,21 @@ public:
   auto getUTF32(GlyphCode glyphCode) const -> char32_t;
   auto toGlyphCode(char32_t codePoint) const -> GlyphCode;
 
-  auto showBitmap(const BitmapPtr bitmap) const -> void;
-  auto showBackupLigKerns(BackupGlyphLigKernPtr lk) const -> void;
-  auto showLigKerns(GlyphLigKernPtr lk) const -> void;
-  auto showBackupGlyphInfo(GlyphCode i, const BackupGlyphInfoPtr g) const -> void;
-  auto showGlyphInfo(GlyphCode i, const GlyphInfoPtr g) const -> void;
-  auto showFace(FacePtr face, bool withBitmaps) const -> void;
-  auto showCodePointBundles(int firstIdx, int count) const -> void;
-  auto showPlanes() const -> void;
-  auto showFont(bool withBitmaps = false) const -> void;
+  auto showBitmap(QTextStream &stream, const BitmapPtr bitmap) const -> void;
+  auto showBackupLigKerns(QTextStream &stream, BackupGlyphLigKernPtr lk) const -> void;
+  auto showLigKerns(QTextStream &stream, GlyphLigKernPtr lk) const -> void;
+  auto showBackupGlyphInfo(QTextStream &stream, GlyphCode i, const BackupGlyphInfoPtr g) const
+      -> void;
+  auto showGlyphInfo(QTextStream &stream, GlyphCode i, const GlyphInfoPtr g) const -> void;
+  auto showFace(QTextStream &stream, FacePtr face, bool withBitmaps) const -> void;
+  auto showCodePointBundles(QTextStream &stream, int firstIdx, int count) const -> void;
+  auto showPlanes(QTextStream &stream) const -> void;
+  auto showFont(QTextStream &stream, QString fontName, bool withBitmaps = false) const -> void;
+
+  auto importModificationsFrom(IBMFFontModPtr backup, int &accepted, int &rejected,
+                               int &acceptedWithModif) -> void;
+  auto buildModificationsFrom(IBMFFontModPtr fromFont, IBMFFontModPtr thisFont, int &modifCount)
+      -> IBMFFontModPtr;
 
 protected:
   static constexpr uint8_t IBMF_VERSION = 4;

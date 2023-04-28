@@ -1375,7 +1375,7 @@
     <addaction name="separator"/>
     <addaction name="separator"/>
     <addaction name="actionImport_Modifications_File"/>
-    <addaction name="actionInitialize_Modifications_File"/>
+    <addaction name="actionBuild_Modifications_File"/>
     <addaction name="separator"/>
     <addaction name="actionDump_Font_Content"/>
     <addaction name="actionDump_Modif_Content"/>
@@ -1453,9 +1453,9 @@
     <string>Import Modifications File</string>
    </property>
   </action>
-  <action name="actionInitialize_Modifications_File">
+  <action name="actionBuild_Modifications_File">
    <property name="text">
-    <string>Initialize Modifications File</string>
+    <string>Build Modifications File</string>
    </property>
   </action>
   <action name="actionDump_Font_Content">

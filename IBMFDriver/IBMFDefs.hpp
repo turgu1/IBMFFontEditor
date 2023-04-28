@@ -177,6 +177,9 @@ struct Dim {
   uint8_t height;
   Dim(uint8_t w, uint8_t h) : width(w), height(h) {}
   Dim() : width(0), height(0) {}
+  bool operator==(const Dim &other) const {
+    return (width == other.width) && (height == other.height);
+  }
 };
 
 struct Pos {
@@ -184,6 +187,7 @@ struct Pos {
   int8_t y;
   Pos(int8_t xpos, int8_t ypos) : x(xpos), y(ypos) {}
   Pos() : x(0), y(0) {}
+  bool operator==(const Pos &other) const { return (x == other.x) && (y == other.y); }
 };
 
 typedef uint8_t              *MemoryPtr;
@@ -221,6 +225,13 @@ struct Bitmap {
   void clear() {
     pixels.clear();
     dim = Dim(0, 0);
+  }
+  bool operator==(const Bitmap &other) const {
+    if ((pixels.size() != other.pixels.size()) || !(dim == other.dim)) return false;
+    for (int idx = 0; idx < pixels.size(); idx++) {
+      if (pixels.at(idx) != other.pixels.at(idx)) return false;
+    }
+    return true;
   }
 };
 typedef std::shared_ptr<Bitmap> BitmapPtr;
@@ -380,6 +391,10 @@ struct RLEMetrics {
   uint8_t dynF         : 4;
   uint8_t firstIsBlack : 1;
   uint8_t filler       : 3;
+  //
+  bool operator==(const RLEMetrics &other) const {
+    return (dynF == other.dynF) && (firstIsBlack == other.firstIsBlack);
+  }
 };
 
 struct GlyphInfo {
@@ -392,6 +407,14 @@ struct GlyphInfo {
   RLEMetrics rleMetrics;       // RLE Compression information
   uint8_t    ligKernPgmIndex;  // = 255 if none, Index in the ligature/kern array
   GlyphCode  mainCode;         // Main composite (or not) glyphCode for kerning matching algo
+  //
+  bool operator==(const GlyphInfo &other) const {
+    return (bitmapWidth == other.bitmapWidth) && (bitmapHeight == other.bitmapHeight) &&
+           (horizontalOffset == other.horizontalOffset) &&
+           (verticalOffset == other.verticalOffset) && (packetLength == other.packetLength) &&
+           (advance == other.advance) && (rleMetrics == other.rleMetrics) &&
+           (mainCode == other.mainCode);
+  }
 };
 
 typedef std::shared_ptr<GlyphInfo> GlyphInfoPtr;
@@ -476,18 +499,50 @@ struct Glyph {
 struct GlyphKernStep {
   uint16_t nextGlyphCode;
   FIX16    kern;
+  bool     operator==(const GlyphKernStep &other) const {
+        return (nextGlyphCode == other.nextGlyphCode) && (kern == other.kern);
+  }
 };
 typedef std::vector<GlyphKernStep> GlyphKernSteps;
 
 struct GlyphLigStep {
   uint16_t nextGlyphCode;
   uint16_t replacementGlyphCode;
+  //
+  bool operator==(const GlyphLigStep &other) const {
+    return (nextGlyphCode == other.nextGlyphCode) &&
+           (replacementGlyphCode == other.replacementGlyphCode);
+  }
 };
 typedef std::vector<GlyphLigStep> GlyphLigSteps;
 
 struct GlyphLigKern {
   GlyphLigSteps  ligSteps;
   GlyphKernSteps kernSteps;
+  //
+  bool operator==(const GlyphLigKern &other) const {
+    if ((ligSteps.size() != other.ligSteps.size()) ||
+        (kernSteps.size() != other.kernSteps.size())) {
+      return false;
+    }
+
+    int idx = 0;
+    for (auto &l : ligSteps) {
+      if (!(l == other.ligSteps[idx])) {
+        return false;
+      }
+      idx += 1;
+    }
+
+    idx = 0;
+    for (auto &k : kernSteps) {
+      if (!(k == other.kernSteps[idx])) {
+        return false;
+      }
+      idx += 1;
+    }
+    return true;
+  }
 };
 typedef std::shared_ptr<GlyphLigKern> GlyphLigKernPtr;
 

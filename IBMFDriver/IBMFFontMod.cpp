@@ -1041,7 +1041,7 @@ auto IBMFFontMod::getUTF32(GlyphCode glyphCode) const -> char32_t {
   return codePoint;
 }
 
-auto IBMFFontMod::showBitmap(const BitmapPtr bitmap) const -> void {
+auto IBMFFontMod::showBitmap(QTextStream &stream, const BitmapPtr bitmap) const -> void {
 
   uint32_t  row, col;
   MemoryPtr rowPtr;
@@ -1051,176 +1051,329 @@ auto IBMFFontMod::showBitmap(const BitmapPtr bitmap) const -> void {
     maxWidth = bitmap->dim.width;
   }
 
-  std::cout << "        +";
+  stream << "        +";
   for (col = 0; col < maxWidth; col++) {
-    std::cout << '-';
+    stream << '-';
   }
-  std::cout << '+' << std::endl << std::flush;
+  stream << '+' << Qt::endl;
 
   uint32_t rowSize = bitmap->dim.width;
   for (row = 0, rowPtr = bitmap->pixels.data(); row < bitmap->dim.height;
        row++, rowPtr += rowSize) {
-    std::cout << "        |";
+    stream << "        |";
     for (col = 0; col < maxWidth; col++) {
       if constexpr (BLACK_EIGHT_BITS) {
-        std::cout << ((rowPtr[col] == BLACK_EIGHT_BITS) ? 'X' : ' ');
+        stream << ((rowPtr[col] == BLACK_EIGHT_BITS) ? 'X' : ' ');
       } else {
-        std::cout << ((rowPtr[col] == BLACK_EIGHT_BITS) ? ' ' : 'X');
+        stream << ((rowPtr[col] == BLACK_EIGHT_BITS) ? ' ' : 'X');
       }
     }
-    std::cout << '|';
-    std::cout << std::endl << std::flush;
+    stream << '|';
+    stream << Qt::endl;
   }
 
-  std::cout << "        +";
+  stream << "        +";
   for (col = 0; col < maxWidth; col++) {
-    std::cout << '-';
+    stream << '-';
   }
-  std::cout << '+' << std::endl << std::flush;
+  stream << '+' << Qt::endl;
 }
 
-auto IBMFFontMod::showBackupGlyphInfo(GlyphCode i, const BackupGlyphInfoPtr g) const -> void {
-  std::cout << "  [" << i << "]: w: " << +g->bitmapWidth << ", h: " << +g->bitmapHeight
-            << ", hoff: " << +g->horizontalOffset << ", voff: " << +g->verticalOffset
-            << ", pktLen: " << +g->packetLength << ", adv: " << +((float)g->advance / 64.0)
-            << ", dynF: " << +g->rleMetrics.dynF << ", 1stBlack: " << +g->rleMetrics.firstIsBlack
-            << ", ligCnt: " << +g->ligCount << ", kernCnt: " << +g->kernCount
-            << ", codePoint: " << +g->codePoint;
+auto IBMFFontMod::showBackupGlyphInfo(QTextStream &stream, GlyphCode i,
+                                      const BackupGlyphInfoPtr g) const -> void {
+  stream << "  [" << i << "]: w: " << +g->bitmapWidth << ", h: " << +g->bitmapHeight
+         << ", hoff: " << +g->horizontalOffset << ", voff: " << +g->verticalOffset
+         << ", pktLen: " << +g->packetLength << ", adv: " << +((float)g->advance / 64.0)
+         << ", dynF: " << +g->rleMetrics.dynF << ", 1stBlack: " << +g->rleMetrics.firstIsBlack
+         << ", ligCnt: " << +g->ligCount << ", kernCnt: " << +g->kernCount
+         << ", codePoint: " << +g->codePoint;
 
   if (g->mainCodePoint != g->codePoint) {
-    std::cout << ", mainCodePoint: " << +g->mainCodePoint;
+    stream << ", mainCodePoint: " << +g->mainCodePoint;
   }
-  std::cout << std::endl;
+  stream << Qt::endl;
 }
 
-auto IBMFFontMod::showGlyphInfo(GlyphCode i, const GlyphInfoPtr g) const -> void {
-  std::cout << "  [" << i << "]: w: " << +g->bitmapWidth << ", h: " << +g->bitmapHeight
-            << ", hoff: " << +g->horizontalOffset << ", voff: " << +g->verticalOffset
-            << ", pktLen: " << +g->packetLength << ", adv: " << +((float)g->advance / 64.0)
-            << ", dynF: " << +g->rleMetrics.dynF << ", 1stBlack: " << +g->rleMetrics.firstIsBlack
-            << ", lKPgmIdx: " << +g->ligKernPgmIndex;
+auto IBMFFontMod::showGlyphInfo(QTextStream &stream, GlyphCode i, const GlyphInfoPtr g) const
+    -> void {
+  stream << "  [" << i << "]: w: " << +g->bitmapWidth << ", h: " << +g->bitmapHeight
+         << ", hoff: " << +g->horizontalOffset << ", voff: " << +g->verticalOffset
+         << ", pktLen: " << +g->packetLength << ", adv: " << +((float)g->advance / 64.0)
+         << ", dynF: " << +g->rleMetrics.dynF << ", 1stBlack: " << +g->rleMetrics.firstIsBlack
+         << ", lKPgmIdx: " << +g->ligKernPgmIndex;
 
   if (g->mainCode != i) {
-    std::cout << ", mainCode: " << g->mainCode;
+    stream << ", mainCode: " << g->mainCode;
   }
-  std::cout << std::endl;
+  stream << Qt::endl;
 }
 
-auto IBMFFontMod::showBackupLigKerns(BackupGlyphLigKernPtr lk) const -> void {
+auto IBMFFontMod::showBackupLigKerns(QTextStream &stream, BackupGlyphLigKernPtr lk) const -> void {
 
   if ((lk != nullptr) && ((lk->ligSteps.size() > 0) || (lk->kernSteps.size() > 0))) {
-    std::cout << "         Ligature / Kern program:" << std::endl;
+    stream << "         Ligature / Kern program:" << Qt::endl;
     uint16_t i = 0;
     for (auto &lig : lk->ligSteps) {
-      std::cout << "         [" << i << "]: "
-                << "NxtCodePoint: " << +lig.nextCodePoint << ", "
-                << "LigCodePoint: " << +lig.replacementCodePoint << std::endl;
+      stream << "         [" << i << "]: "
+             << "NxtCodePoint: " << +lig.nextCodePoint << ", "
+             << "LigCodePoint: " << +lig.replacementCodePoint << Qt::endl;
       i += 1;
     }
 
     for (auto &kern : lk->kernSteps) {
-      std::cout << "         [" << i << "]: "
-                << "NxtCodePoint: " << +kern.nextCodePoint << ", "
-                << "Kern: " << (float)(kern.kern / 64.0) << std::endl;
+      stream << "         [" << i << "]: "
+             << "NxtCodePoint: " << +kern.nextCodePoint << ", "
+             << "Kern: " << (float)(kern.kern / 64.0) << Qt::endl;
       i += 1;
     }
   }
 }
 
-auto IBMFFontMod::showLigKerns(GlyphLigKernPtr lk) const -> void {
+auto IBMFFontMod::showLigKerns(QTextStream &stream, GlyphLigKernPtr lk) const -> void {
 
   if ((lk != nullptr) && ((lk->ligSteps.size() > 0) || (lk->kernSteps.size() > 0))) {
-    std::cout << "         Ligature / Kern program:" << std::endl;
+    stream << "         Ligature / Kern program:" << Qt::endl;
     uint16_t i = 0;
     for (auto &lig : lk->ligSteps) {
-      std::cout << "         [" << i << "]: "
-                << "NxtGlyphCode: " << +lig.nextGlyphCode << ", "
-                << "LigCode: " << +lig.replacementGlyphCode << std::endl;
+      stream << "         [" << i << "]: "
+             << "NxtGlyphCode: " << +lig.nextGlyphCode << ", "
+             << "LigCode: " << +lig.replacementGlyphCode << Qt::endl;
       i += 1;
     }
 
     for (auto &kern : lk->kernSteps) {
-      std::cout << "         [" << i << "]: "
-                << "NxtGlyphCode: " << +kern.nextGlyphCode << ", "
-                << "Kern: " << (float)(kern.kern / 64.0) << std::endl;
+      stream << "         [" << i << "]: "
+             << "NxtGlyphCode: " << +kern.nextGlyphCode << ", "
+             << "Kern: " << (float)(kern.kern / 64.0) << Qt::endl;
       i += 1;
     }
   }
 }
 
-auto IBMFFontMod::showFace(FacePtr face, bool withBitmaps) const -> void {
-  std::cout << std::endl << "----------- Face Header: ----------" << std::endl;
+auto IBMFFontMod::showFace(QTextStream &stream, FacePtr face, bool withBitmaps) const -> void {
+  stream << Qt::endl << "----------- Face Header: ----------" << Qt::endl;
 
-  std::cout << "DPI: " << face->header->dpi << ", point siz: " << +face->header->pointSize
-            << ", linHght: " << +face->header->lineHeight
-            << ", xHght: " << +((float)face->header->xHeight / 64.0)
-            << ", emSiz: " << +((float)face->header->emSize / 64.0)
-            << ", spcSiz: " << +face->header->spaceSize
-            << ", glyphCnt: " << +face->header->glyphCount
-            << ", LKCnt: " << +face->header->ligKernStepCount
-            << ", PixPoolSiz: " << +face->header->pixelsPoolSize
-            << ", slantCorr: " << +((float)face->header->slantCorrection / 64.0)
-            << ", descHght: " << +face->header->descenderHeight << std::endl;
+  stream << "DPI: " << face->header->dpi << ", point siz: " << +face->header->pointSize
+         << ", linHght: " << +face->header->lineHeight
+         << ", xHght: " << +((float)face->header->xHeight / 64.0)
+         << ", emSiz: " << +((float)face->header->emSize / 64.0)
+         << ", spcSiz: " << +face->header->spaceSize << ", glyphCnt: " << +face->header->glyphCount
+         << ", LKCnt: " << +face->header->ligKernStepCount
+         << ", PixPoolSiz: " << +face->header->pixelsPoolSize
+         << ", slantCorr: " << +((float)face->header->slantCorrection / 64.0)
+         << ", descHght: " << +face->header->descenderHeight << Qt::endl;
 
-  std::cout << std::endl << "----------- Glyphs: ----------" << std::endl;
+  stream << Qt::endl << "----------- Glyphs: ----------" << Qt::endl;
 
   for (int i = 0; i < face->header->glyphCount; i++) {
     if (preamble_.bits.fontFormat == FontFormat::BACKUP) {
-      showBackupGlyphInfo(i, face->backupGlyphs[i]);
-      showBackupLigKerns(face->backupGlyphsLigKern[i]);
+      showBackupGlyphInfo(stream, i, face->backupGlyphs[i]);
+      showBackupLigKerns(stream, face->backupGlyphsLigKern[i]);
     } else {
-      showGlyphInfo(i, face->glyphs[i]);
-      showLigKerns(face->glyphsLigKern[i]);
+      showGlyphInfo(stream, i, face->glyphs[i]);
+      showLigKerns(stream, face->glyphsLigKern[i]);
     }
 
     if (withBitmaps) {
-      showBitmap(face->bitmaps[i]);
+      showBitmap(stream, face->bitmaps[i]);
     }
   }
 }
 
-auto IBMFFontMod::showCodePointBundles(int firstIdx, int count) const -> void {
+auto IBMFFontMod::showCodePointBundles(QTextStream &stream, int firstIdx, int count) const -> void {
   for (int idx = firstIdx; count > 0; idx++, count--) {
-    std::cout << "    [" << idx << "] "
-              << "First CodePoint: " << +codePointBundles_[idx].firstCodePoint
-              << ", Last CodePoint: " << +codePointBundles_[idx].lastCodePoint << std::endl;
+    stream << "    [" << idx << "] "
+           << "First CodePoint: " << +codePointBundles_[idx].firstCodePoint
+           << ", Last CodePoint: " << +codePointBundles_[idx].lastCodePoint << Qt::endl;
   }
 }
 
-auto IBMFFontMod::showPlanes() const -> void {
-  std::cout << "----------- Planes -----------" << std::endl;
+auto IBMFFontMod::showPlanes(QTextStream &stream) const -> void {
+  stream << "----------- Planes -----------" << Qt::endl;
   for (int i = 0; i < 4; i++) {
-    std::cout << "[" << i << "] CodePoint Bundle Index: " << planes_[i].codePointBundlesIdx
-              << ", Entries Count: " << planes_[i].entriesCount
-              << ", First glyph code: " << planes_[i].firstGlyphCode << std::endl;
+    stream << "[" << i << "] CodePoint Bundle Index: " << planes_[i].codePointBundlesIdx
+           << ", Entries Count: " << planes_[i].entriesCount
+           << ", First glyph code: " << planes_[i].firstGlyphCode << Qt::endl;
     if (planes_[i].entriesCount > 0) {
-      std::cout << "    CodePoint Bundles:" << std::endl;
-      showCodePointBundles(planes_[i].codePointBundlesIdx, planes_[i].entriesCount);
+      stream << "    CodePoint Bundles:" << Qt::endl;
+      showCodePointBundles(stream, planes_[i].codePointBundlesIdx, planes_[i].entriesCount);
     }
   }
 }
 
-auto IBMFFontMod::showFont(bool withBitmaps) const -> void {
+auto IBMFFontMod::showFont(QTextStream &stream, QString fontName, bool withBitmaps) const -> void {
 
-  std::cout << "Start of Font "
-            << ((preamble_.bits.fontFormat == FontFormat::BACKUP) ? "Modifications " : "") << "Dump"
-            << std::endl
-            << std::endl;
+  stream << "Start of Font "
+         << ((preamble_.bits.fontFormat == FontFormat::BACKUP) ? "Modifications " : "")
+         << "Dump of " << fontName << Qt::endl
+         << Qt::endl;
 
   char marker[5];
   memcpy(marker, preamble_.marker, 4);
   marker[4] = 0;
-  std::cout << "----------- Font Preamble -----------" << std::endl;
-  std::cout << "Marker: " << marker << ", Font Version: " << +preamble_.bits.version
-            << ", Font Format: " << +preamble_.bits.fontFormat
-            << ", Face Count: " << +preamble_.faceCount << std::endl;
+  stream << "----------- Font Preamble -----------" << Qt::endl;
+  stream << "Marker: " << marker << ", Font Version: " << +preamble_.bits.version
+         << ", Font Format: " << +preamble_.bits.fontFormat
+         << ", Face Count: " << +preamble_.faceCount << Qt::endl;
 
   if (preamble_.bits.fontFormat == FontFormat::UTF32) {
-    showPlanes();
+    showPlanes(stream);
   }
   for (int i = 0; i < preamble_.faceCount; i++) {
-    showFace(faces_[i], withBitmaps);
+    showFace(stream, faces_[i], withBitmaps);
   }
 
-  std::cout << std::endl << "[End of Dump]" << std::endl;
+  stream << Qt::endl << "[End of Dump]" << Qt::endl;
+}
+
+auto IBMFFontMod::importModificationsFrom(IBMFFontModPtr backup, int &accepted, int &rejected,
+                                          int &acceptedWithModif) -> void {
+
+  std::cout << "Importing Font Modifications:" << std::endl;
+
+  accepted = rejected = acceptedWithModif = 0;
+
+  for (auto &backupFace : backup->faces_) {
+    int faceIdx = 0;
+    while ((faceIdx < preamble_.faceCount) &&
+           (faces_[faceIdx]->header->pointSize != backupFace->header->pointSize))
+      faceIdx += 1;
+
+    if (faceIdx < preamble_.faceCount) {
+      auto &face = faces_[faceIdx];
+      for (int bidx = 0; bidx < backupFace->header->glyphCount; bidx++) {
+        auto    &bGlyph        = backupFace->backupGlyphs[bidx];
+        uint16_t glyphCode     = translate(bGlyph->codePoint);
+        uint16_t mainGlyphCode = translate(bGlyph->mainCodePoint);
+        if ((glyphCode != NO_GLYPH_CODE) && (glyphCode != SPACE_CODE)) {
+          bool      modified = false;
+          GlyphInfo newInfo{.bitmapWidth      = bGlyph->bitmapWidth,
+                            .bitmapHeight     = bGlyph->bitmapHeight,
+                            .horizontalOffset = bGlyph->horizontalOffset,
+                            .verticalOffset   = bGlyph->horizontalOffset,
+                            .packetLength     = bGlyph->packetLength,
+                            .advance          = bGlyph->advance,
+                            .rleMetrics       = bGlyph->rleMetrics,
+                            .ligKernPgmIndex  = 0,
+                            .mainCode =
+                                ((mainGlyphCode == SPACE_CODE) || (mainGlyphCode == NO_GLYPH_CODE))
+                                    ? glyphCode
+                                    : mainGlyphCode};
+          if ((mainGlyphCode == SPACE_CODE) || (mainGlyphCode == NO_GLYPH_CODE)) {
+            modified = true;
+            std::cout << "For codepoint " << bGlyph->codePoint
+                      << ", main codepoint absent from the font: " << bGlyph->mainCodePoint
+                      << std::endl;
+          }
+
+          auto  newLigKern = GlyphLigKernPtr(new GlyphLigKern);
+          auto &blk        = backupFace->backupGlyphsLigKern[bidx];
+
+          for (auto &l : blk->ligSteps) {
+            auto nextGlyphCode = translate(l.nextCodePoint);
+            auto replGlyphCode = translate(l.replacementCodePoint);
+            if ((nextGlyphCode == SPACE_CODE) || (nextGlyphCode == NO_GLYPH_CODE) ||
+                (replGlyphCode == SPACE_CODE) || (replGlyphCode == NO_GLYPH_CODE)) {
+              modified = true;
+              std::cout
+                  << "Ligature rejected: at least one of the following codepoints not present: "
+                  << l.nextCodePoint << " and/or " << l.replacementCodePoint << std::endl;
+            } else {
+              newLigKern->ligSteps.push_back(GlyphLigStep{.nextGlyphCode        = nextGlyphCode,
+                                                          .replacementGlyphCode = replGlyphCode});
+            }
+          }
+
+          for (auto &k : blk->kernSteps) {
+            auto nextGlyphCode = translate(k.nextCodePoint);
+            if ((nextGlyphCode == SPACE_CODE) || (nextGlyphCode == NO_GLYPH_CODE)) {
+              modified = true;
+              std::cout << "Kerning rejected: the following codepoint is not present: "
+                        << k.nextCodePoint << std::endl;
+            } else {
+              newLigKern->kernSteps.push_back(
+                  GlyphKernStep{.nextGlyphCode = nextGlyphCode, .kern = k.kern});
+            }
+          }
+
+          *face->glyphs[glyphCode]        = newInfo;
+          *face->bitmaps[glyphCode]       = *backupFace->bitmaps[bidx];
+          *face->glyphsLigKern[glyphCode] = *newLigKern;
+
+          accepted += 1;
+          if (modified) {
+            acceptedWithModif += 1;
+          }
+        } else {
+          rejected += 1;
+          std::cout << "Code point " << bGlyph->codePoint
+                    << " is not part of the font. Entry rejected." << std::endl;
+        }
+      }
+    } else {
+      // The backup face point size is not part of the font
+      rejected += backupFace->header->glyphCount;
+    }
+  }
+  std::cout << "Import Completed:" << std::endl
+            << "  Total Accepted: " << accepted << std::endl
+            << "  Accepted with modifications: " << acceptedWithModif << std::endl
+            << "  Rejected: " << rejected << std::endl;
+}
+
+auto IBMFFontMod::buildModificationsFrom(IBMFFontModPtr fromFont, IBMFFontModPtr thisFont,
+                                         int &modifCount) -> IBMFFontModPtr {
+
+  std::cout << "Building Font Modifications File:" << std::endl << std::endl;
+
+  if (thisFont.get() != this) {
+    std::cout << "Internal application error: "
+              << "Wrong parameter for thisFont." << std::endl
+              << std::endl
+              << "Building Canceled." << std::endl;
+    return nullptr;
+  }
+
+  modifCount  = 0;
+  auto backup = IBMFFontMod::createBackup();
+
+  int faceIdx = 0;
+  for (auto &face : faces_) {
+    FacePtr fromFace = fromFont->findFace(face->header->pointSize);
+    if (fromFace != nullptr) {
+      for (uint16_t glyphCode = 0; glyphCode < face->header->glyphCount; glyphCode++) {
+        uint16_t fromGlyphCode = fromFont->translate(getUTF32(glyphCode));
+        if ((fromGlyphCode != SPACE_CODE) && (fromGlyphCode != NO_GLYPH_CODE)) {
+          if (!((face->glyphs[glyphCode] == fromFace->glyphs[fromGlyphCode]) &&
+                (face->bitmaps[glyphCode] == fromFace->bitmaps[fromGlyphCode]) &&
+                (face->glyphsLigKern[glyphCode] == fromFace->glyphsLigKern[fromGlyphCode]))) {
+
+            auto newGlyphInfo    = GlyphInfoPtr(new GlyphInfo);
+            auto newBitmap       = BitmapPtr(new Bitmap);
+            auto newGlyphLigKern = GlyphLigKernPtr(new GlyphLigKern);
+
+            *newGlyphInfo        = *face->glyphs[glyphCode];
+            *newBitmap           = *face->bitmaps[glyphCode];
+            *newGlyphLigKern     = *face->glyphsLigKern[glyphCode];
+
+            backup->saveGlyph(faceIdx, glyphCode, newGlyphInfo, newBitmap, newGlyphLigKern,
+                              thisFont);
+            modifCount += 1;
+          }
+        } else {
+          std::cout << "Codepoint " << +getUTF32(glyphCode) << " not present in From Font."
+                    << std::endl;
+        }
+      }
+    } else {
+      std::cout << "Face point " << +face->header->pointSize << " not present in From Font."
+                << std::endl;
+    }
+    faceIdx += 1;
+  }
+
+  std::cout << "Font Modifications Rebuild completed." << std::endl
+            << "Number of characters modified: " << modifCount << std::endl;
+
+  return backup;
 }
