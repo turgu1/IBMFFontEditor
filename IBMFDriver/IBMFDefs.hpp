@@ -161,8 +161,8 @@ const constexpr uint8_t IBMF_VERSION = 4;
 // const constexpr uint8_t BLACK_EIGHT_BITS = 0;
 // const constexpr uint8_t WHITE_EIGHT_BITS = 0xFF;
 
-const constexpr uint8_t BLACK_ONE_BIT    = 1;
-const constexpr uint8_t WHITE_ONE_BIT    = 0;
+const constexpr uint8_t BLACK_ONE_BIT = 1;
+const constexpr uint8_t WHITE_ONE_BIT = 0;
 
 const constexpr uint8_t BLACK_EIGHT_BITS = 0xFF;
 const constexpr uint8_t WHITE_EIGHT_BITS = 0x00;
@@ -225,6 +225,10 @@ struct Bitmap {
   void clear() {
     pixels.clear();
     dim = Dim(0, 0);
+  }
+  Bitmap(Pixels &thePixels, Dim &theDim) {
+    pixels = thePixels;
+    dim    = theDim;
   }
   bool operator==(const Bitmap &other) const {
     if ((pixels.size() != other.pixels.size()) || !(dim == other.dim)) return false;
@@ -528,17 +532,13 @@ struct GlyphLigKern {
 
     int idx = 0;
     for (auto &l : ligSteps) {
-      if (!(l == other.ligSteps[idx])) {
-        return false;
-      }
+      if (!(l == other.ligSteps[idx])) { return false; }
       idx += 1;
     }
 
     idx = 0;
     for (auto &k : kernSteps) {
-      if (!(k == other.kernSteps[idx])) {
-        return false;
-      }
+      if (!(k == other.kernSteps[idx])) { return false; }
       idx += 1;
     }
     return true;
@@ -823,7 +823,7 @@ const CharCodes fontFormat0CodePoints = {
 //
 // The index in the table corresponds to UTF16 U+00A1 to U+017F CodePoints.
 
-const constexpr uint16_t LATIN_GLYPH_CODE_MASK  = 0x7FF;
+const constexpr uint16_t LATIN_GLYPH_CODE_MASK = 0x7FF;
 
 const constexpr GlyphCode latinTranslationSet[] = {
     /* 0x0A1 */ 0x0020, // ¡
