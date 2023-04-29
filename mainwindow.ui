@@ -418,6 +418,9 @@
                 <height>16777215</height>
                </size>
               </property>
+              <property name="toolTip">
+               <string>Add a new character in the Private Block starting at U+E000.</string>
+              </property>
               <property name="text">
                <string>+</string>
               </property>
@@ -1343,7 +1346,7 @@
      <x>0</x>
      <y>0</y>
      <width>1325</width>
-     <height>19</height>
+     <height>30</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
