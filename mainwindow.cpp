@@ -865,6 +865,9 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
       putValue(ui->characterMetrics, 8, 1, glyphInfo->rleMetrics.firstIsBlack, false);
       putValue(ui->characterMetrics, 9, 1, glyphInfo->mainCode, false);
 
+      char32_t codePoint = ibmfFont_->getUTF32(glyphCode);
+      ui->currentCodePoint->setText(QString("U+%1").arg(codePoint, 5, 16, QChar('0')));
+
       centerScrollBarPos();
       bitmapRenderer_->clearAndLoadBitmap(*bitmap, *ibmfFaceHeader_, *glyphInfo);
       smallGlyph_->clearAndLoadBitmap(*bitmap, *ibmfFaceHeader_, *glyphInfo);
@@ -882,11 +885,11 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
         int      code      = ibmfGlyphLigKern_->ligSteps[i].nextGlyphCode;
         char32_t codePoint = ibmfFont_->getUTF32(code);
         ui->ligTable->item(i, 0)->setToolTip(
-            QString("%1: U+%2").arg(code).arg(codePoint, 4, 16, QChar('0')));
+            QString("%1: U+%2").arg(code).arg(codePoint, 5, 16, QChar('0')));
         code      = ibmfGlyphLigKern_->ligSteps[i].replacementGlyphCode;
         codePoint = ibmfFont_->getUTF32(code);
         ui->ligTable->item(i, 1)->setToolTip(
-            QString("%1: U+%2").arg(code).arg(codePoint, 4, 16, QChar('0')));
+            QString("%1: U+%2").arg(code).arg(codePoint, 5, 16, QChar('0')));
         ui->ligTable->item(i, 0)->setTextAlignment(Qt::AlignCenter);
         ui->ligTable->item(i, 1)->setTextAlignment(Qt::AlignCenter);
       }

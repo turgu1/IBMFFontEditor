@@ -48,8 +48,10 @@ void HexFontParameterDialog::browseIBMFFontFilename() {
   QSettings settings("ibmf", "IBMFEditor");
   QString   filename = ui->ibmfFontFilename->text();
   if (filename.isEmpty()) filename = settings.value("ibmfFolder").toString();
+  releaseKeyboard();
   QString newFilePath =
       QFileDialog::getSaveFileName(this, "New IBMF Font File", filename, "*.ibmf");
+  grabKeyboard();
   if (!newFilePath.isEmpty()) {
     ui->ibmfFontFilename->setText(newFilePath);
   }
@@ -60,8 +62,10 @@ void HexFontParameterDialog::browseHexFontFilename() {
   QSettings settings("ibmf", "IBMFEditor");
   QString   filename = ui->hexFontFilename->text();
   if (filename.isEmpty()) filename = settings.value("hexFolder").toString();
+  releaseKeyboard();
   QString newFilePath =
       QFileDialog::getOpenFileName(this, "Open HEX Font File", filename, "Font *.hex");
+  grabKeyboard();
   if (!newFilePath.isEmpty()) {
     ui->hexFontFilename->setText(newFilePath);
   }

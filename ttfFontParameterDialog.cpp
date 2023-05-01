@@ -80,11 +80,13 @@ void TTFFontParameterDialog::browseIBMFFontFilename() {
   QSettings settings("ibmf", "IBMFEditor");
   QString   filename = ui->ibmfFontFilename->text();
   if (filename.isEmpty()) filename = settings.value("ibmfFolder").toString();
+  releaseKeyboard();
   QString newFilePath =
       QFileDialog::getSaveFileName(this, "New IBMF Font File", filename, "*.ibmf");
   if (!newFilePath.isEmpty()) {
     ui->ibmfFontFilename->setText(newFilePath);
   }
+  grabKeyboard();
   checkForNext();
 }
 
@@ -92,8 +94,10 @@ void TTFFontParameterDialog::browseTTFFontFilename() {
   QSettings settings("ibmf", "IBMFEditor");
   QString   filename = ui->ttfFontFilename->text();
   if (filename.isEmpty()) filename = settings.value("ttfFolder").toString();
+  releaseKeyboard();
   QString newFilePath =
       QFileDialog::getOpenFileName(this, "Open TTF/OTF Font File", filename, "Font (*.ttf *.otf)");
+  grabKeyboard();
   if (!newFilePath.isEmpty()) {
     ui->ttfFontFilename->setText(newFilePath);
   }

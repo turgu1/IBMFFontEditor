@@ -26,8 +26,10 @@ void ShowResultDialog::on_saveAsButton_clicked() {
 
   QString logPath = settings.value("logFolder", settings.value("ibmfFolder").toString()).toString();
 
+  releaseKeyboard();
   QString newFilePath = QFileDialog::getSaveFileName(this, "Save Result to File",
                                                      logPath + "/" + baseName_ + ".txt", "*.txt");
+  grabKeyboard();
 
   if (!newFilePath.isEmpty()) {
     QFileInfo fi(newFilePath);

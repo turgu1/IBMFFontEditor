@@ -20,8 +20,8 @@ using namespace IBMFDefs;
 #define DEBUG 0
 
 #if DEBUG
-#include <iomanip>
-#include <iostream>
+  #include <iomanip>
+  #include <iostream>
 #endif
 
 class IBMFFontMod;
@@ -135,13 +135,14 @@ public:
   auto showPlanes(QTextStream &stream) const -> void;
   auto showFont(QTextStream &stream, QString fontName, bool withBitmaps = false) const -> void;
 
+  auto createBundleCodePointEntry(char16_t cPoint) -> void;
   auto importModificationsFrom(QTextStream &stream, QString fontName, QString fileName,
                                IBMFFontModPtr fromBackup, IBMFFontModPtr toBackup,
                                IBMFFontModPtr thisFont) -> void;
   auto buildModificationsFrom(QTextStream &stream, IBMFFontModPtr fromFont, IBMFFontModPtr thisFont)
       -> IBMFFontModPtr;
 
-  auto addCodePoint() -> char32_t;
+  auto addCodePoint(char32_t codePoint = 0) -> char32_t;
 
 protected:
   static constexpr uint8_t IBMF_VERSION = 4;
