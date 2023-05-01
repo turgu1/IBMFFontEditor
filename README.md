@@ -89,6 +89,8 @@ The private-use block of code points is located in the range U+0E000 through U+0
 
 To know which code point your new character received, you can move the mouse cursor on top of the character in the character selection table. After a short moment, the editor will display the code point (as U+xxxxx format) and index of that character as a tooltip. The current character code point is also displayed at the top of the character selection table.
 
+As the character selection table is based on a font present in the computer, the glyphs associated to the private-use code points in that table will not reflect the edited glyph pixels. This is a normal behaviour by design of the application.
+
 ##### Modifications management
 
 The editor maintains two files in synchronization: the main IBMF font file with filename extension `.ibmf`, and the Characters Modifications File with extension `.ibmf_mods`: any time a character is updated in the font, an entry is created in the Characters Modifications File. 
