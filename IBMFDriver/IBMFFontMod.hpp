@@ -20,8 +20,8 @@ using namespace IBMFDefs;
 #define DEBUG 0
 
 #if DEBUG
-  #include <iomanip>
-  #include <iostream>
+#include <iomanip>
+#include <iostream>
 #endif
 
 class IBMFFontMod;
@@ -142,7 +142,7 @@ public:
   auto buildModificationsFrom(QTextStream &stream, IBMFFontModPtr fromFont, IBMFFontModPtr thisFont)
       -> IBMFFontModPtr;
 
-  auto addCodePoint(char32_t codePoint = 0) -> char32_t;
+  auto addCodePoint(IBMFFontModPtr backup, IBMFFontModPtr font, char32_t codePoint = 0) -> char32_t;
 
 protected:
   static constexpr uint8_t IBMF_VERSION = 4;

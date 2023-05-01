@@ -290,9 +290,7 @@ void MainWindow::updateRecentActionList() {
 
 void MainWindow::openRecent() {
   QAction *action = qobject_cast<QAction *>(sender());
-  if (action && checkFontChanged()) {
-    openFont(action->data().toString());
-  }
+  if (action && checkFontChanged()) { openFont(action->data().toString()); }
 }
 
 void MainWindow::writeSettings() {
@@ -317,25 +315,17 @@ void MainWindow::readSettings() {
 
   settings.beginGroup("MainWindow");
   const auto geometry = settings.value("geometry", QByteArray()).toByteArray();
-  if (geometry.isEmpty())
-    setGeometry(200, 200, 800, 800);
-  else
-    restoreGeometry(geometry);
+  if (geometry.isEmpty()) setGeometry(200, 200, 800, 800);
+  else restoreGeometry(geometry);
 
   const auto rightSplitterState = settings.value("RightSplitter", QByteArray()).toByteArray();
-  if (!rightSplitterState.isEmpty()) {
-    ui->rightSplitter->restoreState(rightSplitterState);
-  }
+  if (!rightSplitterState.isEmpty()) { ui->rightSplitter->restoreState(rightSplitterState); }
 
   const auto leftSplitterState = settings.value("LeftSplitter", QByteArray()).toByteArray();
-  if (!leftSplitterState.isEmpty()) {
-    ui->leftSplitter->restoreState(leftSplitterState);
-  }
+  if (!leftSplitterState.isEmpty()) { ui->leftSplitter->restoreState(leftSplitterState); }
 
   const auto leftFrameState = settings.value("LeftFrame", QByteArray()).toByteArray();
-  if (!leftFrameState.isEmpty()) {
-    ui->leftFrame->restoreState(leftFrameState);
-  }
+  if (!leftFrameState.isEmpty()) { ui->leftFrame->restoreState(leftFrameState); }
 
   const auto faceCharsSplitterState =
       settings.value("FaceCharsSplitter", QByteArray()).toByteArray();
@@ -344,9 +334,7 @@ void MainWindow::readSettings() {
   }
 
   const auto rightFrameState = settings.value("RightFrame", QByteArray()).toByteArray();
-  if (!rightFrameState.isEmpty()) {
-    ui->rightFrame->restoreState(rightFrameState);
-  }
+  if (!rightFrameState.isEmpty()) { ui->rightFrame->restoreState(rightFrameState); }
 
   ui->plainTextEdit->setPlainText(settings.value("ProofingText").toString());
   ui->autoKernCheckBox->setChecked(settings.value("ProofingOpticalKern").toBool());
@@ -360,8 +348,7 @@ void MainWindow::adjustRecentsForCurrentFile() {
   QStringList recentFilePaths = settings.value("recentFiles").toStringList();
   recentFilePaths.removeAll(currentFilePath_);
   recentFilePaths.prepend(currentFilePath_);
-  while (recentFilePaths.size() > MAX_RECENT_FILES)
-    recentFilePaths.removeLast();
+  while (recentFilePaths.size() > MAX_RECENT_FILES) recentFilePaths.removeLast();
   settings.setValue("recentFiles", recentFilePaths);
   updateRecentActionList();
 }
@@ -556,7 +543,7 @@ bool MainWindow::openFont(QString filePath) {
       } else {
         QByteArray content = file.readAll();
         file.close();
-        ibmfBackup_ = IBMFFontModPtr(new IBMFFontMod((uint8_t *)content.data(), content.size()));
+        ibmfBackup_ = IBMFFontModPtr(new IBMFFontMod((uint8_t *) content.data(), content.size()));
         if (ibmfBackup_->isInitialized()) {
           if (ibmfBackup_->getFontFormat() == FontFormat::BACKUP) {
             ui->actionDump_Modif_Content->setEnabled(true);
@@ -590,7 +577,7 @@ bool MainWindow::loadFont(QFile &file) {
   QByteArray content = file.readAll();
   file.close();
   clearAll();
-  ibmfFont_ = IBMFFontModPtr(new IBMFFontMod((uint8_t *)content.data(), content.size()));
+  ibmfFont_ = IBMFFontModPtr(new IBMFFontMod((uint8_t *) content.data(), content.size()));
   if (ibmfFont_->isInitialized()) {
     ibmfPreamble_ = ibmfFont_->getPreamble();
 
@@ -661,9 +648,7 @@ void MainWindow::on_actionOpen_triggered() {
       this, "Open IBMF Font File", settings.value("ibmfFolder").toString(), "*.ibmf");
   grabKeyboard();
 
-  if (!filePath.isEmpty()) {
-    openFont(filePath);
-  }
+  if (!filePath.isEmpty()) { openFont(filePath); }
 }
 
 void MainWindow::clearAll() {
@@ -765,9 +750,9 @@ bool MainWindow::loadFace(uint8_t faceIdx) {
     putValue(ui->faceHeader, 0, 1, ibmfFaceHeader_->pointSize, false);
     putValue(ui->faceHeader, 1, 1, ibmfFaceHeader_->lineHeight);
     putValue(ui->faceHeader, 2, 1, ibmfFaceHeader_->dpi, false);
-    putFix16Value(ui->faceHeader, 3, 1, (float)ibmfFaceHeader_->xHeight / 64.0);
-    putFix16Value(ui->faceHeader, 4, 1, (float)ibmfFaceHeader_->emSize / 64.0);
-    putFix16Value(ui->faceHeader, 5, 1, (float)ibmfFaceHeader_->slantCorrection / 64.0);
+    putFix16Value(ui->faceHeader, 3, 1, (float) ibmfFaceHeader_->xHeight / 64.0);
+    putFix16Value(ui->faceHeader, 4, 1, (float) ibmfFaceHeader_->emSize / 64.0);
+    putFix16Value(ui->faceHeader, 5, 1, (float) ibmfFaceHeader_->slantCorrection / 64.0);
     putValue(ui->faceHeader, 6, 1, ibmfFaceHeader_->descenderHeight);
     putValue(ui->faceHeader, 7, 1, ibmfFaceHeader_->spaceSize);
     putValue(ui->faceHeader, 8, 1, ibmfFaceHeader_->glyphCount, false);
@@ -830,7 +815,7 @@ void MainWindow::populateKernTable() {
   for (int i = 0; i < ibmfGlyphLigKern_->kernSteps.size(); i++) {
     putValue(ui->kernTable, i, 0,
              QChar(ibmfFont_->getUTF32(ibmfGlyphLigKern_->kernSteps[i].nextGlyphCode)));
-    putFix16Value(ui->kernTable, i, 1, (float)ibmfGlyphLigKern_->kernSteps[i].kern / 64.0);
+    putFix16Value(ui->kernTable, i, 1, (float) ibmfGlyphLigKern_->kernSteps[i].kern / 64.0);
     int      code      = ibmfGlyphLigKern_->kernSteps[i].nextGlyphCode;
     char32_t codePoint = ibmfFont_->getUTF32(code);
     ui->kernTable->item(i, 0)->setToolTip(
@@ -860,7 +845,7 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
       putValue(ui->characterMetrics, 3, 1, glyphInfo->verticalOffset, false);
       putValue(ui->characterMetrics, 4, 1, glyphInfo->ligKernPgmIndex, false);
       putValue(ui->characterMetrics, 5, 1, glyphInfo->packetLength, false);
-      putFix16Value(ui->characterMetrics, 6, 1, (float)glyphInfo->advance / 64.0);
+      putFix16Value(ui->characterMetrics, 6, 1, (float) glyphInfo->advance / 64.0);
       putValue(ui->characterMetrics, 7, 1, glyphInfo->rleMetrics.dynF, false);
       putValue(ui->characterMetrics, 8, 1, glyphInfo->rleMetrics.firstIsBlack, false);
       putValue(ui->characterMetrics, 9, 1, glyphInfo->mainCode, false);
@@ -947,10 +932,10 @@ void MainWindow::on_faceIndex_currentIndexChanged(int index) {
 void MainWindow::setScrollBarSizes(int pixelSize) {
   ui->bitmapHorizontalScrollBar->setPageStep(
       (ui->bitmapFrame->width() / pixelSize) *
-      ((float)ui->bitmapHorizontalScrollBar->maximum() / BitmapRenderer::bitmapWidth));
+      ((float) ui->bitmapHorizontalScrollBar->maximum() / BitmapRenderer::bitmapWidth));
   ui->bitmapVerticalScrollBar->setPageStep(
       (ui->bitmapFrame->height() / pixelSize) *
-      ((float)ui->bitmapVerticalScrollBar->maximum() / BitmapRenderer::bitmapHeight));
+      ((float) ui->bitmapVerticalScrollBar->maximum() / BitmapRenderer::bitmapHeight));
 }
 
 void MainWindow::centerScrollBarPos() {
@@ -960,10 +945,10 @@ void MainWindow::centerScrollBarPos() {
 
 void MainWindow::updateBitmapOffsetPos() {
   QPoint pos =
-      QPoint((float)ui->bitmapHorizontalScrollBar->value() /
+      QPoint((float) ui->bitmapHorizontalScrollBar->value() /
                      ui->bitmapHorizontalScrollBar->maximum() * BitmapRenderer::bitmapWidth -
                  ((bitmapRenderer_->width() / bitmapRenderer_->getPixelSize()) / 2),
-             (float)ui->bitmapVerticalScrollBar->value() / ui->bitmapVerticalScrollBar->maximum() *
+             (float) ui->bitmapVerticalScrollBar->value() / ui->bitmapVerticalScrollBar->maximum() *
                      BitmapRenderer::bitmapHeight -
                  ((bitmapRenderer_->height() / bitmapRenderer_->getPixelSize()) / 2));
 
@@ -1175,9 +1160,13 @@ void MainWindow::on_bitmapHorizontalScrollBar_valueChanged(int value) {
 //  }
 //}
 
-void MainWindow::on_actionSave_triggered() { saveFont(true); }
+void MainWindow::on_actionSave_triggered() {
+  saveFont(true);
+}
 
-void MainWindow::on_actionSaveBackup_triggered() { saveFont(false); }
+void MainWindow::on_actionSaveBackup_triggered() {
+  saveFont(false);
+}
 
 void MainWindow::on_clearRecentList_triggered() {
   QSettings   settings("ibmf", "IBMFEditor");
@@ -1295,9 +1284,7 @@ void MainWindow::on_actionC_h_File_triggered() {
           "_\\d\\d\\d\\d\\d\\d\\d\\d_\\d\\d\\d\\d\\d\\d\\$");
       QRegularExpressionMatch match = theDateTimeWithExt.match(baseName);
 
-      if (match.hasMatch()) {
-        baseName.replace(match.captured(), "");
-      }
+      if (match.hasMatch()) { baseName.replace(match.captured(), ""); }
 
       QString headerFilePath = info.absolutePath() + "/" + baseName + ".h";
 
@@ -1356,9 +1343,7 @@ void MainWindow::on_actionC_h_File_triggered() {
               }
             }
 
-            if (count != 0) {
-              out << Qt::endl;
-            }
+            if (count != 0) { out << Qt::endl; }
 
             out << "};" << Qt::endl;
 
@@ -1422,7 +1407,9 @@ void MainWindow::on_actionImportHexFont_triggered() {
   }
 }
 
-void MainWindow::on_copyButton_clicked() { selection_ = bitmapRenderer_->getSelection(); }
+void MainWindow::on_copyButton_clicked() {
+  selection_ = bitmapRenderer_->getSelection();
+}
 
 void MainWindow::on_pasteButton_clicked() {
   if (selection_ != nullptr) {
@@ -1444,20 +1431,20 @@ void MainWindow::someSelection(bool some) {
 
 void MainWindow::keyPressEvent(QKeyEvent *event) {
   switch (event->key()) {
-    case Qt::Key_Left:
-      on_leftButton_clicked();
-      break;
-    case Qt::Key_Right:
-      on_rightButton_clicked();
-      break;
-    case Qt::Key_Copy:
-      on_copyButton_clicked();
-      break;
-    case Qt::Key_Paste:
-      on_pasteButton_clicked();
-      break;
-    default:
-      break;
+  case Qt::Key_Left:
+    on_leftButton_clicked();
+    break;
+  case Qt::Key_Right:
+    on_rightButton_clicked();
+    break;
+  case Qt::Key_Copy:
+    on_copyButton_clicked();
+    break;
+  case Qt::Key_Paste:
+    on_pasteButton_clicked();
+    break;
+  default:
+    break;
   }
 }
 
@@ -1584,22 +1571,22 @@ void MainWindow::on_actionImport_Modifications_File_triggered() {
         QByteArray content = file.readAll();
         file.close();
         auto fromBackup =
-            IBMFFontModPtr(new IBMFFontMod((uint8_t *)content.data(), content.size()));
+            IBMFFontModPtr(new IBMFFontMod((uint8_t *) content.data(), content.size()));
         if (fromBackup->isInitialized()) {
           if (fromBackup->getFontFormat() == FontFormat::BACKUP) {
             QTextStream resultStream(&result);
             QFileInfo   fi(currentFilePath_);
             QString     baseName = fi.baseName();
 
-            if (ibmfBackup_ == nullptr) {
-              ibmfBackup_ = IBMFFontMod::createBackup();
-            }
+            if (ibmfBackup_ == nullptr) { ibmfBackup_ = IBMFFontMod::createBackup(); }
             ibmfFont_->importModificationsFrom(resultStream, baseName, inFilePath, fromBackup,
                                                ibmfBackup_, ibmfFont_);
 
+            updateCharactersList();
+
             releaseKeyboard();
             ShowResultDialog *resultDialog =
-                new ShowResultDialog("Font Modifications Import Result", baseName, result);
+                new ShowResultDialog("Font Modifications Import Result Log", baseName, result);
             resultDialog->exec();
             grabKeyboard();
 
@@ -1637,7 +1624,7 @@ void MainWindow::on_actionBuild_Modifications_File_triggered() {
       } else {
         QByteArray content = file.readAll();
         file.close();
-        auto fromFont = IBMFFontModPtr(new IBMFFontMod((uint8_t *)content.data(), content.size()));
+        auto fromFont = IBMFFontModPtr(new IBMFFontMod((uint8_t *) content.data(), content.size()));
         if (fromFont->isInitialized()) {
           if (fromFont->getFontFormat() == FontFormat::UTF32) {
             QTextStream resultStream(&result);
@@ -1648,7 +1635,7 @@ void MainWindow::on_actionBuild_Modifications_File_triggered() {
             if (ibmfBackup_ != nullptr) {
               releaseKeyboard();
               ShowResultDialog *resultDialog =
-                  new ShowResultDialog("Font Modifications Import Result", baseName, result);
+                  new ShowResultDialog("Font Modifications Import Result Log", baseName, result);
               resultDialog->exec();
               grabKeyboard();
 
@@ -1671,7 +1658,7 @@ void MainWindow::on_actionBuild_Modifications_File_triggered() {
 
 void MainWindow::on_addCharacterButton_clicked() {
   if ((ibmfFont_ != nullptr) && ibmfFont_->isInitialized()) {
-    char32_t  codePoint = ibmfFont_->addCodePoint();
+    char32_t  codePoint = ibmfFont_->addCodePoint(ibmfBackup_, ibmfFont_);
     GlyphCode glyphCode = ibmfFont_->translate(codePoint);
 
     fontChanged_        = true;
