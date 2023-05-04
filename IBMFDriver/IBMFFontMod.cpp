@@ -1291,6 +1291,14 @@ auto IBMFFontMod::importModificationsFrom(QTextStream &stream, QString fontName,
          << "  Rejected: " << rejected << Qt::endl;
 }
 
+auto IBMFFontMod::glyphIsModified(int faceIdx, GlyphCode glyphCode, BitmapPtr &bitmap,
+                                  GlyphInfoPtr &glyphInfo, GlyphLigKernPtr &ligKern) const -> bool {
+  FacePtr face = faces_[faceIdx];
+
+  return !((*face->glyphs[glyphCode] == *glyphInfo) && (*face->bitmaps[glyphCode] == *bitmap) &&
+           (*face->glyphsLigKern[glyphCode] == *ligKern));
+}
+
 auto IBMFFontMod::buildModificationsFrom(QTextStream &stream, IBMFFontModPtr fromFont,
                                          IBMFFontModPtr thisFont) -> IBMFFontModPtr {
 
@@ -1413,9 +1421,10 @@ auto IBMFFontMod::addCodePoint(IBMFFontModPtr backup, IBMFFontModPtr font, char3
                 .verticalOffset   = 0,
                 .packetLength     = 0,
                 .advance          = static_cast<FIX16>(1 << 6),
-                .rleMetrics       = {.dynF = 0, .firstIsBlack = 0, .filler = 0},
-                .ligKernPgmIndex  = 255,
-                .mainCode         = glyphCode
+                .rleMetrics =
+            {.dynF = 0, .firstIsBlack = 0, .beforeAddedOptKern = 0, .afterAddedOptKern = 0},
+                .ligKernPgmIndex = 255,
+                .mainCode        = glyphCode
     });
     auto      newBitmap       = BitmapPtr(new Bitmap());
     auto      newGlyphLigKern = GlyphLigKernPtr(new GlyphLigKern);

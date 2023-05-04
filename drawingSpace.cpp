@@ -62,7 +62,7 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
   int8_t length        = MIN((i1->bitmapHeight - firstIdxLeft), (i2->bitmapHeight - firstIdxRight));
   int8_t firstIdx      = MAX(firstIdxLeft, firstIdxRight);
 
-  FIX32 kerning = 0;
+  FIX32 kerning        = 0;
   if (length > 0) { // Length <= 0 means that there is no alignment between the characters
     // hight of significant parts of dist arrays
     int8_t hight = origin + MAX((i1->bitmapHeight - i1->verticalOffset),
@@ -248,12 +248,22 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
       if (dist < kerning) kerning = dist;
     }
 
+    int addedWildcard;
+
+    if (i2->rleMetrics.beforeAddedOptKern == 3) {
+      addedWildcard = -1;
+    } else {
+      addedWildcard = i2->rleMetrics.beforeAddedOptKern;
+    }
+    addedWildcard += i1->rleMetrics.afterAddedOptKern;
+
     // std::cout << "Minimal distance: " << MAKE_FIXED_FLOAT(kerning) << std::endl;
 
     // Adjust the resulting kerning value, considering the targetted KERNING_SIZE (the space to have
     // between characters), the size of the character and the normal distance that will be used by
     // the writing algorithm
-    kerning = (-MIN(kerning - MAKE_INT_FIXED(KERNING_SIZE), MAKE_INT_FIXED(i2->bitmapWidth))) -
+    kerning = (-MIN(kerning - MAKE_INT_FIXED(KERNING_SIZE + addedWildcard),
+                    MAKE_INT_FIXED(i2->bitmapWidth))) -
               MAKE_INT_FIXED(normal_distance);
   }
 
@@ -340,8 +350,8 @@ void DrawingSpace::paintWord(QPainter *painter, int lineHeight) {
     // The first character of a word must not use the horizontalOffset.
     // Also, there is a need to remove the effect on the advance param (hoff2),
     // see at the end of the loop.
-    int hoff  = firstChar ? 0 : ch.glyphInfo->horizontalOffset;
-    int hoff2 = firstChar ? -ch.glyphInfo->horizontalOffset : 0;
+    int hoff    = firstChar ? 0 : ch.glyphInfo->horizontalOffset;
+    int hoff2   = firstChar ? -ch.glyphInfo->horizontalOffset : 0;
 
     int advance = (ch.glyphInfo->advance + 32) >> 6;
     if (advance == 0) advance = ch.glyphInfo->bitmapWidth + 1;
@@ -406,9 +416,9 @@ void DrawingSpace::drawScreen(QPainter *painter) {
     painter->setBrush(QBrush(QColorConstants::DarkGray));
   }
 
-  int  lineHeight = font_->getLineHeight(faceIdx_);
-  bool first      = true;
-  pos_            = QPoint(0, lineHeight);
+  int  lineHeight  = font_->getLineHeight(faceIdx_);
+  bool first       = true;
+  pos_             = QPoint(0, lineHeight);
 
   bool startOfLine = true; // True if we are at the beginning of a line,
                            // to not print the spaces there

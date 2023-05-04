@@ -161,8 +161,8 @@ const constexpr uint8_t IBMF_VERSION = 4;
 // const constexpr uint8_t BLACK_EIGHT_BITS = 0;
 // const constexpr uint8_t WHITE_EIGHT_BITS = 0xFF;
 
-const constexpr uint8_t BLACK_ONE_BIT = 1;
-const constexpr uint8_t WHITE_ONE_BIT = 0;
+const constexpr uint8_t BLACK_ONE_BIT    = 1;
+const constexpr uint8_t WHITE_ONE_BIT    = 0;
 
 const constexpr uint8_t BLACK_EIGHT_BITS = 0xFF;
 const constexpr uint8_t WHITE_EIGHT_BITS = 0x00;
@@ -392,12 +392,15 @@ struct LigKernStep {
 };
 
 struct RLEMetrics {
-  uint8_t dynF         : 4;
-  uint8_t firstIsBlack : 1;
-  uint8_t filler       : 3;
+  uint8_t dynF               : 4;
+  uint8_t firstIsBlack       : 1;
+  uint8_t beforeAddedOptKern : 2;
+  uint8_t afterAddedOptKern  : 1;
   //
   bool operator==(const RLEMetrics &other) const {
-    return (dynF == other.dynF) && (firstIsBlack == other.firstIsBlack);
+    return (dynF == other.dynF) && (firstIsBlack == other.firstIsBlack) &&
+           (beforeAddedOptKern == other.beforeAddedOptKern) &&
+           (afterAddedOptKern == other.afterAddedOptKern);
   }
 };
 
@@ -823,7 +826,7 @@ const CharCodes fontFormat0CodePoints = {
 //
 // The index in the table corresponds to UTF16 U+00A1 to U+017F CodePoints.
 
-const constexpr uint16_t LATIN_GLYPH_CODE_MASK = 0x7FF;
+const constexpr uint16_t LATIN_GLYPH_CODE_MASK  = 0x7FF;
 
 const constexpr GlyphCode latinTranslationSet[] = {
     /* 0x0A1 */ 0x0020, // ¡

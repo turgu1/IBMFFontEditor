@@ -144,6 +144,9 @@ public:
 
   auto addCodePoint(IBMFFontModPtr backup, IBMFFontModPtr font, char32_t codePoint = 0) -> char32_t;
 
+  auto glyphIsModified(int faceIdx, GlyphCode glyphCode, BitmapPtr &bitmap, GlyphInfoPtr &glyphInfo,
+                       GlyphLigKernPtr &ligKern) const -> bool;
+
 protected:
   static constexpr uint8_t IBMF_VERSION = 4;
 

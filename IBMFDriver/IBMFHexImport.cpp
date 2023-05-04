@@ -86,7 +86,7 @@ auto IBMFHexImport::readOneGlyph(std::fstream &in, char32_t &codePoint, BitmapPt
           mask >>= 1;
           firstCol += 1;
         }
-end1:
+      end1:
         mask    = 0x01;
         lastCol = 7;
         for (int j = 0; j < 7; j++) {
@@ -107,7 +107,7 @@ end1:
           if (mask == 0) mask = 0x80;
           firstCol += 1;
         }
-end3:
+      end3:
         mask    = 0x01;
         lastCol = 15;
         for (int j = 15; j >= 0; j--) {
@@ -120,8 +120,8 @@ end3:
         }
       }
 
-end2:
-end4:
+    end2:
+    end4:
       bitmap->dim   = Dim(lastCol - firstCol + 1, lastRow - firstRow + 1);
       vOffset       = 14 - firstRow;
 
@@ -145,12 +145,12 @@ end4:
     return glyphCode;
   } else {
 
-noCode:
+  noCode:
     while (!in.eof() && (in.get() != '\n'))
       ;
     return NO_GLYPH_CODE;
 
-spaceCode:
+  spaceCode:
     bitmap->dim = Dim(0, 0);
     bitmap->pixels.clear();
     vOffset = 0;
@@ -183,9 +183,7 @@ auto IBMFHexImport::prepareCodePlanes(std::fstream &in, CharSelectionsPtr &charS
 
   if (charSelections->size() == 1) {
 
-    for (int i = 0; i < 4; i++) {
-      planes_.push_back(Plane({0, 0, 0}));
-    }
+    for (int i = 0; i < 4; i++) { planes_.push_back(Plane({0, 0, 0})); }
 
     SelectedBlockIndexesPtr selectedBlockIndexes = charSelections->at(0).selectedBlockIndexes;
 
@@ -327,7 +325,10 @@ auto IBMFHexImport::loadHex(FontParametersPtr fontParameters) -> bool {
             .verticalOffset   = static_cast<int8_t>(vOffset),
             .packetLength     = static_cast<uint16_t>(bitmap->dim.width * bitmap->dim.height),
             .advance          = static_cast<FIX16>((bitmap->dim.width + 1) << 6),
-            .rleMetrics       = RLEMetrics{.dynF = 0, .firstIsBlack = false, .filler = 0},
+            .rleMetrics       = RLEMetrics{.dynF               = 0,
+                                           .firstIsBlack       = false,
+                                           .beforeAddedOptKern = 0,
+                                           .afterAddedOptKern  = 0},
             .ligKernPgmIndex  = 0, // completed at save time
             .mainCode         = glyphCode  // No composite management (for now)
         }));

@@ -385,9 +385,22 @@ void MainWindow::glyphWasChanged(bool initialLoad) {
   glyphInfo->rleMetrics.firstIsBlack = getValue(ui->characterMetrics, 8, 1).toUInt();
   glyphInfo->mainCode                = getValue(ui->characterMetrics, 9, 1).toUInt();
 
+  if (ui->before0Radio->isChecked()) {
+    glyphInfo->rleMetrics.beforeAddedOptKern = 0;
+  } else if (ui->before1Radio->isChecked()) {
+    glyphInfo->rleMetrics.beforeAddedOptKern = 1;
+  } else if (ui->before2Radio->isChecked()) {
+    glyphInfo->rleMetrics.beforeAddedOptKern = 2;
+  } else if (ui->beforeMinus1Radio->isChecked()) {
+    glyphInfo->rleMetrics.beforeAddedOptKern = 3;
+  }
+
+  glyphInfo->rleMetrics.afterAddedOptKern = ui->after1Radio->isChecked();
   drawingSpace_->setBypassGlyph(ibmfGlyphCode_, bitmap, glyphInfo, ibmfGlyphLigKern_);
 
-  if (!initialLoad) glyphChanged_ = true;
+  if (!initialLoad)
+    glyphChanged_ = ibmfFont_->glyphIsModified(ibmfFaceIdx_, ibmfGlyphCode_, bitmap, glyphInfo,
+                                               ibmfGlyphLigKern_);
 }
 
 void MainWindow::bitmapChanged(const Bitmap &bitmap, const QPoint &originOffsets) {
@@ -410,7 +423,6 @@ void MainWindow::bitmapChanged(const Bitmap &bitmap, const QPoint &originOffsets
     putColoredValue(ui->characterMetrics, 3, 1, originOffsets.y(), false);
     putColoredFix16Value(ui->characterMetrics, 6, 1, newAdvance, true);
     glyphWasChanged();
-    glyphChanged_ = true;
   }
 }
 
@@ -792,6 +804,18 @@ void MainWindow::saveGlyph() {
     glyphInfo->rleMetrics.firstIsBlack = getValue(ui->characterMetrics, 8, 1).toUInt();
     glyphInfo->mainCode                = getValue(ui->characterMetrics, 9, 1).toUInt();
 
+    if (ui->before0Radio->isChecked()) {
+      glyphInfo->rleMetrics.beforeAddedOptKern = 0;
+    } else if (ui->before1Radio->isChecked()) {
+      glyphInfo->rleMetrics.beforeAddedOptKern = 1;
+    } else if (ui->before2Radio->isChecked()) {
+      glyphInfo->rleMetrics.beforeAddedOptKern = 2;
+    } else if (ui->beforeMinus1Radio->isChecked()) {
+      glyphInfo->rleMetrics.beforeAddedOptKern = 3;
+    }
+
+    glyphInfo->rleMetrics.afterAddedOptKern = ui->after1Radio->isChecked();
+
     if (ibmfFont_->saveGlyph(ibmfFaceIdx_, ibmfGlyphCode_, glyphInfo, theBitmap,
                              ibmfGlyphLigKern_)) {
       glyphChanged_ = false;
@@ -849,6 +873,30 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
       putValue(ui->characterMetrics, 7, 1, glyphInfo->rleMetrics.dynF, false);
       putValue(ui->characterMetrics, 8, 1, glyphInfo->rleMetrics.firstIsBlack, false);
       putValue(ui->characterMetrics, 9, 1, glyphInfo->mainCode, false);
+
+      switch (glyphInfo->rleMetrics.beforeAddedOptKern) {
+      case 0:
+        ui->before0Radio->setChecked(true);
+        break;
+      case 1:
+        ui->before1Radio->setChecked(true);
+        break;
+      case 2:
+        ui->before2Radio->setChecked(true);
+        break;
+      case 3:
+        ui->beforeMinus1Radio->setChecked(true);
+        break;
+      }
+
+      switch (glyphInfo->rleMetrics.afterAddedOptKern) {
+      case 0:
+        ui->after0Radio->setChecked(true);
+        break;
+      case 1:
+        ui->after1Radio->setChecked(true);
+        break;
+      }
 
       char32_t codePoint = ibmfFont_->getUTF32(glyphCode);
       ui->currentCodePoint->setText(QString("U+%1").arg(codePoint, 5, 16, QChar('0')));
@@ -1666,4 +1714,28 @@ void MainWindow::on_addCharacterButton_clicked() {
     updateCharactersList();
     loadGlyph(glyphCode);
   }
+}
+
+void MainWindow::on_beforeMinus1Radio_toggled(bool checked) {
+  glyphWasChanged();
+}
+
+void MainWindow::on_before0Radio_toggled(bool checked) {
+  glyphWasChanged();
+}
+
+void MainWindow::on_before1Radio_toggled(bool checked) {
+  glyphWasChanged();
+}
+
+void MainWindow::on_before2Radio_toggled(bool checked) {
+  glyphWasChanged();
+}
+
+void MainWindow::on_after0Radio_toggled(bool checked) {
+  glyphWasChanged();
+}
+
+void MainWindow::on_after1Radio_toggled(bool checked) {
+  glyphWasChanged();
 }

@@ -91,6 +91,18 @@ private slots:
   void on_actionBuild_Modifications_File_triggered();
   void on_addCharacterButton_clicked();
 
+  void on_beforeMinus1Radio_toggled(bool checked);
+
+  void on_before0Radio_toggled(bool checked);
+
+  void on_before1Radio_toggled(bool checked);
+
+  void on_before2Radio_toggled(bool checked);
+
+  void on_after0Radio_toggled(bool checked);
+
+  void on_after1Radio_toggled(bool checked);
+
 private:
   const int MAX_RECENT_FILES = 10;
 
