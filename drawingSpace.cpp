@@ -29,16 +29,16 @@ typedef int32_t FIX32;
 
 #define FRACT_BITS          10
 #define FIXED_POINT_ONE     (1 << FRACT_BITS)
-#define MAKE_INT_FIXED(x)   ((x) << FRACT_BITS)
-#define MAKE_FLOAT_FIXED(x) ((FIX32) ((x) *FIXED_POINT_ONE))
+#define MAKE_INT_FIXED(x)   (static_cast<FIX32>((x) << FRACT_BITS))
+#define MAKE_FLOAT_FIXED(x) (static_cast<FIX32>((x)*FIXED_POINT_ONE))
 #define MAKE_FIXED_INT(x)   ((x) >> FRACT_BITS)
-#define MAKE_FIXED_FLOAT(x) (((float) (x)) / FIXED_POINT_ONE)
+#define MAKE_FIXED_FLOAT(x) ((static_cast<float>(x)) / FIXED_POINT_ONE)
 
-#define FIXED_MULT(x, y) ((x) * (y) >> FRACT_BITS)
-#define FIXED_DIV(x, y)  (((x) << FRACT_BITS) / (y))
+#define FIXED_MULT(x, y)    ((x) * (y) >> FRACT_BITS)
+#define FIXED_DIV(x, y)     (((x) << FRACT_BITS) / (y))
 
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
-#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define MIN(a, b)           (((a) < (b)) ? (a) : (b))
+#define MAX(a, b)           (((a) > (b)) ? (a) : (b))
 
 auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBMFDefs::BitmapPtr b2,
                                          const IBMFDefs::GlyphInfoPtr i1,
@@ -53,151 +53,176 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
   int8_t origin = MAX(i1->verticalOffset, i2->verticalOffset);
 
   // start positions in each dist arrays
-  int8_t distIdxLeft  = origin - i1->verticalOffset;
-  int8_t distIdxRight = origin - i2->verticalOffset;
+  uint8_t distIdxLeft  = origin - i1->verticalOffset;
+  uint8_t distIdxRight = origin - i2->verticalOffset;
 
   // idx and length in each bitmaps to compare
-  int8_t firstIdxLeft  = origin - i2->verticalOffset;
-  int8_t firstIdxRight = origin - i1->verticalOffset;
-  int8_t length        = MIN((i1->bitmapHeight - firstIdxLeft), (i2->bitmapHeight - firstIdxRight));
-  int8_t firstIdx      = MAX(firstIdxLeft, firstIdxRight);
+  uint8_t firstIdxLeft  = origin - i2->verticalOffset;
+  uint8_t firstIdxRight = origin - i1->verticalOffset;
+  int8_t  length   = MIN((i1->bitmapHeight - firstIdxLeft), (i2->bitmapHeight - firstIdxRight));
+  uint8_t firstIdx = MAX(firstIdxLeft, firstIdxRight);
 
-  FIX32 kerning        = 0;
-  if (length > 0) { // Length <= 0 means that there is no alignment between the characters
-    // hight of significant parts of dist arrays
-    int8_t hight = origin + MAX((i1->bitmapHeight - i1->verticalOffset),
-                                (i2->bitmapHeight - i2->verticalOffset));
+  FIX32 kerning    = 0;
+  // if (length > 0) { // Length <= 0 means that there is no alignment between the characters
+  //  hight of significant parts of dist arrays
+  int8_t hight = origin + MAX((i1->bitmapHeight - i1->verticalOffset),
+                              (i2->bitmapHeight - i2->verticalOffset));
 
-    // distance computation for left and right characters
-    auto distLeft  = std::shared_ptr<FIX32[]>(new FIX32[hight]);
-    auto distRight = std::shared_ptr<FIX32[]>(new FIX32[hight]);
+  // distance computation for left and right characters
+  auto distLeft  = std::shared_ptr<FIX32[]>(new FIX32[hight]);
+  auto distRight = std::shared_ptr<FIX32[]>(new FIX32[hight]);
 
-    for (int i = 0; i < hight; i++) {
-      distLeft[i]  = MAKE_FLOAT_FIXED(-1.0);
-      distRight[i] = MAKE_FLOAT_FIXED(-1.0);
+  for (int i = 0; i < hight; i++) {
+    distLeft[i]  = MAKE_FLOAT_FIXED(-1.0);
+    distRight[i] = MAKE_FLOAT_FIXED(-1.0);
+  }
+
+  // distLeft is receiving the right distance in pixels of the first black pixel on each
+  // line of the character
+  int idx = 0;
+  for (uint8_t i = distIdxLeft; i < i1->bitmapHeight + distIdxLeft; i++, idx += i1->bitmapWidth) {
+    distLeft[i] = 0;
+    for (int col = i1->bitmapWidth - 1; col >= 0; col--) {
+      if (b1->pixels[idx + col]) break;
+      distLeft[i] += FIXED_POINT_ONE;
     }
+  }
 
-    // distLeft is receiving the right distance in pixels of the first black pixel on each
-    // line of the character
-    int idx = 0;
-    for (uint8_t i = distIdxLeft; i < i1->bitmapHeight + distIdxLeft; i++, idx += i1->bitmapWidth) {
-      distLeft[i] = 0;
-      for (int col = i1->bitmapWidth - 1; col >= 0; col--) {
-        if (b1->pixels[idx + col]) break;
-        distLeft[i] += FIXED_POINT_ONE;
-      }
+  // distRight is receiving the left distance in pixels of the first black pixel on each
+  // line of the character
+  idx = 0;
+  for (uint8_t i = distIdxRight; i < i2->bitmapHeight + distIdxRight; i++, idx += i2->bitmapWidth) {
+    distRight[i] = 0;
+    for (int col = 0; col < i2->bitmapWidth; col++) {
+      if (b2->pixels[idx + col]) break;
+      distRight[i] += FIXED_POINT_ONE;
     }
+  }
 
-    // distRight is receiving the left distance in pixels of the first black pixel on each
-    // line of the character
-    idx = 0;
-    for (uint8_t i = distIdxRight; i < i2->bitmapHeight + distIdxRight;
-         i++, idx += i2->bitmapWidth) {
-      distRight[i] = 0;
-      for (int col = 0; col < i2->bitmapWidth; col++) {
-        if (b2->pixels[idx + col]) break;
-        distRight[i] += FIXED_POINT_ONE;
-      }
-    }
+  // find convex corner locations and adjust distances
 
-    // find convex corner locations and adjust distances
+  // Right Side Convex Hull for the character at left
+  if (i1->bitmapHeight >= 3) { // 1 and 2 line characters don't need adjustment
 
-    // Right Side Convex Hull for the character at left
-    if (i1->bitmapHeight >= 3) { // 1 and 2 line characters don't need adjustment
+    // Compute the cross product of 3 points. If negative, the angle is convex
+    auto crossLeft = [distLeft](int i, int j, int k) -> FIX32 {
+      return FIXED_MULT((distLeft[j] - distLeft[i]), MAKE_INT_FIXED(k - i)) -
+             FIXED_MULT(MAKE_INT_FIXED(j - i), (distLeft[k] - distLeft[i]));
+    };
 
-      // Compute the cross product of 3 points. If negative, the angle is convex
-      auto crossLeft = [distLeft](int i, int j, int k) -> FIX32 {
-        return FIXED_MULT((distLeft[j] - distLeft[i]), MAKE_INT_FIXED(k - i)) -
-               FIXED_MULT(MAKE_INT_FIXED(j - i), (distLeft[k] - distLeft[i]));
-      };
-
-      // Adjusts distances to get a line between two vertices of the Convex Hull
-      auto adjustLeft = [distLeft](int i, int j) {
-        if ((j - i) > 1) {
-          if (abs(distLeft[j] - distLeft[i]) <= MAKE_FLOAT_FIXED(0.01)) {
-            for (int k = i + 1; k < j; k++) { distLeft[k] = distLeft[i]; }
-          } else {
-            FIX32 slope = FIXED_DIV((distLeft[j] - distLeft[i]), MAKE_INT_FIXED(j - i));
-            FIX32 v     = distLeft[i];
-            for (int k = i + 1; k < j; k++) {
-              v += slope;
-              distLeft[k] = v;
-            }
+    // Adjusts distances to get a line between two vertices of the Convex Hull
+    auto adjustLeft = [distLeft](int i, int j) {
+      if ((j - i) > 1) {
+        if (abs(distLeft[j] - distLeft[i]) <= MAKE_FLOAT_FIXED(0.01)) {
+          for (int k = i + 1; k < j; k++) {
+            distLeft[k] = distLeft[i];
           }
-        }
-      };
-
-      // Find vertices using the cross product and adjust the distances
-      // to get the right portion of the Convex Hull polygon.
-      int i = distIdxLeft;
-      int j = i + 1;
-      while (j < (i1->bitmapHeight + distIdxLeft)) {
-        bool found = true;
-        for (int k = j + 1; k < i1->bitmapHeight + distIdxLeft; k++) {
-          FIX32 val = crossLeft(i, j, k);
-          if (val >= 0) {
-            found = false;
-            break;
-          }
-        }
-        if (found) {
-          adjustLeft(i, j);
-          i = j;
-          j = i + 1;
         } else {
-          j += 1;
+          FIX32 slope = FIXED_DIV((distLeft[j] - distLeft[i]), MAKE_INT_FIXED(j - i));
+          FIX32 v     = distLeft[i];
+          for (int k = i + 1; k < j; k++) {
+            v += slope;
+            distLeft[k] = v;
+          }
         }
       }
+    };
+
+    // Find vertices using the cross product and adjust the distances
+    // to get the right portion of the Convex Hull polygon.
+    int i = distIdxLeft;
+    int j = i + 1;
+    while (j < (i1->bitmapHeight + distIdxLeft)) {
+      bool found = true;
+      for (int k = j + 1; k < i1->bitmapHeight + distIdxLeft; k++) {
+        FIX32 val = crossLeft(i, j, k);
+        if (val >= 0) {
+          found = false;
+          break;
+        }
+      }
+      if (found) {
+        adjustLeft(i, j);
+        i = j;
+        j = i + 1;
+      } else {
+        j += 1;
+      }
     }
+  }
 
-    // Left side Convex Hull for the character at right
+  // Left side Convex Hull for the character at right
 
-    if (i2->bitmapHeight >= 3) { // 1 and 2 line characters don't need adjustment
+  if (i2->bitmapHeight >= 3) { // 1 and 2 line characters don't need adjustment
 
-      // Compute the cross product of 3 points. If negative, the angle is convex.
-      auto crossRight = [distRight](int i, int j, int k) -> FIX32 {
-        return FIXED_MULT((distRight[j] - distRight[i]), MAKE_INT_FIXED(k - i)) -
-               FIXED_MULT(MAKE_INT_FIXED(j - i), (distRight[k] - distRight[i]));
-      };
+    // Compute the cross product of 3 points. If negative, the angle is convex.
+    auto crossRight = [distRight](int i, int j, int k) -> FIX32 {
+      return FIXED_MULT((distRight[j] - distRight[i]), MAKE_INT_FIXED(k - i)) -
+             FIXED_MULT(MAKE_INT_FIXED(j - i), (distRight[k] - distRight[i]));
+    };
 
-      // Adjusts distances to get a line between two vertices of the Convex Hull
-      auto adjustRight = [distRight](int i, int j) {
-        if ((j - i) > 1) {
-          if (abs(distRight[j] - distRight[i]) <= MAKE_FLOAT_FIXED(0.01)) {
-            for (int k = i + 1; k < j; k++) { distRight[k] = distRight[i]; }
-          } else {
-            FIX32 slope = FIXED_DIV((distRight[j] - distRight[i]), MAKE_INT_FIXED(j - i));
-            FIX32 v     = distRight[i];
-            for (int k = i + 1; k < j; k++) {
-              v += slope;
-              distRight[k] = v;
-            }
+    // Adjusts distances to get a line between two vertices of the Convex Hull
+    auto adjustRight = [distRight](int i, int j) {
+      if ((j - i) > 1) {
+        if (abs(distRight[j] - distRight[i]) <= MAKE_FLOAT_FIXED(0.01)) {
+          for (int k = i + 1; k < j; k++) {
+            distRight[k] = distRight[i];
           }
-        }
-      };
-
-      // Find vertices using the cross product and adjust the distances
-      // to get the left portion of the Convex Hull polygon.
-      int i = distIdxRight;
-      int j = i + 1;
-      while (j < (i2->bitmapHeight + distIdxRight)) {
-        bool found = true;
-        for (int k = j + 1; k < i2->bitmapHeight + distIdxRight; k++) {
-          FIX32 val = crossRight(i, j, k);
-          if (val >= 0) {
-            found = false;
-            break;
-          }
-        }
-        if (found) {
-          adjustRight(i, j);
-          i = j;
-          j = i + 1;
         } else {
-          j += 1;
+          FIX32 slope = FIXED_DIV((distRight[j] - distRight[i]), MAKE_INT_FIXED(j - i));
+          FIX32 v     = distRight[i];
+          for (int k = i + 1; k < j; k++) {
+            v += slope;
+            distRight[k] = v;
+          }
         }
       }
+    };
+
+    // Find vertices using the cross product and adjust the distances
+    // to get the left portion of the Convex Hull polygon.
+    int i = distIdxRight;
+    int j = i + 1;
+    while (j < (i2->bitmapHeight + distIdxRight)) {
+      bool found = true;
+      for (int k = j + 1; k < i2->bitmapHeight + distIdxRight; k++) {
+        FIX32 val = crossRight(i, j, k);
+        if (val >= 0) {
+          found = false;
+          break;
+        }
+      }
+      if (found) {
+        adjustRight(i, j);
+        i = j;
+        j = i + 1;
+      } else {
+        j += 1;
+      }
     }
+  }
+
+  if (length <= 0) {
+    if (distIdxRight > distIdxLeft) {
+      FIX32   val = distRight[distIdxRight];
+      uint8_t i   = distIdxRight - 1;
+      while (length <= 0) {
+        distRight[i--] = val;
+        length += 1;
+        firstIdx -= 1;
+        distIdxRight -= 1;
+      }
+    } else {
+      FIX32   val = distLeft[distIdxLeft];
+      uint8_t i   = distIdxLeft - 1;
+      while (length <= 0) {
+        distLeft[i--] = val;
+        length += 1;
+        firstIdx -= 1;
+        distIdxLeft -= 1;
+      }
+    }
+  }
 
 #if 0
     std::cout << "Computed left-right convex hulls (origin:" << +origin << "firstIdx:" << +firstIdx
@@ -221,51 +246,51 @@ auto DrawingSpace::computeOpticalKerning(const IBMFDefs::BitmapPtr b1, const IBM
     }
 #endif
 
-    // Now, compute the smallest distance that exists between
-    // the two characters. Pixels on each line are checked as well
-    // as angled pixels (on the lines above and below)
-    kerning = MAKE_INT_FIXED(999);
-    FIX32 dist;
-    for (int i = firstIdx; i < firstIdx + length; i++) {
-      dist = distLeft[i] + distRight[i];
-      if (dist < kerning) kerning = dist;
-      if ((i > 0) && (distLeft[i - 1] >= 0)) {
-        dist = distLeft[i - 1] + distRight[i];
-        if (dist < kerning) kerning = dist;
-      }
-      if ((i < (hight - 1)) && (distLeft[i + 1] >= 0)) {
-        dist = distLeft[i + 1] + distRight[i];
-        if (dist < kerning) kerning = dist;
-      }
-    }
-    if ((firstIdx > 0) && (distRight[firstIdx - 1] >= 0)) {
-      dist = distLeft[firstIdx] + distRight[firstIdx - 1];
+  // Now, compute the smallest distance that exists between
+  // the two characters. Pixels on each line are checked as well
+  // as angled pixels (on the lines above and below)
+  kerning = MAKE_INT_FIXED(999);
+  FIX32 dist;
+  for (int i = firstIdx; i < firstIdx + length; i++) {
+    dist = distLeft[i] + distRight[i];
+    if (dist < kerning) kerning = dist;
+    if ((i > 0) && (distLeft[i - 1] >= 0)) {
+      dist = distLeft[i - 1] + distRight[i];
       if (dist < kerning) kerning = dist;
     }
-    int lastIdx = firstIdx + length - 1;
-    if ((lastIdx < (hight - 1)) && (distRight[lastIdx + 1] >= 0)) {
-      dist = distLeft[lastIdx] + distRight[lastIdx + 1];
+    if ((i < (hight - 1)) && (distLeft[i + 1] >= 0)) {
+      dist = distLeft[i + 1] + distRight[i];
       if (dist < kerning) kerning = dist;
     }
-
-    int addedWildcard;
-
-    if (i2->rleMetrics.beforeAddedOptKern == 3) {
-      addedWildcard = -1;
-    } else {
-      addedWildcard = i2->rleMetrics.beforeAddedOptKern;
-    }
-    addedWildcard += i1->rleMetrics.afterAddedOptKern;
-
-    // std::cout << "Minimal distance: " << MAKE_FIXED_FLOAT(kerning) << std::endl;
-
-    // Adjust the resulting kerning value, considering the targetted KERNING_SIZE (the space to have
-    // between characters), the size of the character and the normal distance that will be used by
-    // the writing algorithm
-    kerning = (-MIN(kerning - MAKE_INT_FIXED(KERNING_SIZE + addedWildcard),
-                    MAKE_INT_FIXED(i2->bitmapWidth))) -
-              MAKE_INT_FIXED(normal_distance);
   }
+  if ((firstIdx > 0) && (distRight[firstIdx - 1] >= 0)) {
+    dist = distLeft[firstIdx] + distRight[firstIdx - 1];
+    if (dist < kerning) kerning = dist;
+  }
+  int lastIdx = firstIdx + length - 1;
+  if ((lastIdx < (hight - 1)) && (distRight[lastIdx + 1] >= 0)) {
+    dist = distLeft[lastIdx] + distRight[lastIdx + 1];
+    if (dist < kerning) kerning = dist;
+  }
+
+  int addedWildcard;
+
+  if (i2->rleMetrics.beforeAddedOptKern == 3) {
+    addedWildcard = -1;
+  } else {
+    addedWildcard = i2->rleMetrics.beforeAddedOptKern;
+  }
+  addedWildcard += i1->rleMetrics.afterAddedOptKern;
+
+  // std::cout << "Minimal distance: " << MAKE_FIXED_FLOAT(kerning) << std::endl;
+
+  // Adjust the resulting kerning value, considering the targetted KERNING_SIZE (the space to have
+  // between characters), the size of the character and the normal distance that will be used by
+  // the writing algorithm
+  kerning = (-MIN(kerning - MAKE_INT_FIXED(KERNING_SIZE + addedWildcard),
+                  MAKE_INT_FIXED(i2->bitmapWidth))) -
+            MAKE_INT_FIXED(normal_distance);
+  // }
 
   result1 = kerning >> 4; // Convert to FIX16
 
@@ -402,19 +427,104 @@ void DrawingSpace::paintWord(QPainter *painter, int lineHeight) {
   wordLength_ = 0;
 }
 
+auto DrawingSpace::printLine() -> void {
+
+  //  fnt->drawSingleLineOfText(canvas, ibmf_defs::Pos(05, 20), line, false);
+
+  //  dumpCanvas(outStream);
+
+  linePixelWidth_ = 0;
+  line_.clear();
+}
+
+auto DrawingSpace::getNextGlyph(QString::iterator &iter) const -> OneGlyphPtr {
+
+  auto      glyph     = OneGlyphPtr(new OneGlyph);
+  GlyphCode g1        = font_->translate(*iter++);
+  GlyphCode g2        = font_->translate(*iter++);
+  GlyphCode savedCode = while (font_->ligKern(faceIdx_, g1, &g2, &kern, &kernPairPresent)) {}
+}
+
+auto DrawingSpace::addWordToLine(QString &w) -> void {
+
+  auto word = WordPtr(new Word);
+
+  auto iter = w.begin();
+
+  while (iter != w.end()) {
+    auto nextGlyph = getNextGlyph(iter);
+  }
+
+  int wordPixelWidth = 0;
+  wordPixelWidth     = fnt->getTextWidth(word);
+  if ((linePixelWidth_ + spaceSize_ + wordPixelWidth) > (canvas.dim.width - 10)) {
+    printLine();
+  }
+  if (line_.size() > 0) {
+    linePixelWidth_ += spaceSize_;
+  }
+  line_.push_back(word);
+  linePixelWidth_ += wordPixelWidth;
+
+  w.clear();
+}
+
+void DrawingSpace::newDrawScreen(QPainter *painter) {
+
+  if ((font_ == nullptr) || textToDraw_.isEmpty()) return;
+
+  if (painter != nullptr) {
+    painter->setPen(QPen(QBrush(QColorConstants::DarkGray), 1));
+    painter->setBrush(QBrush(QColorConstants::DarkGray));
+  }
+
+  line_.clear();
+  linePixelWidth_ = 0;
+  spaceSize_      = font_->getFaceHeader(faceIdx_)->spaceSize;
+
+  QString word;
+
+  for (auto &ch : textToDraw_) {
+    if (ch == ' ') {
+      if (word.length() > 0) {
+        addWordToLine(word);
+      }
+    } else if (ch == '\n') {
+      if (word.length() > 0) {
+        addWordToLine(word);
+      }
+      if (line_.size() > 0) {
+        printLine();
+      }
+    } else {
+      //      if (wordLen >= WORD_SIZE) {
+      //        addWordToLine(word);
+      //      }
+      word.append(ch);
+    }
+  }
+
+  if (word.length() > 0) {
+    addWordToLine(word);
+  }
+  if (line_.size() > 0) {
+    printLine();
+  }
+}
+
 void DrawingSpace::drawScreen(QPainter *painter) {
 
   // std::cout << "drawScreen()..." << std::endl;
 
   if ((font_ == nullptr) || textToDraw_.isEmpty()) return;
 
-  word_.clear();
-  wordLength_ = 0;
-
   if (painter != nullptr) {
     painter->setPen(QPen(QBrush(QColorConstants::DarkGray), 1));
     painter->setBrush(QBrush(QColorConstants::DarkGray));
   }
+
+  word_.clear();
+  wordLength_      = 0;
 
   int  lineHeight  = font_->getLineHeight(faceIdx_);
   bool first       = true;
@@ -435,6 +545,7 @@ void DrawingSpace::drawScreen(QPainter *painter) {
   g1 = NO_GLYPH_CODE;
 
   auto iter = textToDraw_.begin();
+
   while (true) {
     if (g1 != NO_GLYPH_CODE) {
       if ((!kernPairPresent) && opticalKerning_ && (g2 != NO_GLYPH_CODE)) {
@@ -496,7 +607,9 @@ void DrawingSpace::drawScreen(QPainter *painter) {
     IBMFDefs::GlyphLigKernPtr ligKerns;
 
     if (ch == '\n') {
-      if (word_.size() > 0) { paintWord(painter, lineHeight); }
+      if (word_.size() > 0) {
+        paintWord(painter, lineHeight);
+      }
       pos_.setY(pos_.y() + lineHeight);
       pos_.setX(0);
       startOfLine = true;
@@ -507,7 +620,9 @@ void DrawingSpace::drawScreen(QPainter *painter) {
         paintWord(painter, lineHeight);
         first = true;
       }
-      if (!startOfLine) { pos_.setX(pos_.x() + font_->getFaceHeader(faceIdx_)->spaceSize); }
+      if (!startOfLine) {
+        pos_.setX(pos_.x() + font_->getFaceHeader(faceIdx_)->spaceSize);
+      }
       continue;
     } else {
       glyphCode = font_->translate(ch.unicode());
@@ -519,7 +634,9 @@ void DrawingSpace::drawScreen(QPainter *painter) {
         glyphInfo = bypassGlyphInfo_;
         ligKerns  = bypassGlyphLigKern_;
       } else {
-        if (!font_->getGlyph(faceIdx_, glyphCode, glyphInfo, bitmap, ligKerns)) { continue; }
+        if (!font_->getGlyph(faceIdx_, glyphCode, glyphInfo, bitmap, ligKerns)) {
+          continue;
+        }
       }
     }
 
@@ -554,7 +671,9 @@ void DrawingSpace::drawScreen(QPainter *painter) {
               glyphInfo = bypassGlyphInfo_;
               ligKerns  = bypassGlyphLigKern_;
             } else {
-              if (!font_->getGlyph(faceIdx_, glyphCode, glyphInfo, bitmap, ligKerns)) { continue; }
+              if (!font_->getGlyph(faceIdx_, glyphCode, glyphInfo, bitmap, ligKerns)) {
+                continue;
+              }
             }
             b2 = bitmap;
             i2 = glyphInfo;
