@@ -14,8 +14,6 @@ public:
   explicit DrawingSpace(IBMFFontModPtr font = nullptr, int faceIdx = 0, QWidget *parent = nullptr);
   void drawScreen(QPainter *painter);
 
-  void newDrawScreen(QPainter *painter);
-
   void setText(QString text);
   void setOpticalKerning(bool value);
   void setNormalKerning(bool value);
@@ -44,9 +42,10 @@ private:
 
   typedef std::vector<WordPtr> Line;
 
-  Line line_;
-  int  linePixelWidth_;
-  int  spaceSize_;
+  Line                  line_;
+  int                   linePixelWidth_;
+  int                   spaceSize_;
+  std::vector<OneGlyph> word_;
 
   QString        textToDraw_;
   IBMFFontModPtr font_;
@@ -65,9 +64,9 @@ private:
 
   auto computeOpticalKerning(const BitmapPtr b1, const BitmapPtr b2, const GlyphInfoPtr i1,
                              const GlyphInfoPtr i2) const -> FIX16;
-  auto paintWord(QPainter *painter, int lineHeight) -> void;
   auto computeSize() -> void;
 
-  auto printLine() -> void;
-  auto addWordToLine(QString &w) -> void;
+  auto printWord(WordPtr &word, QPainter *painter) -> void;
+  auto printLine(QPainter *painter) -> void;
+  auto addWordToLine(QString &w, QPainter *painter) -> void;
 };
