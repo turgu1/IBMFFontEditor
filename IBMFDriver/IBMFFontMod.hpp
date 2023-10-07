@@ -136,6 +136,7 @@ public:
   auto showFont(QTextStream &stream, QString fontName, bool withBitmaps = false) const -> void;
 
   auto createBundleCodePointEntry(char16_t cPoint) -> void;
+  void recomputeLigatures();
   auto importModificationsFrom(QTextStream &stream, QString fontName, QString fileName,
                                IBMFFontModPtr fromBackup, IBMFFontModPtr toBackup,
                                IBMFFontModPtr thisFont) -> void;

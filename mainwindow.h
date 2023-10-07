@@ -103,7 +103,9 @@ private slots:
 
   void on_after1Radio_toggled(bool checked);
 
-private:
+  void on_actionRecompute_Ligatures_triggered();
+
+  private:
   const int MAX_RECENT_FILES = 10;
 
   Ui::MainWindow *ui;

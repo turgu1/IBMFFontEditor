@@ -279,7 +279,7 @@ typedef PixelPoolIndex (*GlyphsPixelPoolIndexesTempPtr)[]; // One for each glyph
 //
 // The lig kern array contains instructions (struct LibKernStep) in a simple programming
 // language that explains what to do for special letter pairs. The information in squared
-// brackets relate to fields that are part of the LibKernStep struct. Each entry in this
+// brackets relates to fields that are part of the LibKernStep struct. Each entry in this
 // array is a lig kern command of four bytes:
 //
 // - first byte: skip byte, indicates that this is the final program step if the byte

@@ -1581,7 +1581,7 @@
      <x>0</x>
      <y>0</y>
      <width>1325</width>
-     <height>19</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -1638,6 +1638,8 @@
     <addaction name="separator"/>
     <addaction name="actionDump_Font_Content_With_Glyphs_Bitmap"/>
     <addaction name="actionDump_Modif_Content_With_Glyphs_Bitmap"/>
+    <addaction name="separator"/>
+    <addaction name="actionRecompute_Ligatures"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="editMenu"/>
@@ -1732,6 +1734,11 @@
   <action name="actionDump_Modif_Content_With_Glyphs_Bitmap">
    <property name="text">
     <string>Dump Modif Content With Glyphs Bitmap</string>
+   </property>
+  </action>
+  <action name="actionRecompute_Ligatures">
+   <property name="text">
+    <string>Recompute Ligatures</string>
    </property>
   </action>
  </widget>

@@ -1744,3 +1744,16 @@ void MainWindow::on_before2Radio_toggled(bool checked) { glyphWasChanged(); }
 void MainWindow::on_after0Radio_toggled(bool checked) { glyphWasChanged(); }
 
 void MainWindow::on_after1Radio_toggled(bool checked) { glyphWasChanged(); }
+
+void MainWindow::on_actionRecompute_Ligatures_triggered()
+{
+  if ((ibmfFont_ != nullptr) && ibmfFont_->isInitialized()) {
+    ibmfFont_->recomputeLigatures();
+    fontChanged_ = true;
+    updateCharactersList();
+
+    QMessageBox::information(
+        this, "Ligatures Recompute Completed", "Ligatures Recompute Completed");
+  }
+}
+

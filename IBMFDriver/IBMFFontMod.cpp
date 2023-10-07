@@ -1232,6 +1232,28 @@ auto IBMFFontMod::showFont(QTextStream &stream, QString fontName, bool withBitma
   stream << Qt::endl << "[End of Dump]" << Qt::endl;
 }
 
+void IBMFFontMod::recomputeLigatures() {
+  for (auto &face : faces_) {
+    // Recompute all ligatures from the pre-defined table
+
+    for (uint16_t glyphCode = 0; glyphCode < face->header->glyphCount; glyphCode++) {
+      char32_t firstChar = getUTF32(glyphCode);
+      face->glyphsLigKern[glyphCode]->ligSteps.clear();
+      for (auto &ligature : ligatures) {
+        if (ligature.firstChar == firstChar) {
+          GlyphCode nextGlyphCode        = translate(ligature.nextChar);
+          GlyphCode replacementGlyphCode = translate(ligature.replacement);
+          if ((nextGlyphCode != NO_GLYPH_CODE) && (nextGlyphCode != SPACE_CODE) &&
+              (replacementGlyphCode != NO_GLYPH_CODE) && (replacementGlyphCode != SPACE_CODE)) {
+            face->glyphsLigKern[glyphCode]->ligSteps.push_back(GlyphLigStep{
+               .nextGlyphCode = nextGlyphCode, .replacementGlyphCode = replacementGlyphCode});
+          }
+        }
+      }
+    }
+  }
+}
+
 auto IBMFFontMod::importModificationsFrom(QTextStream &stream, QString fontName, QString fileName,
                                           IBMFFontModPtr fromBackup, IBMFFontModPtr toBackup,
                                           IBMFFontModPtr thisFont) -> void {
@@ -1375,25 +1397,7 @@ auto IBMFFontMod::importModificationsFrom(QTextStream &stream, QString fontName,
     }
   }
 
-  for (auto &face : faces_) {
-    // Recompute all ligatures from the pre-defined table
-
-    for (uint16_t glyphCode = 0; glyphCode < face->header->glyphCount; glyphCode++) {
-      char32_t firstChar = getUTF32(glyphCode);
-      face->glyphsLigKern[glyphCode]->ligSteps.clear();
-      for (auto &ligature : ligatures) {
-        if (ligature.firstChar == firstChar) {
-          GlyphCode nextGlyphCode        = translate(ligature.nextChar);
-          GlyphCode replacementGlyphCode = translate(ligature.replacement);
-          if ((nextGlyphCode != NO_GLYPH_CODE) && (nextGlyphCode != SPACE_CODE) &&
-              (replacementGlyphCode != NO_GLYPH_CODE) && (replacementGlyphCode != SPACE_CODE)) {
-            face->glyphsLigKern[glyphCode]->ligSteps.push_back(GlyphLigStep{
-                .nextGlyphCode = nextGlyphCode, .replacementGlyphCode = replacementGlyphCode});
-          }
-        }
-      }
-    }
-  }
+  recomputeLigatures();
 
   stream << Qt::endl
          << "Import Completed:" << Qt::endl
