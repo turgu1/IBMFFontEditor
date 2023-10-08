@@ -51,7 +51,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
   TRACE("Point 2");
 
-  bitmapRenderer_ = new BitmapRenderer(ui->bitmapFrame, 20, false, undoStack_);
+  bitmapRenderer_ = new BitmapRenderer(ui->bitmapFrame, 20, false, true, undoStack_);
   ui->bitmapFrame->layout()->addWidget(bitmapRenderer_);
 
   QObject::connect(bitmapRenderer_, &BitmapRenderer::bitmapHasChanged, this,
@@ -61,11 +61,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
   //  QObject::connect(bitmapRenderer_, &BitmapRenderer::keyPressed, this,
   //                   &MainWindow::rendererKeyPressed);
 
-  smallGlyph_ = new BitmapRenderer(ui->smallGlyphPreview, 2, true, undoStack_);
+  smallGlyph_ = new BitmapRenderer(ui->smallGlyphPreview, 2, true, false, undoStack_);
   ui->smallGlyphPreview->layout()->addWidget(smallGlyph_);
   smallGlyph_->connectTo(bitmapRenderer_);
 
-  largeGlyph_ = new BitmapRenderer(ui->largeGlyphPreview, 4, true, undoStack_);
+  largeGlyph_ = new BitmapRenderer(ui->largeGlyphPreview, 4, true, false, undoStack_);
   ui->largeGlyphPreview->layout()->addWidget(largeGlyph_);
   largeGlyph_->connectTo(bitmapRenderer_);
 
@@ -232,9 +232,23 @@ void MainWindow::updateCharactersList() {
       item->setTextAlignment(Qt::AlignCenter);
       if (idx < ibmfFaceHeader_->glyphCount) {
         char32_t codePoint = ibmfFont_->getUTF32(idx);
-        item->setData(Qt::EditRole, QChar(codePoint));
-
+        if ((codePoint >= 0xE000) && (codePoint <= 0xF8FF)) {
+            // These codePoint are specific to the font, uses the IBMF Font glyphs to show on screen
+            IBMFDefs::GlyphInfoPtr glyphInfo;
+            IBMFDefs::BitmapPtr bitmap;
+            if (ibmfFont_->getGlyph(ibmfFaceIdx_, idx, glyphInfo, bitmap, ibmfGlyphLigKern_)) {
+                auto renderer = new BitmapRenderer(ui->charactersList, 2, true, false);
+                renderer->clearAndLoadBitmap(idx, *bitmap, *ibmfFaceHeader_, *glyphInfo);
+                ui->charactersList->setCellWidget(row, col, renderer);
+                //  QObject::connect(bitmapRenderer_, &BitmapRenderer::keyPressed, this,
+                //                   &MainWindow::rendererKeyPressed);
+                QObject::connect(renderer, &BitmapRenderer::glyphClicked, this,
+                                 &MainWindow::characterListUserGlyphClicked);
+            }
+            item->setData(Qt::EditRole, QChar(codePoint));
+        }
         item->setToolTip(QString("%1: U+%2").arg(idx).arg(codePoint, 5, 16, QChar('0')));
+        item->setData(Qt::EditRole, QChar(codePoint));
       } else {
         item->setFlags(Qt::NoItemFlags);
       }
@@ -917,9 +931,9 @@ bool MainWindow::loadGlyph(uint16_t glyphCode) {
       ui->currentCodePoint->setText(QString("U+%1").arg(codePoint, 5, 16, QChar('0')));
 
       centerScrollBarPos();
-      bitmapRenderer_->clearAndLoadBitmap(*bitmap, *ibmfFaceHeader_, *glyphInfo);
-      smallGlyph_->clearAndLoadBitmap(*bitmap, *ibmfFaceHeader_, *glyphInfo);
-      largeGlyph_->clearAndLoadBitmap(*bitmap, *ibmfFaceHeader_, *glyphInfo);
+      bitmapRenderer_->clearAndLoadBitmap(glyphCode, *bitmap, *ibmfFaceHeader_, *glyphInfo);
+      smallGlyph_->clearAndLoadBitmap(glyphCode, *bitmap, *ibmfFaceHeader_, *glyphInfo);
+      largeGlyph_->clearAndLoadBitmap(glyphCode, *bitmap, *ibmfFaceHeader_, *glyphInfo);
 
       ui->ligTable->clearContents();
       ui->kernTable->clearContents();
@@ -1056,6 +1070,8 @@ void MainWindow::on_pixelSize_valueChanged(int value) {
 
   setScrollBarSizes(value);
 }
+
+void MainWindow::characterListUserGlyphClicked(int glyphCode) { loadGlyph(glyphCode); }
 
 void MainWindow::on_charactersList_cellClicked(int row, int column) {
   int idx = (row * 5) + column;
@@ -1728,6 +1744,7 @@ void MainWindow::on_addCharacterButton_clicked() {
 
     fontChanged_        = true;
     putValue(ui->faceHeader, 8, 1, ibmfFaceHeader_->glyphCount, false);
+    ibmfFont_->recomputeLigatures();
     updateCharactersList();
     loadGlyph(glyphCode);
   }

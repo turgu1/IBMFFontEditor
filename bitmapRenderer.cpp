@@ -6,12 +6,13 @@
 #include "qwidget.h"
 #include "setPixelCommand.h"
 
-BitmapRenderer::BitmapRenderer(QWidget *parent, int pixelSize, bool noScroll,
-                               QUndoStack *undoStack_)
-    : QWidget(parent), pixelSize_(pixelSize), noScroll_(noScroll), undoStack_(undoStack_) {
-  setBackgroundRole(QPalette::Base);
-  setAutoFillBackground(true);
-  clearBitmap();
+BitmapRenderer::BitmapRenderer(QWidget *parent, int pixelSize, bool noScroll, bool editable,
+                               QUndoStack *undoStack)
+    : QWidget(parent), pixelSize_(pixelSize), noScroll_(noScroll), undoStack_(undoStack),
+      editable_(editable) {
+    setBackgroundRole(QPalette::Base);
+    setAutoFillBackground(true);
+    clearBitmap();
 }
 
 void BitmapRenderer::resizeEvent(QResizeEvent *event) {
@@ -208,6 +209,8 @@ void BitmapRenderer::mousePressEvent(QMouseEvent *event) {
       }
     }
     setFocus();
+  } else {
+    emit glyphClicked(glyphCode_);
   }
 }
 
@@ -298,11 +301,12 @@ auto BitmapRenderer::pasteSelection(IBMFDefs::BitmapPtr selection, QPoint *atPos
 
 void BitmapRenderer::wheelEvent(QWheelEvent *event) {}
 
-void BitmapRenderer::clearAndLoadBitmap(const IBMFDefs::Bitmap     &bitmap,
+void BitmapRenderer::clearAndLoadBitmap(int glyphCode, const IBMFDefs::Bitmap &bitmap,
                                         const IBMFDefs::FaceHeader &faceHeader,
-                                        const IBMFDefs::GlyphInfo  &glyphInfo) {
+                                        const IBMFDefs::GlyphInfo &glyphInfo) {
   faceHeader_   = faceHeader;
   glyphInfo_    = glyphInfo;
+  glyphCode_ = glyphCode;
   glyphPresent_ = true;
 
   glyphBitmapPos_ =

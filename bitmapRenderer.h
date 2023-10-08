@@ -23,7 +23,7 @@ public:
   enum PixelType : uint8_t { WHITE, BLACK };
 
   BitmapRenderer(QWidget *parent = 0, int pixel_size = 20, bool no_scroll = false,
-                 QUndoStack *undoStack_ = nullptr);
+                 bool editable = false, QUndoStack *undoStack = nullptr);
   bool retrieveBitmap(IBMFDefs::BitmapPtr *bitmap, QPoint *offsets = nullptr);
   void clearAndEmit(bool repaint_after = false);
   bool changed() { return bitmapChanged_; }
@@ -41,19 +41,21 @@ public:
   auto getSelectionLocation() -> QPoint *;
   auto getOriginPos() -> QPoint { return glyphOriginPos_; }
 
-public slots:
-  void clearAndLoadBitmap(const IBMFDefs::Bitmap &bitmap, const IBMFDefs::FaceHeader &faceHeader,
+  public slots:
+  void clearAndLoadBitmap(const int glyphCode, const IBMFDefs::Bitmap &bitmap,
+                          const IBMFDefs::FaceHeader &faceHeader,
                           const IBMFDefs::GlyphInfo &glyphInfo);
   void clearAndReloadBitmap(const IBMFDefs::Bitmap &bitmap, const QPoint &originOffsets);
   void clearAndRepaint();
 
-signals:
+  signals:
   void bitmapHasChanged(const IBMFDefs::Bitmap &bitmap, const QPoint &originOffsets);
   void bitmapCleared();
   void someSelection(bool some);
   void keyPressed(QKeyEvent *event);
+  void glyphClicked(int glyphCode);
 
-protected:
+  protected:
   void paintEvent(QPaintEvent *event);
   void mousePressEvent(QMouseEvent *event);
   void mouseReleaseEvent(QMouseEvent *event);
@@ -97,4 +99,5 @@ private:
   DisplayBitmap        displayBitmap_; // Each entry correspond to one pixel of a glyph
   IBMFDefs::FaceHeader faceHeader_;    // idem
   IBMFDefs::GlyphInfo  glyphInfo_;     // idem
+  int glyphCode_;
 };
